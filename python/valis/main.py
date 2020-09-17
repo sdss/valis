@@ -1,82 +1,42 @@
-# encoding: utf-8
+# !/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
-# @Author: José Sánchez-Gallego
-# @Date: Oct 12, 2017
-# @Filename: main.py
-# @License: BSD 3-Clause
-# @Copyright: José Sánchez-Gallego
-
-import operator
-
-
-__all__ = ('math', 'MyClass')
+# Filename: main.py
+# Project: app
+# Author: Brian Cherinka
+# Created: Wednesday, 16th September 2020 10:16:46 pm
+# License: BSD 3-clause "New" or "Revised" License
+# Copyright (c) 2020 Brian Cherinka
+# Last Modified: Wednesday, 16th September 2020 10:16:46 pm
+# Modified By: Brian Cherinka
 
 
-def math(arg1, arg2, arith_operator='+'):
-    """Performs an arithmetic operation.
+from __future__ import print_function, division, absolute_import
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 
-    This function accepts to numbers and performs an arithmetic operation
-    with them. The arithmetic operation can be passed as a string. By default,
-    the addition operator is assumed.
-
-    Parameters:
-        arg1,arg2 (float):
-            The numbers that we will sub/subtract/multiply/divide.
-        arith_operator ({'+', '-', '*', '/'}):
-            A string indicating the arithmetic operation to perform.
-
-    Returns:
-        result (float):
-            The result of the arithmetic operation.
-
-    Example:
-      >>> math(2, 2, arith_operator='*')
-      >>> 4
-
-    """
-
-    str_to_operator = {'+': operator.add,
-                       '-': operator.sub,
-                       '*': operator.mul,
-                       '/': operator.truediv}
-
-    return str_to_operator[arith_operator](arg1, arg2)
+import valis
+from valis.routes import items, users
 
 
-class MyClass(object):
-    """A description of the class.
+app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__)
+app.mount("/valis", app)
 
-    The top docstring in a class describes the class in general, and the
-    parameters to be passed to the class ``__init__``.
 
-    Parameters:
-        arg1 (float):
-            The first argument.
-        arg2 (int):
-            The second argument.
-        kwarg1 (str):
-            A keyword argument.
+@app.get("/")
+def hello(request: Request):
+    return {"Hello": "FastAPI World", 'scope': request.scope.get("root_path")}
 
-    Attributes:
-        name (str): A description of what names gives acces to.
 
-    """
+async def get_token_header(x_token: str = Header(...)):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
 
-    def __init__(self, arg1, arg2, kwarg1='a'):
 
-        self.name = arg1
-
-    def do_something(self):
-        """A description of what this method does."""
-
-        pass
-
-    def do_something_else(self, param):
-        """A description of what this method does.
-
-        If the class only has one or two arguments, you can describe them
-        inline. ``param`` is the parameter that we use to do something else.
-
-        """
-
-        pass
+app.include_router(users.router)
+app.include_router(
+    items.router,
+    prefix="/items",
+    tags=["items"],
+    dependencies=[Depends(get_token_header)],
+    responses={404: {"description": "Not found"}},
+)
