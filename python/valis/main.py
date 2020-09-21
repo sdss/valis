@@ -15,16 +15,17 @@ from __future__ import print_function, division, absolute_import
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 
 import valis
-from valis.routes import items, users
+from valis.routes import items, users, access
 
 
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__)
+# submount app to allow for production /valis location
 app.mount("/valis", app)
 
 
 @app.get("/")
 def hello(request: Request):
-    return {"Hello": "FastAPI World", 'scope': request.scope.get("root_path")}
+    return {"Hello SDSS": "This is the FastAPI World"}
 
 
 async def get_token_header(x_token: str = Header(...)):
@@ -33,6 +34,7 @@ async def get_token_header(x_token: str = Header(...)):
 
 
 app.include_router(users.router)
+app.include_router(access.router, prefix='/paths', tags=['paths'])
 app.include_router(
     items.router,
     prefix="/items",

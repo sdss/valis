@@ -2,14 +2,17 @@
 .. _api:
 
 valis Reference
-=========================
+===============
 
 .. _api-main:
 
-Main
-----
+Routes
+------
 
-.. automodule:: valis.main
+Access
+^^^^^^
+
+.. automodule:: valis.routes.access
    :members:
    :undoc-members:
    :show-inheritance:
