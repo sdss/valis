@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: valis:0.1.0
+    container_name: valis
+    ports:
+      - "8000:80"
+    volumes:
+      # adds current directory to /code in container
+      - .:/code

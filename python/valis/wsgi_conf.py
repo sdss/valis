@@ -20,8 +20,10 @@ from __future__ import print_function, division, absolute_import
 #
 # run the following from the project terminal or set up a system service
 # gunicorn -c wsgi_conf.py valis.wsgi:app
+import os
 
-bind = "unix:/tmp/valis/valis.sock"
+socket_dir = os.getenv("VALIS_SOCKET_DIR", '/tmp/valis')
+bind = f"unix:{socket_dir}/valis.sock"
 workers = 4
 worker_class = "uvicorn.workers.UvicornWorker"
 errorlog = '-'
