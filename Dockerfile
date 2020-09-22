@@ -22,3 +22,10 @@ COPY ./docker_prestart.sh /app/prestart.sh
 
 # setting environment variables
 ENV MODULE_NAME="valis.wsgi"
+
+# set container socket directory to /tmp/valis ; push that to gunicorn conf
+ENV VALIS_SOCKET_DIR='/tmp/valis'
+ENV GUNICORN_CONF="/app/app/wsgi_conf.py"
+
+# mount container socket directory
+VOLUME ${VALIS_SOCKET_DIR}
