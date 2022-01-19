@@ -5,7 +5,9 @@
 [![Travis (.org)](https://img.shields.io/travis/sdss/valis)](https://travis-ci.org/sdss/valis)
 [![codecov](https://codecov.io/gh/sdss/valis/branch/master/graph/badge.svg)](https://codecov.io/gh/sdss/valis)
 
-the SDSS API for delivering and accessing remote information
+the SDSS API for delivering and accessing remote information.
+
+This API is built using the [FastAPI](https://fastapi.tiangolo.com/) web server.  Python depdendices are managed with [poetry](https://python-poetry.org/).
 
 ## Installation
 ### Developer Install
@@ -14,6 +16,31 @@ git clone https://github.com/sdss/valis valis
 cd valis
 poetry install
 ```
+
+### Updating Dependencies with Poetry
+To update poetry itself, run 
+```
+poetry self update
+```
+
+To update the package dependencies for `valis`, run
+```
+poetry update [package]
+```
+This will update all the packages, or the specified `[package]`, resolve all dependencies, and update the `poetry.lock` file.
+
+To install new packages and add them to the `pyproject.toml` and `poetry.lock` files, run
+```
+poetry install [package]
+```
+
+### Local Development
+
+To run a local instance for development, run the following from the top level of the `valis` repo.
+```
+uvicorn valis.wsgi:app --reload
+```
+This will start a local web server at `http://localhost:8000/valis/`.  The API documentation will be located at `http://localhost:8000/valis/docs`.  Or to see the alternate documentation, go to `http://localhost:8000/valis/redoc/`
 
 ## Deployment
 ### Running manually via gunicorn + nginx
