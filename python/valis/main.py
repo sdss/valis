@@ -15,7 +15,7 @@ from __future__ import print_function, division, absolute_import
 from fastapi import FastAPI, Request
 
 import valis
-from valis.routes import access
+from valis.routes import access, envs
 
 
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__)
@@ -29,3 +29,4 @@ def hello(request: Request):
 
 
 app.include_router(access.router, prefix='/paths', tags=['paths'])
+app.include_router(envs.router, prefix='/envs', tags=['envs'])
