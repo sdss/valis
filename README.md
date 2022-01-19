@@ -43,6 +43,9 @@ uvicorn valis.wsgi:app --reload
 This will start a local web server at `http://localhost:8000/valis/`.  The API documentation will be located at `http://localhost:8000/valis/docs`.  Or to see the alternate documentation, go to `http://localhost:8000/valis/redoc/`
 
 ## Deployment
+
+Note: this is middle of refactoring and revision.  
+
 ### Running manually via gunicorn + nginx
  - Setup a local nginx server with a /valis location
  - export VALIS_SOCKET_DIR=/tmp/valis

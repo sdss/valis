@@ -6,7 +6,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       #- ./nginx/valis_error.log:/etc/nginx/valis_error.log
-      - ./nginx/cache/:/etc/nginx/cache
+      #- ./nginx/cache/:/etc/nginx/cache
       - ${VALIS_SOCKET_DIR:-/tmp/valis}:/tmp/valis # (host_socket_dir:upstream_socket_location)
     ports:
       - 8080:80
