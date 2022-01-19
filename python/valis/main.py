@@ -12,10 +12,10 @@
 
 
 from __future__ import print_function, division, absolute_import
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import FastAPI, Request
 
 import valis
-from valis.routes import items, users, access
+from valis.routes import access
 
 
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__)
@@ -23,22 +23,9 @@ app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version
 app.mount("/valis", app)
 
 
-@app.get("/")
+@app.get("/", summary='Hello World route')
 def hello(request: Request):
     return {"Hello SDSS": "This is the FastAPI World"}
 
 
-async def get_token_header(x_token: str = Header(...)):
-    if x_token != "fake-super-secret-token":
-        raise HTTPException(status_code=400, detail="X-Token header invalid")
-
-
-app.include_router(users.router)
 app.include_router(access.router, prefix='/paths', tags=['paths'])
-app.include_router(
-    items.router,
-    prefix="/items",
-    tags=["items"],
-    dependencies=[Depends(get_token_header)],
-    responses={404: {"description": "Not found"}},
-)

@@ -88,14 +88,14 @@ async def extract_path(name: str, request: Request) -> Type[PathModel]:
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/", summary='Get a list of all sdss_access path names')
 async def get_paths():
     """ Get a list of sdss_access path names """
     p = Path()
     return {'names': list(p.lookup_names())}
 
 
-@router.get("/keywords/{name}")
+@router.get("/keywords/{name}", summary='Get a list of keyword variables for a sdss_acccess path name.')
 async def get_path_kwargs(path: Type[PathModel] = Depends(extract_path)):
     """ Get a list of input keyword arguments
 
@@ -116,7 +116,7 @@ async def get_path_kwargs(path: Type[PathModel] = Depends(extract_path)):
     return {'name': path.name, 'kwargs': p.lookup_keys(path.name)}
 
 
-@router.get("/{name}")
+@router.get("/{name}", summary='Get the template or resolved path for an sdss_access path name.')
 async def get_path_name(path: Type[PathModel] = Depends(extract_path), part: PathPart = 'full',
                         exists: bool = False):
     """ Construct an sdss_access path
@@ -148,7 +148,7 @@ async def get_path_name(path: Type[PathModel] = Depends(extract_path), part: Pat
         return path.dict() if part == 'all' else path.dict(include={part})
 
 
-@router.post("/{name}")
+@router.post("/{name}", summary='Get the template or resolved path for an sdss_access path name.')
 async def post_path_name(name: str, kwargs: dict = None, part: PathPart = 'full',
                          exists: bool = False):
     """ Construct an sdss_access path
