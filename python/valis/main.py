@@ -12,10 +12,15 @@
 
 
 from __future__ import print_function, division, absolute_import
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 
 import valis
 from valis.routes import access, envs
+
+
+async def release(release: str = 'WORK'):
+    return {"release": release}
+
 
 
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__)
@@ -24,8 +29,8 @@ app.mount("/valis", app)
 
 
 @app.get("/", summary='Hello World route')
-def hello(request: Request):
-    return {"Hello SDSS": "This is the FastAPI World"}
+def hello(release = Depends(release)):
+    return {"Hello SDSS": "This is the FastAPI World", 'release': release}
 
 
 app.include_router(access.router, prefix='/paths', tags=['paths'])
