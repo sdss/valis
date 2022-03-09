@@ -3,15 +3,12 @@
 #
 from __future__ import print_function, division, absolute_import
 
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi_utils.cbv import cbv
-from pydantic import BaseModel, validator
-from typing import Type, Union, Dict
+from pydantic import BaseModel
+from typing import Type, Union, Dict, Any, Optional
 from astropy.io import fits
-from enum import Enum
-from pydantic import ValidationError
-import copy
 import pathlib
 import orjson
 
@@ -27,6 +24,20 @@ async def header(filename: str = Depends(get_filepath), ext: Union[int, str] = 0
     ''' get a FITS header '''
     with fits.open(filename) as hdu:
         return hdu[ext].header
+
+
+class ORJSONResponseCustom(JSONResponse):
+    """ Custom ORJSONResponse that allows passing options to orjson library """
+    media_type = "application/json"
+    option = None
+
+    def __init__(self, option: Optional[int] = None, **kwds):
+        self.option = option
+        super().__init__(**kwds)
+
+    def render(self, content: Any) -> bytes:
+        assert orjson is not None, "orjson must be installed to use ORJSONResponse"
+        return orjson.dumps(content, option=self.option)
 
 
 @cbv(router)
