@@ -12,36 +12,37 @@
 
 
 from __future__ import print_function, division, absolute_import
-from tree import Tree
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
+from fastapi_utils.cbv import cbv
 import copy
+
+from valis.routes.base import Base
 
 router = APIRouter()
 
+@cbv(router)
+class Envs(Base):
 
-@router.get("/", summary='Get a list of SDSS tree environment variables')
-async def get_envs() -> dict:
-    """ Get a list of SDSS tree environment variables """
-    t = Tree()
-    return {'envs': {k: list(v.keys()) for k, v in t.environ.items() if k != 'default'}}
-
-
-@router.get("/resolve", summary='Resolve the SDSS tree environment variables into their paths')
-async def resolve_envs(name: str = None) -> dict:
-    """ Get a list of SDSS tree environment variables """
-    t = Tree()
-    env = copy.deepcopy(t.environ)
-    env.pop('default')
-    if name:
-        td = t.to_dict()
-        if name not in td:
-            raise HTTPException(status_code=404, detail=f'{name} not found in SDSS tree')
-        return {name: td.get(name)}
-    return {'envs': env}
+    @router.get("/", summary='Get a list of SDSS tree environment variables')
+    async def get_envs(self) -> dict:
+        """ Get a list of SDSS tree environment variables """
+        return {'envs': {k: list(v.keys()) for k, v in self.tree.environ.items() if k != 'default'}}
 
 
-@router.get("/releases", summary='Get a list of SDSS data releases')
-async def get_releases(public: bool = False) -> list:
-    """ Get a list of SDSS releases """
-    t = Tree()
-    return t.get_available_releases(public=public)
+    @router.get("/resolve", summary='Resolve the SDSS tree environment variables into their paths')
+    async def resolve_envs(self, name: str = None) -> dict:
+        """ Get a list of SDSS tree environment variables """
+        env = copy.deepcopy(self.tree.environ)
+        env.pop('default')
+        if name:
+            td = self.tree.to_dict()
+            if name not in td:
+                raise HTTPException(status_code=404, detail=f'{name} not found in SDSS tree')
+            return {name: td.get(name)}
+        return {'envs': env}
+
+
+    @router.get("/releases", summary='Get a list of SDSS data releases')
+    async def get_releases(self, public: bool = False) -> list:
+        """ Get a list of SDSS releases """
+        return self.tree.get_available_releases(public=public)
