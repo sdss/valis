@@ -3,7 +3,7 @@
 #
 from __future__ import print_function, division, absolute_import
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi_utils.cbv import cbv
 import numpy as np
@@ -24,7 +24,11 @@ router = APIRouter()
 
 async def get_filepath(name: str, path: Type[PathModel] = Depends(extract_path)) -> str:
     """ Depedency to get a filepath from sdss_access """
-    return path.dict(include={'full'})['full']
+    data = path.dict(include={'full', 'exists'})
+    filepath = data['full']
+    if not data['exists']:
+        raise HTTPException(status_code=404, detail=f'File {filepath} not found')
+    return filepath
 
 
 async def header(filename: str = Depends(get_filepath), ext: Union[int, str] = 0) -> dict:
