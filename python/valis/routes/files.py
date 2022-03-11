@@ -15,13 +15,14 @@ import pathlib
 import orjson
 import ast
 from io import StringIO
+from enum import Enum
 
 from valis.routes.base import Base
 from valis.routes.access import extract_path, PathModel
 
 router = APIRouter()
 
-async def get_filepath(name: str = None, path: Type[PathModel] = Depends(extract_path)) -> str:
+async def get_filepath(name: str, path: Type[PathModel] = Depends(extract_path)) -> str:
     """ Depedency to get a filepath from sdss_access """
     return path.dict(include={'full'})['full']
 
@@ -42,10 +43,67 @@ async def get_ext(filename: str = Depends(get_filepath), ext: Union[int, str] = 
             data = {c: t[c].data for c in t.columns}
         yield data, hdu[ext].header
 
-async def get_stream(filename: str = Depends(get_filepath), ext: Union[int, str] = 0):
-    """ Dependency to get a FITS data, header """
+
+# image/table hdu
+def stream_bytes(data):
+    yield numpy_to_bytes(data)
+
+# image hdu
+def stream_image_json(data):
+    yield orjson.dumps(data, option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
+
+# imagehdu
+def stream_image_csv(data):
+    ii = StringIO()
+    if 'float' in data.dtype.name:
+        p = np.finfo(data.dtype).precision
+    fmap = {'int16': '%d', 'int32': '%d', 'int64': '%d', 'float16': f'%.{p+1}f', 
+            'float32': f'%.{p+1}f', 'float64': f'%.{p+1}f', 'str': '%s'}
+    fmt = fmap.get(data.dtype.name, '%s')
+    np.savetxt(ii, data, delimiter=',', fmt=fmt)
+    yield ii.getvalue()
+    
+# table hdu
+def stream_table_json(data):
+    yield orjson.dumps(data.tolist(), option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
+    
+# table hdu
+def stream_table_csv(data):
+    ii = StringIO()
+    t = Table(data)
+    try:
+        t.write(ii, format='ascii.csv')
+    except ValueError as ee:
+        t.write(ii, format='ascii.ecsv')
+    
+    yield ii.getvalue()
+
+
+class StreamFormat(str, Enum):
+    """ A set of pre-defined choices for the stream format query param """
+    json = "json"
+    csv = "csv"
+    bytes = "bytes"
+
+
+async def get_stream(filename: str = Depends(get_filepath), ext: Union[int, str] = 0, 
+                     format: StreamFormat = 'json'):
+    """ Dependency to stream FITS data """
     with fits.open(filename) as hdu:
-        yield hdu[ext].data
+        data = hdu[ext].data
+        is_image = hdu[ext].is_image
+
+        if format == 'json':
+            media = 'application/json'
+            stream = stream_image_json(data) if is_image else stream_table_json(data)
+        elif format == 'csv':
+            media = 'text/csv'
+            stream = stream_image_csv(data) if is_image else stream_table_csv(data)
+        else:
+            media = 'application/octet-stream'
+            stream = stream_bytes(data)
+
+        return stream, media
 
 
 def npdefault(obj):
@@ -133,7 +191,7 @@ class Files(Base):
 
     @router.get("/header")
     async def get_header(self, header: fits.Header = Depends(header)):
-        """ Return a header """
+        """ Return a a FITS header """
         return {"header": dict(header.items()), 'comments': {k: header.comments[k] for k in header}}
 
     @router.get("/data")
@@ -146,63 +204,9 @@ class Files(Base):
         return ORJSONResponseCustom(content=results, option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
 
     @router.get("/stream")
-    async def stream_filedata(self, fitsext: tuple = Depends(get_stream), format: str = 'json'):
-        #e = np.array([[1,2,3],[4,5,6]])
-        e = fitsext
-        
-        # image hdu
-        def stream_bytes():
-            # yield f"{e.shape}\n"
-            # yield f"{e.dtype.str}\n"
-            # yield e.tobytes()
-            yield numpy_to_bytes(e)
-        
-        # image hdu
-        def stream_json():
-            yield orjson.dumps(e, option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
-        
-        # imagehdu
-        def stream_csv():
-            ii = StringIO()
-            if 'float' in e.dtype.name:
-                p = np.finfo(e.dtype).precision
-            fmap = {'int16': '%d', 'int32': '%d', 'int64': '%d', 'float16': f'%.{p+1}f', 
-                    'float32': f'%.{p+1}f', 'float64': f'%.{p+1}f', 'str': '%s'}
-            fmt = fmap.get(e.dtype.name, '%s')
-            np.savetxt(ii, e, delimiter=',', fmt=fmt)
-            yield ii.getvalue()
-            
-        # table hdu
-        def tstream_bytes():
-            #yield f"{e.dtype.str}\n"
-            #yield e.tobytes()
-            yield numpy_to_bytes(e)
-
-        # table hdu
-        def tstream_json():
-            yield orjson.dumps(e.tolist(), option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
-            
-        # table hdu
-        def tstream_csv():
-            ii = StringIO()
-            t = Table(e)
-            try:
-                t.write(ii, format='ascii.csv')
-            except ValueError as ee:
-                t.write(ii, format='ascii.ecsv')
-            yield ii.getvalue()
-
-        if format == 'json':
-            media = 'application/json'
-            stream = tstream_json if isinstance(e, fits.FITS_rec) else stream_json
-        elif format == 'csv':
-            media = 'text/csv'
-            stream = tstream_csv if isinstance(e, fits.FITS_rec) else stream_csv
-        else:
-            media = 'application/octet-stream'
-            stream = tstream_bytes if isinstance(e, fits.FITS_rec) else stream_bytes
-
-        return StreamingResponse(stream(), media_type=media)
+    async def stream_filedata(self, streamdata: tuple = Depends(get_stream)):
+        stream, media = streamdata
+        return StreamingResponse(stream, media_type=media)
 
 class KeyModel(BaseModel):
     key: str

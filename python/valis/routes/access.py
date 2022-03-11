@@ -80,8 +80,7 @@ class PathModel(BaseModel):
 
 
 async def extract_path(name: str, request: Request, access: Path = Depends(get_access)) -> Type[PathModel]:
-    """ Dependency to extract and parse generic query parameters
-    """
+    """ Dependency to extract and parse generic query parameters """
     params = str(request.query_params)
     kwargs = dict(map(lambda x: x.split('='), params.split('&'))) if params else {}
     try:
