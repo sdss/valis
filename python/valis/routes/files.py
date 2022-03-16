@@ -22,12 +22,22 @@ from valis.routes.access import extract_path, PathModel
 
 router = APIRouter()
 
+VALIS_SUPPORTED_FILES = ['fits']
+
+
 async def get_filepath(name: str, path: Type[PathModel] = Depends(extract_path)) -> str:
     """ Depedency to get a filepath from sdss_access """
     data = path.dict(include={'full', 'exists'})
     filepath = data['full']
+    
+    # validate file existenence
     if not data['exists']:
         raise HTTPException(status_code=404, detail=f'File {filepath} not found')
+    
+    # validate file suffix type
+    if set(pathlib.Path(filepath).suffixes).isdisjoint(VALIS_SUPPORTED_FILES):
+        raise HTTPException(status_code=400, detail=f'File {filepath} is not yet a supported filetype.')
+
     return filepath
 
 
@@ -173,12 +183,12 @@ class ORJSONResponseCustom(JSONResponse):
 @cbv(router)
 class Files(Base):
 
-    @router.get("/")
+    @router.get("/", summary='Default endpoint.  Does nothing.')
     async def get_file(self):
         """ Download a file """
         return {"info": "this route is for files"}
 
-    @router.get("/download")
+    @router.get("/download", summary='Download an SDSS file')
     async def download_file(self, filename: str = Depends(get_filepath)):
         """ Download a file """
 
@@ -193,12 +203,12 @@ class Files(Base):
             media = 'application/octet-stream'
         return FileResponse(filename, filename=ppath.name, media_type=media)
 
-    @router.get("/header")
+    @router.get("/header", summary='Retrieve a FITS file header')
     async def get_header(self, header: fits.Header = Depends(header)):
         """ Return a a FITS header """
         return {"header": dict(header.items()), 'comments': {k: header.comments[k] for k in header}}
 
-    @router.get("/data")
+    @router.get("/data", summary='Retrieve FITS file data.  Loads entire data into memory.')
     async def get_filedata(self, fitsext: tuple = Depends(get_ext), header: bool = True):
         """ Download a file """
         # extract the FITS data
@@ -207,7 +217,7 @@ class Files(Base):
         results = {'header': dict(hdr.items()) if header else None, 'data': data}
         return ORJSONResponseCustom(content=results, option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
 
-    @router.get("/stream")
+    @router.get("/stream", summary='Stream FITS file data to the client')
     async def stream_filedata(self, streamdata: tuple = Depends(get_stream)):
         stream, media = streamdata
         return StreamingResponse(stream, media_type=media)

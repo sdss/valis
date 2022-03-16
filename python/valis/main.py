@@ -12,15 +12,41 @@
 
 
 from __future__ import print_function, division, absolute_import
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Depends
 
 import valis
 from valis.routes import access, envs, files
 from valis.routes.base import release
 
+tags_metadata = [
+    {
+        "name": "default",
+        "description": "Default API endpoints",
+    },
+    {
+        "name": "paths",
+        "description": "Lookup or construct SDSS filepaths using sdss_access",
+        "externalDocs": {
+            "description": "sdss_access docs",
+            "url": "https://sdss-access.rtfd.io/",
+        },
+    },
+    {
+        "name": "envs",
+        "description": "Explore the SDSS tree environment and data releases",
+        "externalDocs": {
+            "description": "sdss-tree docs",
+            "url": "https://sdss-tree.rtfd.io/",
+        },
+    },
+    {
+        "name": "file",
+        "description": "Download or stream SDSS files",
+    },
+]
 
 
-app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__)
+app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__, openapi_tags=tags_metadata)
 # submount app to allow for production /valis location
 app.mount("/valis", app)
 
