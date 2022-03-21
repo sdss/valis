@@ -9,3 +9,12 @@ Those conftest.py will only be applies to the tests in that subdirectory and
 underlying directories. See https://docs.pytest.org/en/2.7.3/plugins.html for
 more information.
 """
+
+import pytest
+from fastapi.testclient import TestClient
+from valis.main import app
+
+
+@pytest.fixture(scope='module')
+def client():
+    yield TestClient(app)

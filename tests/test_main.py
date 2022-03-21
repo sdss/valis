@@ -4,14 +4,15 @@
 
 from pytest import mark
 
-from valis.main import math
 
-
-class TestMath(object):
-    """Tests for the ``math`` function in main.py."""
-
-    @mark.parametrize(('arg1', 'arg2', 'operator', 'result'),
-                      [(1, 2, '+', 3), (2, 2, '-', 0), (3, 5, '*', 15), (10, 2, '/', 5)])
-    def test_math(self, arg1, arg2, operator, result):
-
-        assert math(arg1, arg2, arith_operator=operator) == result
+def test_main(client):
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.json() == {"Hello SDSS": "This is the FastAPI World", 'release': "WORK"}
+    
+@mark.parametrize('release', ['WORK', 'DR17'])
+def test_main_with_release(client, release):
+    response = client.get("/", params={"release": release})
+    assert response.status_code == 200
+    assert response.json() == {"Hello SDSS": "This is the FastAPI World", 'release': release}
+    
