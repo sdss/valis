@@ -22,7 +22,7 @@ from valis.routes.access import extract_path, PathModel
 
 router = APIRouter()
 
-VALIS_SUPPORTED_FILES = ['fits']
+VALIS_SUPPORTED_FILES = ['.fits']
 
 
 async def get_filepath(name: str, path: Type[PathModel] = Depends(extract_path)) -> str:
