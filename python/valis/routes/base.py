@@ -5,6 +5,10 @@
 from fastapi import Depends
 from tree import Tree
 from sdss_access.path import Path
+from pydantic import BaseModel
+
+class BaseBody(BaseModel):
+    release: str = 'WORK'
 
 
 async def release(release: str = 'WORK') -> str:
