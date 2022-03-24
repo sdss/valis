@@ -2,18 +2,29 @@
 # -*- coding: utf-8 -*-
 #
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from tree import Tree
 from sdss_access.path import Path
 from pydantic import BaseModel
 
+
+def validate_release(value: str) -> str:
+    """ Validate a release value """
+    if value.upper() not in Tree.get_available_releases():
+        raise ValueError(f'Validation error: release {value} not a valid release')
+    return value
+
 class BaseBody(BaseModel):
-    release: str = 'WORK'
-
-
-async def release(release: str = 'WORK') -> str:
-    """ Dependency to specify a release query parameter """
-    return release
+    release: str = None
+    
+    
+async def release(release: str = None, body: BaseBody = None) -> str:
+    """ Dependency to specify a release query or body parameter """
+    try:
+        final = validate_release(release or (body.release if body else None) or 'WORK')
+    except ValueError as ee:
+        raise HTTPException(status_code=422, detail=f'Validation Error: {ee}') from ee
+    return final
 
 async def get_tree(release: str = Depends(release)) -> Tree:
     """ Dependency to get a valid SDSS tree for a given release """

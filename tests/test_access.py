@@ -60,3 +60,30 @@ def test_path_name_parts(client, part, exp):
     assert part in data
     assert data[part] == exp
 
+def test_path_post(client):
+    params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'release':'DR17', 'part':'location'}
+    response = client.post("/paths/mangacube", json=params)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['location'] == 'dr17/manga/spectro/redux/v3_1_1/8485/stack/manga-8485-1901-LOGCUBE.fits.gz'
+
+def test_path_post_wget(client):
+    params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'part':'location'}
+    response = client.post("/paths/mangacube?release=DR17", json=params)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['location'] == 'dr17/manga/spectro/redux/v3_1_1/8485/stack/manga-8485-1901-LOGCUBE.fits.gz'
+
+def test_path_post_invalid_release(client):
+    params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'release':'DR18', 'part':'location'}
+    response = client.post("/paths/mangacube", json=params)
+    assert response.status_code == 422
+    data = response.json()
+    assert data == {'detail': 'Validation Error: Validation error: release DR18 not a valid release'}
+    
+def test_path_post_name_not_in_release(client):
+    params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'part':'location'}
+    response = client.post("/paths/mangacube", json=params)
+    assert response.status_code == 422
+    data = response.json()
+    assert data['detail'][0]['msg'] == 'Validation error: path name mangacube not a valid sdss_access name for release WORK'

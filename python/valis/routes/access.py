@@ -13,10 +13,10 @@
 
 from __future__ import print_function, division, absolute_import
 from sdss_access.path import Path
-from fastapi import APIRouter, Request, Depends, HTTPException, Body
+from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi_utils.cbv import cbv
-from pydantic import BaseModel, root_validator, validator, PrivateAttr, Field
-from typing import Type, Optional
+from pydantic import BaseModel, validator, PrivateAttr
+from typing import Type
 from enum import Enum
 from pydantic import ValidationError
 
@@ -187,8 +187,6 @@ class Paths(Base):
             A string path name
 
         """
-        print('name', name)
-        print('post', body)
         # if no kwargs set to empty dict
         kwargs = body.kwargs or {}
         try:
