@@ -5,7 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 import requests
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_utils.cbv import cbv
 
@@ -16,7 +16,19 @@ router = APIRouter()
 class Token(BaseModel):
     access_token: str
     token_type: str
+    refresh_token: str
 
+class User(BaseModel):
+    username: str
+    fullname: str = None
+    email: str = None
+
+def verify_token(request: Request):
+    hdrs = {'Credential': request.headers.get('Authorization')}
+    rr = requests.post('https://api.sdss.org/collaboration/credential/identity', headers=hdrs)
+    if not rr.ok:
+        raise HTTPException(status_code=rr.status_code, detail=rr.json())
+    return rr.json()
 
 @cbv(router)
 class Auth(Base):
@@ -31,5 +43,26 @@ class Auth(Base):
             raise HTTPException(status_code=rr.status_code, detail=rr.json())
         
         token = rr.json()
-        return {"access_token": token, "token_type": "bearer"}
+        return {"access_token": token['access'], "token_type": "bearer", "refresh_token": token['refresh']}
 
+    @router.post("/verify", summary='Verify an auth token')
+    async def verify_token(self, user: str = Depends(verify_token)):
+        return user
+
+    @router.post("/user", summary='Get user information', response_model=User)
+    async def get_user(self, request: Request):
+        hdrs = {'Credential': request.headers.get('Authorization')}
+        rr = requests.post('https://api.sdss.org/collaboration/credential/member', headers=hdrs)
+        if not rr.ok:
+            raise HTTPException(status_code=rr.status_code, detail=rr.json())
+        data = rr.json()
+        return data['member']
+    
+    @router.post("/refresh", summary='Refresh your auth token', response_model=Token)
+    async def refresh_token(self, request: Request):
+        hdrs = {'Credential': request.headers.get('Authorization')}
+        rr = requests.post('https://api.sdss.org/collaboration/credential/refresh', headers=hdrs)
+        if not rr.ok:
+            raise HTTPException(status_code=rr.status_code, detail=rr.json())
+        token = rr.json()
+        return {"access_token": token['access'], "token_type": "bearer"}   

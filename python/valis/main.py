@@ -64,14 +64,14 @@ async def set_auth(token: str = Depends(oauth2_scheme), release = Depends(releas
 
 
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__, 
-              openapi_tags=tags_metadata, dependencies=[Depends(set_auth)])
+              openapi_tags=tags_metadata, dependencies=[])
 # submount app to allow for production /valis location
 app.mount("/valis", app)
 
 
 @app.get("/", summary='Hello World route')
-def hello(release = Depends(release)):
-    return {"Hello SDSS": "This is the FastAPI World", 'release': release}
+def hello(release = Depends(release), token = Depends(set_auth)):
+    return {"Hello SDSS": "This is the FastAPI World", 'release': release, 'token': token}
 
 
 app.include_router(access.router, prefix='/paths', tags=['paths'])
