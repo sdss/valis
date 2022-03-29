@@ -74,14 +74,14 @@ def custom_openapi():
     # cache the openapi schema
     if app.openapi_schema:
         return app.openapi_schema
-
     # generate the openapi schema
     openapi_schema = get_openapi(
         title=app.title,
         version=app.version,
         description=app.description,
         routes=app.routes,
-        tags=tags_metadata
+        tags=tags_metadata,
+        servers=app.servers
     )
     
     # hack the schema to remove added "release" body parameter to all GET requests
