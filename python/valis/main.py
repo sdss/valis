@@ -81,6 +81,7 @@ def custom_openapi():
         version=app.version,
         description=app.description,
         routes=app.routes,
+        tags=tags_metadata
     )
     
     # hack the schema to remove added "release" body parameter to all GET requests
