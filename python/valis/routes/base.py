@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 #
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Query
 from tree import Tree
 from sdss_access.path import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Optional
 
 
 def validate_release(value: str) -> str:
@@ -15,10 +16,20 @@ def validate_release(value: str) -> str:
     return value
 
 class BaseBody(BaseModel):
-    release: str = None
+    release: Optional[str] = Field(None, example='WORK')
     
-    
-async def release(release: str = None, body: BaseBody = None) -> str:
+# class Release:
+#     def __init__(self, body: BaseBody = None, query: BaseBody = Depends()):
+#         print('brelease', body, body.release if body else None)
+#         print('qrelease', query, query.release if query else None)
+#         self.release = (query.release if query else None) or (body.release if body else None) or "WORK"
+
+
+# async def release(release: Release = Depends()):
+#     print('release', release)
+#     return release.release or 'WORK'
+
+async def release(release: str = Query(None, example='WORK'), body: BaseBody = None) -> str:
     """ Dependency to specify a release query or body parameter """
     try:
         final = validate_release(release or (body.release if body else None) or 'WORK')

@@ -12,12 +12,14 @@
 
 
 from __future__ import print_function, division, absolute_import
-from fastapi import FastAPI, Depends, Request
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import FastAPI, Depends
+from fastapi.openapi.utils import get_openapi
 
 import valis
 from valis.routes import access, envs, files, auth
 from valis.routes.base import release
+from valis.routes.auth import set_auth
+
 
 tags_metadata = [
     {
@@ -50,18 +52,6 @@ tags_metadata = [
     },
 ]
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
-async def check_auth(request: Request, release = Depends(release)):
-    release = release or 'A'
-    if release != 'A':
-        return None
-    return await oauth2_scheme(request)
-
-
-async def set_auth(token: str = Depends(oauth2_scheme), release = Depends(release)): 
-    return {"token": token, 'release': release}
-
 
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__, 
               openapi_tags=tags_metadata, dependencies=[])
@@ -70,11 +60,37 @@ app.mount("/valis", app)
 
 
 @app.get("/", summary='Hello World route')
-def hello(release = Depends(release), token = Depends(set_auth)):
-    return {"Hello SDSS": "This is the FastAPI World", 'release': release, 'token': token}
+def hello(release = Depends(release)):
+    return {"Hello SDSS": "This is the FastAPI World", 'release': release}
 
-
-app.include_router(access.router, prefix='/paths', tags=['paths'])
-app.include_router(envs.router, prefix='/envs', tags=['envs'])
-app.include_router(files.router, prefix='/file', tags=['file'])
+app.include_router(access.router, prefix='/paths', tags=['paths'], dependencies=[Depends(set_auth)])
+app.include_router(envs.router, prefix='/envs', tags=['envs'], dependencies=[Depends(set_auth)])
+app.include_router(files.router, prefix='/file', tags=['file'], dependencies=[Depends(set_auth)])
 app.include_router(auth.router, prefix='/auth', tags=['auth'])
+
+
+def custom_openapi():
+    """ Custom OpenAPI spec to remove "release" POST body param from GET requests in the docs """
+    # cache the openapi schema
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    # generate the openapi schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    
+    # hack the schema to remove added "release" body parameter to all GET requests
+    for content in openapi_schema['paths'].values():
+        gcont = content.get('get', None)
+        if not gcont:
+            continue
+        gcont.pop('requestBody', None)
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi

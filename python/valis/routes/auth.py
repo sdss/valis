@@ -6,10 +6,10 @@ from __future__ import print_function, division, absolute_import
 import requests
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi_utils.cbv import cbv
 
-from valis.routes.base import Base
+from valis.routes.base import Base, release
 
 router = APIRouter()
 
@@ -22,6 +22,21 @@ class User(BaseModel):
     username: str
     fullname: str = None
     email: str = None
+
+
+class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
+    
+    async def __call__(self, request: Request, release: str = Depends(release)):
+        self.release = release or "WORK"
+        if self.release != 'WORK':
+            return None
+        await super().__call__(request)
+        
+oauth2_scheme = SDSSAuthPasswordBearer(tokenUrl="auth/login")
+
+async def set_auth(token: str = Depends(oauth2_scheme), release: str = Depends(release)):
+    return {"token": token, 'release': release}
+
 
 def verify_token(request: Request):
     hdrs = {'Credential': request.headers.get('Authorization')}
