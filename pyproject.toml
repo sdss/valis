@@ -78,6 +78,7 @@ use_parentheses = true
 
 [tool.pytest.ini_options]
 addopts = "--cov valis --cov-report xml --cov-report html --cov-report term"
+asyncio_mode = "auto"
 
 [tool.coverage.run]
 branch = true
