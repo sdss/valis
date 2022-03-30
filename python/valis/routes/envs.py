@@ -12,7 +12,7 @@
 
 
 from __future__ import print_function, division, absolute_import
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi_utils.cbv import cbv
 import copy
 
@@ -30,7 +30,7 @@ class Envs(Base):
 
 
     @router.get("/resolve", summary='Resolve the SDSS tree environment variables into their paths')
-    async def resolve_envs(self, name: str = None) -> dict:
+    async def resolve_envs(self, name: str = Query(None, example='SAS_ROOT')) -> dict:
         """ Get a list of SDSS tree environment variables """
         env = copy.deepcopy(self.tree.environ)
         env.pop('default')

@@ -13,7 +13,7 @@
 
 from __future__ import print_function, division, absolute_import
 from sdss_access.path import Path
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException, Query, Path
 from fastapi_utils.cbv import cbv
 from pydantic import BaseModel, validator, PrivateAttr
 from typing import Type
@@ -93,7 +93,7 @@ class PathBody(BaseBody):
     exists: bool = False
 
 
-async def extract_path(name: str, request: Request, access: Path = Depends(get_access)) -> Type[PathModel]:
+async def extract_path(request: Request, name: str = Path(..., example='apStar'), access: Path = Depends(get_access)) -> Type[PathModel]:
     """ Dependency to extract and parse generic query parameters """
     params = str(request.query_params)
     kwargs = dict(map(lambda x: x.split('='), params.split('&'))) if params else {}
