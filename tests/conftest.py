@@ -13,7 +13,12 @@ more information.
 import pytest
 from fastapi.testclient import TestClient
 from valis.main import app
+from valis.routes.auth import set_auth
 
+async def override_auth():
+    return {"token": None}
+
+app.dependency_overrides[set_auth] = override_auth
 
 @pytest.fixture(scope='module')
 def client():
