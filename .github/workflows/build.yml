@@ -30,10 +30,6 @@ jobs:
         restore-keys: |
           venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
 
-    - name: Set Poetry config
-      run: |
-        poetry config settings.virtualenvs.path ~/.virtualenvs
-
     - name: Install dependencies
       run: |
         poetry install
