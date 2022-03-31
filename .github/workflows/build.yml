@@ -23,10 +23,14 @@ jobs:
       uses: actions/cache@v2
       id: cache
       with:
-        path: ${{ cache-dir }}/virtualenvs
+        path: ~/.virtualenvs
         key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
         restore-keys: |
           venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Set Poetry config
+      run: |
+        poetry config settings.virtualenvs.path ~/.virtualenvs
 
     - name: Install dependencies
       run: |
