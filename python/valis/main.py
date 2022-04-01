@@ -69,10 +69,6 @@ app.mount("/valis", app)
 app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss\.(org|utah\.edu)$",
                    allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
-# add redirect to https
-if settings.valis_env == 'production':
-    app.add_middleware(HTTPSRedirectMiddleware)
-
 
 @app.get("/", summary='Hello World route')
 def hello(release = Depends(release)):
