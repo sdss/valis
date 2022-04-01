@@ -5,7 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 import requests
 from pydantic import BaseModel, HttpUrl
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi_utils.cbv import cbv
 
@@ -25,23 +25,19 @@ class User(BaseModel):
     fullname: str = None
     email: str = None
 
-class Member(BaseModel):
+class CredentialBase(BaseModel):
+    msg: str
+class Member(CredentialBase):
     member: User
-    msg: str
-
-class Identity(BaseModel):
+class Identity(CredentialBase):
     identity: str
-    msg: str
-
-class Login(BaseModel):
+class CredToken(CredentialBase):
     access: str
-    msg: str
     refresh : str = None
 
 class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
     
     async def __call__(self, request: Request, release: str = Depends(release)):
-        return None
         self.release = release or "WORK"
         if self.release != 'WORK':
             return None
@@ -63,12 +59,12 @@ def get_member():
 def check_identity():
     pass
 
-@auth_callback_router.post(f"{auth_base}/refresh", response_model=Login)
+@auth_callback_router.post(f"{auth_base}/refresh", response_model=CredToken)
 def refresh_token():
     pass
 
-@auth_callback_router.post(f"{auth_base}/", response_model=Login)
-def get_token():
+@auth_callback_router.post(f"{auth_base}/", response_model=CredToken)
+def get_token(username: str = Form(...), password: str = Form(...)):
     pass
 
 # create a dict to reference just a single route
