@@ -14,8 +14,11 @@
 from __future__ import print_function, division, absolute_import
 from fastapi import FastAPI, Depends
 from fastapi.openapi.utils import get_openapi
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 import valis
+from valis.settings import settings
 from valis.routes import access, envs, files, auth, info
 from valis.routes.base import release
 from valis.routes.auth import set_auth
@@ -56,11 +59,19 @@ tags_metadata = [
     },
 ]
 
-
+# create the application
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__, 
               openapi_tags=tags_metadata, dependencies=[])
 # submount app to allow for production /valis location
 app.mount("/valis", app)
+
+# add CORS for cross-domain, for any sdss.org or sdss.utah.edu domain
+app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss\.(org|utah\.edu)$",
+                   allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+
+# add redirect to https
+if settings.valis_env == 'production':
+    app.add_middleware(HTTPSRedirectMiddleware)
 
 
 @app.get("/", summary='Hello World route')
