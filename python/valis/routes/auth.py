@@ -4,14 +4,16 @@
 from __future__ import print_function, division, absolute_import
 
 import requests
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi_utils.cbv import cbv
 
+from typing import Optional
 from valis.routes.base import Base, release
 
 router = APIRouter()
+auth_callback_router = APIRouter()
 
 class Token(BaseModel):
     access_token: str
@@ -23,10 +25,23 @@ class User(BaseModel):
     fullname: str = None
     email: str = None
 
+class Member(BaseModel):
+    member: User
+    msg: str
+
+class Identity(BaseModel):
+    identity: str
+    msg: str
+
+class Login(BaseModel):
+    access: str
+    msg: str
+    refresh : str = None
 
 class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
     
     async def __call__(self, request: Request, release: str = Depends(release)):
+        return None
         self.release = release or "WORK"
         if self.release != 'WORK':
             return None
@@ -36,6 +51,28 @@ oauth2_scheme = SDSSAuthPasswordBearer(tokenUrl="auth/login")
 
 async def set_auth(token: str = Depends(oauth2_scheme), release: str = Depends(release)):
     return {"token": token, 'release': release}
+
+
+auth_base = "https://api.sdss.org/collaboration/credential"
+
+@auth_callback_router.post(f"{auth_base}/member", response_model=Member)
+def get_member():
+    pass
+
+@auth_callback_router.post(f"{auth_base}/identity", response_model=Identity)
+def check_identity():
+    pass
+
+@auth_callback_router.post(f"{auth_base}/refresh", response_model=Login)
+def refresh_token():
+    pass
+
+@auth_callback_router.post(f"{auth_base}/", response_model=Login)
+def get_token():
+    pass
+
+# create a dict to reference just a single route
+callback_dict = {i.name:[i] for i in auth_callback_router.routes}
 
 
 def verify_token(request: Request):
@@ -48,7 +85,7 @@ def verify_token(request: Request):
 @cbv(router)
 class Auth(Base):
     
-    @router.post("/login", summary='Login to the SDSS API', response_model=Token)
+    @router.post("/login", summary='Login to the SDSS API', response_model=Token, callbacks=callback_dict['get_token'])
     async def get_token(self, form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
         """ Authenticate your SDSS user credentials """
 
@@ -60,12 +97,14 @@ class Auth(Base):
         token = rr.json()
         return {"access_token": token['access'], "token_type": "bearer", "refresh_token": token['refresh']}
 
-    @router.post("/verify", summary='Verify an auth token')
+    @router.post("/verify", summary='Verify an auth token', response_model=Identity, callbacks=callback_dict['check_identity'])
     async def verify_token(self, user: str = Depends(verify_token)):
+        """ Verify an auth token """
         return user
 
-    @router.post("/user", summary='Get user information', response_model=User)
+    @router.post("/user", summary='Get user information', response_model=User, callbacks=callback_dict['get_member'])
     async def get_user(self, request: Request):
+        """ Get user information """
         hdrs = {'Credential': request.headers.get('Authorization')}
         rr = requests.post('https://api.sdss.org/collaboration/credential/member', headers=hdrs)
         if not rr.ok:
@@ -73,8 +112,9 @@ class Auth(Base):
         data = rr.json()
         return data['member']
     
-    @router.post("/refresh", summary='Refresh your auth token', response_model=Token)
+    @router.post("/refresh", summary='Refresh your auth token', response_model=Token, callbacks=callback_dict['refresh_token'])
     async def refresh_token(self, request: Request):
+        """ Refresh your auth token """
         hdrs = {'Credential': request.headers.get('Authorization')}
         rr = requests.post('https://api.sdss.org/collaboration/credential/refresh', headers=hdrs)
         if not rr.ok:
