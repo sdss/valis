@@ -16,7 +16,7 @@ from fastapi import FastAPI, Depends
 from fastapi.openapi.utils import get_openapi
 
 import valis
-from valis.routes import access, envs, files, auth
+from valis.routes import access, envs, files, auth, info
 from valis.routes.base import release
 from valis.routes.auth import set_auth
 
@@ -50,6 +50,10 @@ tags_metadata = [
         "name": "auth",
         "description": "Authenticate SDSS users",
     },
+    {
+        "name": "info",
+        "description": "Access metadata on SDSS, its datamodels and products",
+    },
 ]
 
 
@@ -66,6 +70,7 @@ def hello(release = Depends(release)):
 app.include_router(access.router, prefix='/paths', tags=['paths'], dependencies=[Depends(set_auth)])
 app.include_router(envs.router, prefix='/envs', tags=['envs'], dependencies=[Depends(set_auth)])
 app.include_router(files.router, prefix='/file', tags=['file'], dependencies=[Depends(set_auth)])
+app.include_router(info.router, prefix='/info', tags=['info'])
 app.include_router(auth.router, prefix='/auth', tags=['auth'])
 
 
