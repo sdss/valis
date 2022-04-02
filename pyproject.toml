@@ -30,18 +30,19 @@ valis = "valis.cli:main"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-sdss-tree = ">=3.0"
-sdss-access = ">=2.0"
-sdsstools = ">=0.4.0"
+sdss-tree = "^3.1.1"
+sdss-access = "^2.0.0"
+sdsstools = "^0.4.14"
 Sphinx = {version="^3.0.0", optional=true}
 fastapi = "^0.74.1"
-uvicorn = "^0.11.8"
-gunicorn = "^20.0.4"
-astropy = "^4.0.1"
+uvicorn = "^0.17.6"
+gunicorn = "^20.1.0"
+astropy = "^4.3.0"
 aiofiles = "^0.5.0"
-orjson = "^3.3.1"
+orjson = "^3.6.7"
 fastapi-utils = "^0.2.1"
 python-multipart = "^0.0.5"
+httpx = "^0.22.0"
 
 
 [tool.poetry.dev-dependencies]

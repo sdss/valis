@@ -3,13 +3,12 @@
 #
 from __future__ import print_function, division, absolute_import
 
-import requests
-from pydantic import BaseModel, HttpUrl
+import httpx
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from fastapi_utils.cbv import cbv
 
-from typing import Optional
 from valis.routes.base import Base, release
 
 router = APIRouter()
@@ -73,8 +72,8 @@ callback_dict = {i.name:[i] for i in auth_callback_router.routes}
 
 def verify_token(request: Request):
     hdrs = {'Credential': request.headers.get('Authorization')}
-    rr = requests.post('https://api.sdss.org/collaboration/credential/identity', headers=hdrs)
-    if not rr.ok:
+    rr = httpx.post('https://api.sdss.org/collaboration/credential/identity', headers=hdrs)
+    if rr.is_error:
         raise HTTPException(status_code=rr.status_code, detail=rr.json())
     return rr.json()
 
@@ -85,9 +84,9 @@ class Auth(Base):
     async def get_token(self, form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
         """ Authenticate your SDSS user credentials """
 
-        rr = requests.post('https://api.sdss.org/collaboration/credential', 
+        rr = httpx.post('https://api.sdss.org/collaboration/credential', 
                            data={'username': form_data.username, 'password': form_data.password})
-        if not rr.ok:
+        if rr.is_error:
             raise HTTPException(status_code=rr.status_code, detail=rr.json())
         
         token = rr.json()
@@ -102,8 +101,8 @@ class Auth(Base):
     async def get_user(self, request: Request):
         """ Get user information """
         hdrs = {'Credential': request.headers.get('Authorization')}
-        rr = requests.post('https://api.sdss.org/collaboration/credential/member', headers=hdrs)
-        if not rr.ok:
+        rr = httpx.post('https://api.sdss.org/collaboration/credential/member', headers=hdrs)
+        if rr.is_error:
             raise HTTPException(status_code=rr.status_code, detail=rr.json())
         data = rr.json()
         return data['member']
@@ -112,8 +111,8 @@ class Auth(Base):
     async def refresh_token(self, request: Request):
         """ Refresh your auth token """
         hdrs = {'Credential': request.headers.get('Authorization')}
-        rr = requests.post('https://api.sdss.org/collaboration/credential/refresh', headers=hdrs)
-        if not rr.ok:
+        rr = httpx.post('https://api.sdss.org/collaboration/credential/refresh', headers=hdrs)
+        if rr.is_error:
             raise HTTPException(status_code=rr.status_code, detail=rr.json())
         token = rr.json()
         return {"access_token": token['access'], "token_type": "bearer"}   

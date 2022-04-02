@@ -31,6 +31,16 @@ if sphinx_template == 'sphinx-bootstrap':
     import sphinx_bootstrap_theme
 
 
+# write valis openapi.json
+def write_openapi():
+    from valis.main import custom_openapi, app
+    import json
+    oa = app.openapi() #custom_openapi()
+    with open('_static/valis_openapi.json', 'w') as f:
+        f.write(json.dumps(oa))
+write_openapi()
+
+
 # Importing matplotlib here with agg to prevent tkinter error in readthedocs
 # import matplotlib
 # matplotlib.use('agg')
@@ -47,7 +57,7 @@ if sphinx_template == 'sphinx-bootstrap':
 # ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.autosummary',
               'sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.mathjax',
-              'sphinx.ext.intersphinx']
+              'sphinx.ext.intersphinx', 'sphinxcontrib.httpdomain', 'sphinxcontrib.openapi']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

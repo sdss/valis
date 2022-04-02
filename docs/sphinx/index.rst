@@ -26,6 +26,7 @@ Reference
    :maxdepth: 1
 
    api
+   open
 
 
 Indices and tables
