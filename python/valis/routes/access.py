@@ -88,6 +88,7 @@ class PathModel(BaseModel):
             self.exists = self._path.exists(self.name, **self.kwargs)
 
 class PathBody(BaseBody):
+    """ Body for SDSS access paths post requests """
     kwargs: dict = {}
     part: PathPart = 'full'
     exists: bool = False

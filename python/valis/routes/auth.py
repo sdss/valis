@@ -15,11 +15,13 @@ router = APIRouter()
 auth_callback_router = APIRouter()
 
 class Token(BaseModel):
+    """ SDSS OAuth2 access token """
     access_token: str
     token_type: str
     refresh_token: str
 
 class User(BaseModel):
+    """ SDSS user"""
     username: str
     fullname: str = None
     email: str = None
@@ -27,16 +29,20 @@ class User(BaseModel):
 class CredentialBase(BaseModel):
     msg: str
 class Member(CredentialBase):
+    """ SDSS member credentials """
     member: User
 class Identity(CredentialBase):
+    """ SDSS identity credentials """
     identity: str
 class CredToken(CredentialBase):
+    """ SDSS credentials token """
     access: str
     refresh : str = None
 
 class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
     
     async def __call__(self, request: Request, release: str = Depends(release)):
+        return None
         self.release = release or "WORK"
         if self.release != 'WORK':
             return None

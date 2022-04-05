@@ -102,6 +102,18 @@ def custom_openapi():
         if not gcont:
             continue
         gcont.pop('requestBody', None)
+        
+    # hack the schema to improve Form schema names
+    for key, vals in openapi_schema['components']['schemas'].items():
+        if key == 'Body_get_token_auth_login_post':
+            vals['title'] = 'AuthForm'
+            openapi_schema['components']['schemas']['AuthForm'] = openapi_schema['components']['schemas'].pop(key)
+        elif key.startswith('Body_get_tokenhttps'):
+            vals['title'] = 'CredForm'
+            openapi_schema['components']['schemas']['CredForm'] = openapi_schema['components']['schemas'].pop(key)
+    
+    openapi_schema['components']['schemas'] = dict(sorted(openapi_schema['components']['schemas'].items(), key=lambda x: x[0]))
+    
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 

@@ -42,7 +42,7 @@ async def get_tree(release: str = Depends(release)) -> Tree:
     # convert the release to a tree config
     config = release.lower().replace('-', '')
     # default to sdss5 config for work release
-    config = 'sdss5' if config in ['work', 'sdss5', 'sdss4', 'sdsswork'] else config
+    config = 'sdss5' if config in {'work', 'sdss5', 'sdss4', 'sdsswork'} else config
     return Tree(config)
 
 async def get_access(release: str = Depends(release), tree: Tree = Depends(get_tree)) -> Path:
