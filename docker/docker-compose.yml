@@ -1,28 +1,23 @@
-version: '3.8'
+version: '3.9'
 services:
   nginx:
-    image: nginx:latest
-    container_name: production_nginx
+    image: nginx-valis:latest
+    container_name: nginx-valis
+    build:
+      context: nginx
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      #- ./nginx/valis_error.log:/etc/nginx/valis_error.log
-      #- ./nginx/cache/:/etc/nginx/cache
       - ${VALIS_SOCKET_DIR:-/tmp/valis}:/tmp/valis # (host_socket_dir:upstream_socket_location)
     ports:
-      - 8080:80
-      - 443:443
+      - 5000:8080
     networks:
       - valisnet
 
-  web:
+  valis:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: valis
     image: valis:0.1.0
     container_name: valis
     volumes:
-      # adds current directory to /code in container
-      - .:/code
       - ${VALIS_SOCKET_DIR:-/tmp/valis}:/tmp/valis # (host_socket_dir:container_socket_dir)
     networks:
       - valisnet

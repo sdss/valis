@@ -1,24 +1,29 @@
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.7
 
+# Git checkout of valis
+WORKDIR /tmp
+RUN git clone --depth 1 https://github.com/sdss/valis project
+
 # Install Poetry
 RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | POETRY_HOME=/opt/poetry python && \
     cd /usr/local/bin && \
     ln -s /opt/poetry/bin/poetry && \
     poetry config virtualenvs.create false
 
-# Copy using poetry.lock* in case it doesn't exist yet
-COPY ./pyproject.toml ./poetry.lock* ./
-
-RUN poetry install --no-root --no-dev
-
-# see https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker
-# for docs on setup and configuration options
+# Install the project and its dependencies
+WORKDIR /tmp/project
+RUN poetry install --no-dev
 
 # copy over application
-COPY ./python/valis /app/app
+RUN cp -r python/valis /app
+
+WORKDIR /app
 
 # copying over a pre-start script
 COPY ./docker_prestart.sh /app/prestart.sh
+
+# see https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker
+# for docs on setup and configuration options
 
 # setting environment variables
 ENV MODULE_NAME="valis.wsgi"
@@ -27,5 +32,3 @@ ENV MODULE_NAME="valis.wsgi"
 ENV VALIS_SOCKET_DIR='/tmp/valis'
 ENV GUNICORN_CONF="/app/app/wsgi_conf.py"
 
-# mount container socket directory
-VOLUME ${VALIS_SOCKET_DIR}

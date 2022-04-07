@@ -18,7 +18,7 @@ poetry install
 ```
 
 ### Updating Dependencies with Poetry
-To update poetry itself, run 
+To update poetry itself, run
 ```
 poetry self update
 ```
@@ -43,38 +43,23 @@ uvicorn valis.wsgi:app --reload
 This will start a local web server at `http://localhost:8000/valis/`.  The API documentation will be located at `http://localhost:8000/valis/docs`.  Or to see the alternate documentation, go to `http://localhost:8000/valis/redoc/`
 
 ## Deployment
-
-Note: this is middle of refactoring and revision.  
+### Deploying at Utah in api.sdss.org docker
+- Login to `lore` or `manga` machines
+- Login to the api.sdss.org docker with `ssh -p 2209 [unid]@api.sdss.org`
+- If needed, load valis module with `ml load valis`
+- cd to `$VALIS_DIR`
+- run `run_valis` alias or `poetry run gunicorn -c python/valis/wsgi_conf.py valis.wsgi:app`
 
 ### Running manually via gunicorn + nginx
  - Setup a local nginx server with a /valis location
  - export VALIS_SOCKET_DIR=/tmp/valis
  - run `gunicorn -c python/valis/wsgi_conf.py valis.wsgi:app`
-
-### Running via the Docker Container
-Currently the dockerfile only maps to tcp ports
-TODO: get working with unix sockets
-```
-# build the image
-docker build -t valis .
-
-# run the container mapping to local port 8000
-docker run -d --name valis -p 8000:80 valis
-```
-Then navigate to `http://localhost:8000/valis`. To stop the service, run `docker stop valis; docker rm valis;`
-
 ### Running Docker Compose
-Currently the docker-compose only maps to tcp ports
-TODO: get working with unix sockets; fold in nginx services
-```
-# setup the app mapping to local port 8000
-docker-compose up -d
-```
-Then navigate to `http://localhost:8000/valis`.  To stop the service,
-```
-# stop the service
-docker-compose stop
+This builds and sets up the valis docker running with nginx, mapped to a unix socket at `unix:/tmp/valis/valis.sock`.  It binds the internal nginx port 8080 to localhost port 5000.
 
-# take down the container
-docker-compose down
-```
+- Navigate to `docker` folder
+- Run `docker-compose -f docker-compose.yml build` to build the docker images
+- Run `docker-compose -f docker-compose.yml up -d` to start the containers in detached mode
+- Navigate to `http://localhost:5000/valis`
+- To stop the service and remove containers, run `docker-compose -f docker-compose.yml down`
+
