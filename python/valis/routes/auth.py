@@ -40,14 +40,13 @@ class CredToken(CredentialBase):
     refresh : str = None
 
 class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
-    
+
     async def __call__(self, request: Request, release: str = Depends(release)):
-        return None
         self.release = release or "WORK"
         if self.release != 'WORK':
             return None
         await super().__call__(request)
-        
+
 oauth2_scheme = SDSSAuthPasswordBearer(tokenUrl="auth/login")
 
 async def set_auth(token: str = Depends(oauth2_scheme), release: str = Depends(release)):
@@ -86,16 +85,16 @@ async def verify_token(request: Request):
 
 @cbv(router)
 class Auth(Base):
-    
+
     @router.post("/login", summary='Login to the SDSS API', response_model=Token, callbacks=callback_dict['get_token'])
     async def get_token(self, form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
         """ Authenticate your SDSS user credentials """
         async with httpx.AsyncClient() as client:
-            rr = await client.post('https://api.sdss.org/collaboration/credential', 
+            rr = await client.post('https://api.sdss.org/collaboration/credential',
                             data={'username': form_data.username, 'password': form_data.password})
             if rr.is_error:
                 raise HTTPException(status_code=rr.status_code, detail=rr.json())
-            
+
             token = rr.json()
             return {"access_token": token['access'], "token_type": "bearer", "refresh_token": token['refresh']}
 
@@ -114,7 +113,7 @@ class Auth(Base):
                 raise HTTPException(status_code=rr.status_code, detail=rr.json())
             data = rr.json()
             return data['member']
-    
+
     @router.post("/refresh", summary='Refresh your auth token', response_model=Token, callbacks=callback_dict['refresh_token'], dependencies=[Depends(set_auth)])
     async def refresh_token(self, request: Request):
         """ Refresh your auth token """
@@ -124,4 +123,4 @@ class Auth(Base):
             if rr.is_error:
                 raise HTTPException(status_code=rr.status_code, detail=rr.json())
             token = rr.json()
-            return {"access_token": token['access'], "token_type": "bearer"}   
+            return {"access_token": token['access'], "token_type": "bearer"}
