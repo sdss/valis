@@ -32,8 +32,8 @@ class DataModels(Base):
     @router.get("/", summary='Get general SDSS metadata')
     async def get_dm(self, dm: SDSSDataModel = Depends(get_datamodel)) -> dict:
         """ Retrieve general SDSS metadata """
-        
-        return {'description': 'General metadata for the Sloan Digital Sky Survey (SDSS)', 'phases': dm.phases.dict()['__root__'], 'surveys': dm.surveys.dict()['__root__'], 
+
+        return {'description': 'General metadata for the Sloan Digital Sky Survey (SDSS)', 'phases': dm.phases.dict()['__root__'], 'surveys': dm.surveys.dict()['__root__'],
                 'releases': dm.releases.dict()['__root__']}
 
     @router.get("/releases", summary='Get metadata on SDSS releases')
@@ -50,7 +50,7 @@ class DataModels(Base):
     async def get_surveys(self, dm: SDSSDataModel = Depends(get_datamodel)) -> dict:
         """ Retrieve a list of SDSS surveys """
         return {'surveys': dm.surveys.dict()['__root__']}
-        
+
     @router.get("/products", summary='Get a list of SDSS data products', dependencies=[Depends(set_auth)])
     async def list_products(self, prods: list = Depends(get_products)) -> dict:
         """ Get a list of SDSS data products that have defined SDSS datamodels """
@@ -62,4 +62,12 @@ class DataModels(Base):
         product = [i for i in prods if i.name == name]
         if not product:
             raise HTTPException(status_code=400, detail=f'{name} not found a valid SDSS data product for release {self.release}')
-        return product[0].get_content()
+        return product[0].get_content(by_alias=True)
+
+    @router.get("/schema/{name}", summary='Retrieve the datamodel schema for an SDSS product', dependencies=[Depends(set_auth)])
+    async def get_schema(self, name: str, prods: list = Depends(get_products)) -> dict:
+        """ Get the Pydantic schema describing an SDSS product """
+        product = [i for i in prods if i.name == name]
+        if not product:
+            raise HTTPException(status_code=400, detail=f'{name} not found a valid SDSS data product for release {self.release}')
+        return product[0].get_schema()
