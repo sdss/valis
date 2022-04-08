@@ -15,7 +15,6 @@ from __future__ import print_function, division, absolute_import
 from fastapi import FastAPI, Depends
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 import valis
 from valis.settings import settings
@@ -60,7 +59,7 @@ tags_metadata = [
 ]
 
 # create the application
-app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__, 
+app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__,
               openapi_tags=tags_metadata, dependencies=[])
 # submount app to allow for production /valis location
 app.mount("/valis", app)
@@ -95,25 +94,26 @@ def custom_openapi():
         tags=tags_metadata,
         servers=app.servers
     )
-    
+
     # hack the schema to remove added "release" body parameter to all GET requests
     for content in openapi_schema['paths'].values():
         gcont = content.get('get', None)
         if not gcont:
             continue
         gcont.pop('requestBody', None)
-        
+
     # hack the schema to improve Form schema names
+    cc = openapi_schema['components']['schemas'].copy()
     for key, vals in openapi_schema['components']['schemas'].items():
         if key == 'Body_get_token_auth_login_post':
             vals['title'] = 'AuthForm'
-            openapi_schema['components']['schemas']['AuthForm'] = openapi_schema['components']['schemas'].pop(key)
+            cc['AuthForm'] = cc.pop(key)
         elif key.startswith('Body_get_tokenhttps'):
             vals['title'] = 'CredForm'
-            openapi_schema['components']['schemas']['CredForm'] = openapi_schema['components']['schemas'].pop(key)
-    
-    openapi_schema['components']['schemas'] = dict(sorted(openapi_schema['components']['schemas'].items(), key=lambda x: x[0]))
-    
+            cc['CredForm'] = cc.pop(key)
+
+    openapi_schema['components']['schemas'] = dict(sorted(cc.items(), key=lambda x: x[0]))
+
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
