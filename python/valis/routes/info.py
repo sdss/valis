@@ -3,8 +3,10 @@
 #
 
 from __future__ import print_function, division, absolute_import
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi_utils.cbv import cbv
+from fastapi_utils.enums import StrEnum
+from enum import auto
 
 try:
     from datamodel.products import SDSSDataModel
@@ -25,6 +27,11 @@ def get_products(release: str = Depends(release), dm: SDSSDataModel = Depends(ge
     products = dm.products.group_by("releases")
     return products.get(release, [])
 
+
+class TagGroup(StrEnum):
+    """ Enum for grouping SDSS software tags """
+    release = auto()
+    survey = auto()
 
 @cbv(router)
 class DataModels(Base):
@@ -50,6 +57,17 @@ class DataModels(Base):
     async def get_surveys(self, dm: SDSSDataModel = Depends(get_datamodel)) -> dict:
         """ Retrieve a list of SDSS surveys """
         return {'surveys': dm.surveys.dict()['__root__']}
+
+    @router.get("/tags", summary='Get metadata on SDSS software tags')
+    async def get_tags(self, group: TagGroup = Query(None, description='group the tags by release or survey'),
+                       dm: SDSSDataModel = Depends(get_datamodel)) -> dict:
+        """ Retrieve a dictionary of SDSS software tags """
+        if group == 'release':
+            return {'tags': dm.tags.group_by('release')}
+        elif group == 'survey':
+            return {'tags': dm.tags.group_by('survey')}
+        else:
+            return {'tags': dm.tags.dict()['__root__']}
 
     @router.get("/products", summary='Get a list of SDSS data products', dependencies=[Depends(set_auth)])
     async def list_products(self, prods: list = Depends(get_products)) -> dict:
