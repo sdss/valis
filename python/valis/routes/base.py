@@ -16,20 +16,10 @@ def validate_release(value: str) -> str:
     return value
 
 class BaseBody(BaseModel):
-    release: Optional[str] = Field(None, example='WORK')
-    
-# class Release:
-#     def __init__(self, body: BaseBody = None, query: BaseBody = Depends()):
-#         print('brelease', body, body.release if body else None)
-#         print('qrelease', query, query.release if query else None)
-#         self.release = (query.release if query else None) or (body.release if body else None) or "WORK"
+    release: Optional[str] = Field(None, example='WORK', description='The SDSS data release')
 
 
-# async def release(release: Release = Depends()):
-#     print('release', release)
-#     return release.release or 'WORK'
-
-async def release(release: str = Query(None, example='WORK'), body: BaseBody = None) -> str:
+async def release(release: str = Query(None, example='WORK', description='The SDSS data release'), body: BaseBody = None) -> str:
     """ Dependency to specify a release query or body parameter """
     try:
         final = validate_release(release or (body.release if body else None) or 'WORK')

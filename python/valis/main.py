@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import valis
 from valis.settings import settings
-from valis.routes import access, envs, files, auth, info
+from valis.routes import access, envs, files, auth, info, maskbits
 from valis.routes.base import release
 from valis.routes.auth import set_auth
 
@@ -56,6 +56,14 @@ tags_metadata = [
         "name": "info",
         "description": "Access metadata on SDSS, its datamodels and products",
     },
+    # {
+    #     "name": "target",
+    #     "description": "Explore astronomical targets in SDSS",
+    # },
+    {
+        "name": "maskbits",
+        "description": "Work with SDSS maskbits",
+    },
 ]
 
 # create the application
@@ -78,6 +86,8 @@ app.include_router(envs.router, prefix='/envs', tags=['envs'], dependencies=[Dep
 app.include_router(files.router, prefix='/file', tags=['file'], dependencies=[Depends(set_auth)])
 app.include_router(info.router, prefix='/info', tags=['info'])
 app.include_router(auth.router, prefix='/auth', tags=['auth'])
+#app.include_router(target.router, prefix='/target', tags=['target'])
+app.include_router(maskbits.router, prefix='/maskbits', tags=['maskbits'])
 
 
 def custom_openapi():
