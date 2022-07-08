@@ -15,6 +15,7 @@ from __future__ import print_function, division, absolute_import
 from fastapi import FastAPI, Depends
 from fastapi.openapi.utils import get_openapi
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Dict
 
 import valis
 from valis.settings import settings
@@ -77,7 +78,7 @@ app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss\.(org|u
                    allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
 
-@app.get("/", summary='Hello World route')
+@app.get("/", summary='Hello World route', response_model=Dict[str, str])
 def hello(release = Depends(release)):
     return {"Hello SDSS": "This is the FastAPI World", 'release': release}
 
