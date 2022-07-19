@@ -185,9 +185,9 @@ class ORJSONResponseCustom(JSONResponse):
 
 class FileResponseModel(BaseModel):
     """ Response for file data endpoint"""
-    header: dict
-    comments: dict
-    data: dict
+    header: dict = None
+    comments: dict = None
+    data: dict = None
 
 class FileInfoModel(BaseModel):
     """ Response for file info endpoint """
