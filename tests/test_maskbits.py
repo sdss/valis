@@ -9,8 +9,6 @@ def get_data(response):
     return response.json()
 
 def test_maskbits_list(client):
-    import os
-    print(os.getenv("SDSS_SVN_ROOT"))
     response = client.get("/maskbits/list")
     data = get_data(response)
     assert 'MANGA_DAPQUAL' in data['schema']
