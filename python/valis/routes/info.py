@@ -5,7 +5,7 @@
 from __future__ import print_function, division, absolute_import
 
 from typing import List, Union, Dict
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Path
 from fastapi_utils.cbv import cbv
 from fastapi_utils.enums import StrEnum
 from enum import auto
@@ -102,7 +102,7 @@ class DataModels(Base):
         return {'products': [p.name for p in prods]}
 
     @router.get("/products/{name}", summary='Retrieve a datamodel for an SDSS product', dependencies=[Depends(set_auth)], response_model=ProductModel)
-    async def get_product(self, name: str, prods: list = Depends(get_products)) -> dict:
+    async def get_product(self, name: str = Path(..., description='The datamodel file species name', example='sdR'), prods: list = Depends(get_products)) -> dict:
         """ Get the JSON datamodel for an SDSS data product """
         product = [i for i in prods if i.name == name]
         if not product:
@@ -110,7 +110,7 @@ class DataModels(Base):
         return product[0].get_content(by_alias=True)
 
     @router.get("/schema/{name}", summary='Retrieve the datamodel schema for an SDSS product', dependencies=[Depends(set_auth)], response_model=SchemaModel)
-    async def get_schema(self, name: str, prods: list = Depends(get_products)) -> dict:
+    async def get_schema(self, name: str = Path(..., description='The datamodel file species name', example='sdR'), prods: list = Depends(get_products)) -> dict:
         """ Get the Pydantic schema describing an SDSS product """
         product = [i for i in prods if i.name == name]
         if not product:
