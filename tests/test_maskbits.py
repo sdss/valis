@@ -2,13 +2,15 @@
 #
 import pytest
 
-pytest.mark.usefixtures('monkeymask')
+pytestmark = pytest.mark.usefixtures("monkeymask")
 
 def get_data(response):
     assert response.status_code == 200
     return response.json()
 
 def test_maskbits_list(client):
+    import os
+    print(os.getenv("SDSS_SVN_ROOT"))
     response = client.get("/maskbits/list")
     data = get_data(response)
     assert 'MANGA_DAPQUAL' in data['schema']

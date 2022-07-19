@@ -36,4 +36,4 @@ def monkeymask(monkeypatch, tmp_path):
     testpath = pathlib.Path(__file__).parent / 'data/sdssMaskbits.par'
     shutil.copy2(testpath, mask_dir)
 
-    monkeypatch.setenv('SDSS_SVN_ROOT', svn_dir)
+    monkeypatch.setenv('SDSS_SVN_ROOT', str(svn_dir))
