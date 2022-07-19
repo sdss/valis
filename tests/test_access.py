@@ -42,6 +42,8 @@ def test_path_names_nokwargs(client):
 @pytest.mark.parametrize('name, params, exp',
                          [('platePlans', 'release=DR16', 'data/sdss/platelist/trunk/platePlans.par'),
                           ('mangacube', 'kwargs=plate=8485&kwargs=ifu=1901&kwargs=wave=LOG&kwargs=drpver=v2_4_3&release=DR16',
+                           'dr16/manga/spectro/redux/v2_4_3/8485/stack/manga-8485-1901-LOGCUBE.fits.gz'),
+                          ('mangacube', 'kwargs=plate=8485,ifu=1901,wave=LOG,drpver=v2_4_3&release=DR16',
                            'dr16/manga/spectro/redux/v2_4_3/8485/stack/manga-8485-1901-LOGCUBE.fits.gz')])
 def test_path_names(client, name, params, exp):
     response = client.get(f"/paths/{name}?{params}")
@@ -59,6 +61,14 @@ def test_path_name_parts(client, part, exp):
     data = response.json()
     assert part in data
     assert data[part] == exp
+
+def test_path_get(client):
+    params = {'kwargs':['drpver=v3_1_1', 'plate=8485', 'ifu=1901', 'wave=LOG'], 'release':'DR17', 'part':'location'}
+    response = client.get("/paths/mangacube", params=params)
+    assert response.status_code == 200
+    data = response.json()
+    assert data['location'] == 'dr17/manga/spectro/redux/v3_1_1/8485/stack/manga-8485-1901-LOGCUBE.fits.gz'
+
 
 def test_path_post(client):
     params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'release':'DR17', 'part':'location'}

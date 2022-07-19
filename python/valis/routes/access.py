@@ -72,12 +72,6 @@ class PathModel(PathResponse):
             bstr = ", ".join(bad)
             raise ValueError(f'Validation error: kwargs {bstr} not allowed for name: {name}')
 
-
-        # # check for valid
-        # valid = set(v) & set(keys)
-        # if not valid:
-        #     return {}
-
         # check for missing kwargs
         missing = set(keys) - set(v)
         if missing:
@@ -103,25 +97,12 @@ class PathModel(PathResponse):
 class PathBody(BaseBody):
     """ Body for SDSS access paths post requests """
     kwargs: dict = Field({}, description='The keyword variable arguments defining a path',
-                         example={"drpver": "v2_4_3", "wave": "LOG", "plate": 8485, "ifu": 1901})
+                         example={"run2d": "v5_13_0", "plateid": 3606, "mjd": 55182, "fiberid": 22})
     part: PathPart = Field('full', description='The part of the path to return')
     exists: bool = Field(False, description='Flag to check if the path exists')
 
 
-# async def extract_path(request: Request, name: str = Path(None, description='the sdss access path name', example='apStar'),
-#                        access: Path = Depends(get_access)) -> Type[PathModel]:
-#     """ Dependency to extract and parse generic query parameters """
-#     params = str(request.query_params)
-#     kwargs = dict(map(lambda x: x.split('='), params.split('&'))) if params else {}
-#     try:
-#         path = PathModel(name=name, kwargs=kwargs, _path=access)
-#     except ValidationError as ee:
-#         raise HTTPException(status_code=422, detail=ee.errors()) from ee
-#     else:
-#         return path
-
-
-async def valid_name(name: str = Path(None, description='the sdss access path name', example='mangacube'),
+async def valid_name(name: str = Path(None, description='the sdss access path name', example='spec-lite'),
                      access: Path = Depends(get_access)):
     """ Dependency to validate a path name """
     try:
@@ -132,11 +113,11 @@ async def valid_name(name: str = Path(None, description='the sdss access path na
         return name
 
 
-key_constr = constr(regex="^(\w+)=([\w\d.]+)$")
+key_constr = constr(regex="(?:,|^)((\w+)=(?:([\w\d.]+)))")
 
-async def get_path(name: str = Depends(valid_name),
+async def extract_path(name: str = Depends(valid_name),
                    kwargs: List[key_constr] = Query(None, description='the keyword variable arguments defining a path',
-                                             example=["plate=8485", "ifu=1901", 'wave=LOG', "drpver=v2_4_3"]),
+                                             example=["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_0"]),
                    access: Path = Depends(get_access)) -> Type[PathModel]:
     """ Dependency to extract and parse path name and keyword arguments """
 
@@ -197,7 +178,7 @@ class Paths(Base):
         return {'name': name, 'kwargs': self.path.lookup_keys(name)}
 
     @router.get("/{name}", summary='Get the template or resolved path for an sdss_access path name.', response_model=PathResponse, response_model_exclude_unset=True)
-    async def get_path_name(self, path: Type[PathModel] = Depends(get_path),
+    async def get_path_name(self, path: Type[PathModel] = Depends(extract_path),
                             part: PathPart = Query('full', description='The part of the path to return'),
                             exists: bool = Query(False, description='Flag to check if the path exists')):
         """ Construct an sdss_access path
@@ -224,7 +205,7 @@ class Paths(Base):
         return self.process_path(path, part, exists)
 
     @router.post("/{name}", summary='Get the template or resolved path for an sdss_access path name.', response_model=PathResponse, response_model_exclude_unset=True)
-    async def post_path_name(self, name: str = Path(None, description='the sdss access path name', example='mangacube'),
+    async def post_path_name(self, name: str = Path(None, description='the sdss access path name', example='spec-lite'),
                              body: PathBody = None):
         """ Construct an sdss_access path
 
