@@ -18,7 +18,7 @@ class Token(BaseModel):
     """ SDSS OAuth2 access token """
     access_token: str
     token_type: str
-    refresh_token: str
+    refresh_token: str = None
 
 class User(BaseModel):
     """ SDSS user"""
