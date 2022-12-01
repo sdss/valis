@@ -80,7 +80,7 @@ async def verify_token(request: Request):
     async with httpx.AsyncClient() as client:
         rr = await client.post('https://api.sdss.org/collaboration/credential/identity', headers=hdrs)
         if rr.is_error:
-            raise HTTPException(status_code=rr.status_code, detail=rr.json())
+            raise HTTPException(status_code=rr.status_code, detail=rr.content)
         return rr.json()
 
 @cbv(router)
@@ -93,7 +93,7 @@ class Auth(Base):
             rr = await client.post('https://api.sdss.org/collaboration/credential',
                             data={'username': form_data.username, 'password': form_data.password})
             if rr.is_error:
-                raise HTTPException(status_code=rr.status_code, detail=rr.json())
+                raise HTTPException(status_code=rr.status_code, detail=rr.content.decode())
 
             token = rr.json()
             return {"access_token": token['access'], "token_type": "bearer", "refresh_token": token['refresh']}
@@ -110,7 +110,7 @@ class Auth(Base):
         async with httpx.AsyncClient() as client:
             rr = await client.post('https://api.sdss.org/collaboration/credential/member', headers=hdrs)
             if rr.is_error:
-                raise HTTPException(status_code=rr.status_code, detail=rr.json())
+                raise HTTPException(status_code=rr.status_code, detail=rr.content.decode())
             data = rr.json()
             return data['member']
 
@@ -121,6 +121,6 @@ class Auth(Base):
         async with httpx.AsyncClient() as client:
             rr = await client.post('https://api.sdss.org/collaboration/credential/refresh', headers=hdrs)
             if rr.is_error:
-                raise HTTPException(status_code=rr.status_code, detail=rr.json())
+                raise HTTPException(status_code=rr.status_code, detail=rr.content.decode())
             token = rr.json()
             return {"access_token": token['access'], "token_type": "bearer"}
