@@ -53,7 +53,7 @@ async def set_auth(token: str = Depends(oauth2_scheme), release: str = Depends(r
     return {"token": token, 'release': release}
 
 
-auth_base = "https://api.sdss.org/collaboration/credential"
+auth_base = "https://api.sdss.org/crowd/credential"
 
 @auth_callback_router.post(f"{auth_base}/member", response_model=Member)
 def get_member():
@@ -78,7 +78,7 @@ callback_dict = {i.name:[i] for i in auth_callback_router.routes}
 async def verify_token(request: Request):
     hdrs = {'Credential': request.headers.get('Authorization', '')}
     async with httpx.AsyncClient() as client:
-        rr = await client.post('https://api.sdss.org/collaboration/credential/identity', headers=hdrs)
+        rr = await client.post('https://api.sdss.org/crowd/credential/identity', headers=hdrs)
         if rr.is_error:
             raise HTTPException(status_code=rr.status_code, detail=rr.content)
         return rr.json()
@@ -90,7 +90,7 @@ class Auth(Base):
     async def get_token(self, form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
         """ Authenticate your SDSS user credentials """
         async with httpx.AsyncClient() as client:
-            rr = await client.post('https://api.sdss.org/collaboration/credential',
+            rr = await client.post('https://api.sdss.org/crowd/credential',
                             data={'username': form_data.username, 'password': form_data.password})
             if rr.is_error:
                 raise HTTPException(status_code=rr.status_code, detail=rr.content.decode())
@@ -108,7 +108,7 @@ class Auth(Base):
         """ Get user information """
         hdrs = {'Credential': request.headers.get('Authorization', '')}
         async with httpx.AsyncClient() as client:
-            rr = await client.post('https://api.sdss.org/collaboration/credential/member', headers=hdrs)
+            rr = await client.post('https://api.sdss.org/crowd/credential/member', headers=hdrs)
             if rr.is_error:
                 raise HTTPException(status_code=rr.status_code, detail=rr.content.decode())
             data = rr.json()
@@ -119,7 +119,7 @@ class Auth(Base):
         """ Refresh your auth token """
         hdrs = {'Credential': request.headers.get('Authorization', '')}
         async with httpx.AsyncClient() as client:
-            rr = await client.post('https://api.sdss.org/collaboration/credential/refresh', headers=hdrs)
+            rr = await client.post('https://api.sdss.org/crowd/credential/refresh', headers=hdrs)
             if rr.is_error:
                 raise HTTPException(status_code=rr.status_code, detail=rr.content.decode())
             token = rr.json()
