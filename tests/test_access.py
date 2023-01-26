@@ -85,11 +85,11 @@ def test_path_post_wget(client):
     assert data['location'] == 'dr17/manga/spectro/redux/v3_1_1/8485/stack/manga-8485-1901-LOGCUBE.fits.gz'
 
 def test_path_post_invalid_release(client):
-    params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'release':'DR18', 'part':'location'}
+    params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'release':'DR99', 'part':'location'}
     response = client.post("/paths/mangacube", json=params)
     assert response.status_code == 422
     data = response.json()
-    assert data == {'detail': 'Validation Error: Validation error: release DR18 not a valid release'}
+    assert data == {'detail': 'Validation Error: Validation error: release DR99 not a valid release'}
 
 def test_path_post_name_not_in_release(client):
     params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'part':'location'}
