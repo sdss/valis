@@ -43,6 +43,7 @@ orjson = "^3.6.7"
 fastapi-utils = "^0.2.1"
 python-multipart = "^0.0.5"
 httpx = "^0.22.0"
+astroquery = "^0.4.6"
 
 
 [tool.poetry.dev-dependencies]
