@@ -11,17 +11,21 @@
 # Modified By: Brian Cherinka
 
 
-from __future__ import print_function, division, absolute_import
-from fastapi import FastAPI, Depends
-from fastapi.openapi.utils import get_openapi
-from fastapi.middleware.cors import CORSMiddleware
+from __future__ import absolute_import, division, print_function
+
+import os
 from typing import Dict
 
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
+from fastapi.staticfiles import StaticFiles
+
 import valis
-from valis.settings import settings
-from valis.routes import access, envs, files, auth, info, maskbits, target
-from valis.routes.base import release
+from valis.routes import access, auth, envs, files, info, maskbits, mocs, target
 from valis.routes.auth import set_auth
+from valis.routes.base import release
+from valis.settings import settings
 
 
 tags_metadata = [
@@ -65,6 +69,10 @@ tags_metadata = [
         "name": "maskbits",
         "description": "Work with SDSS maskbits",
     },
+    {
+        "name": "mocs",
+        "description": "Access SDSS surveys MOCs",
+    },
 ]
 
 # create the application
@@ -77,6 +85,7 @@ app.mount("/valis", app)
 app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss\.(org|utah\.edu)$",
                    allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
+app.mount("/static/mocs", StaticFiles(directory=os.getenv("SDSS_HIPS"), html=True, follow_symlink=True), name="static")
 
 @app.get("/", summary='Hello World route', response_model=Dict[str, str])
 def hello(release = Depends(release)):
@@ -89,6 +98,7 @@ app.include_router(info.router, prefix='/info', tags=['info'])
 app.include_router(auth.router, prefix='/auth', tags=['auth'])
 app.include_router(target.router, prefix='/target', tags=['target'])
 app.include_router(maskbits.router, prefix='/maskbits', tags=['maskbits'])
+app.include_router(mocs.router, prefix='/mocs', tags=['mocs'])
 
 
 def custom_openapi():
