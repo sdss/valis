@@ -45,3 +45,12 @@ class Base:
     release: str = Depends(release)
     tree: Tree = Depends(get_tree)
     path: Path = Depends(get_access)
+
+    def check_path_name(self, name: str):
+        names = self.path.lookup_names()
+        if name not in names:
+            raise HTTPException(status_code=422, detail=f'path name {name} not in release.')
+
+    def check_path_exists(self, path: str):
+        if not self.path.exists('', full=path):
+            raise HTTPException(status_code=422, detail=f'path {path} does not exist on disk.')
