@@ -25,7 +25,7 @@ import valis
 from valis.routes import access, auth, envs, files, info, maskbits, mocs, target
 from valis.routes.auth import set_auth
 from valis.routes.base import release
-from valis.settings import settings
+from valis.settings import Settings, read_valis_config
 
 
 tags_metadata = [
@@ -75,6 +75,15 @@ tags_metadata = [
     },
 ]
 
+from functools import lru_cache
+@lru_cache
+def get_settings():
+    """ Get the valis settings """
+    cfg = read_valis_config()
+    return Settings(**cfg)
+
+settings = get_settings()
+
 # create the application
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__,
               openapi_tags=tags_metadata, dependencies=[])
@@ -83,6 +92,7 @@ app.mount("/valis", app)
 
 # add CORS for cross-domain, for any sdss.org or sdss.utah.edu domain
 app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss\.(org|utah\.edu)$",
+                   allow_origins=settings.valis_allow_origin,
                    allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
 app.mount("/static/mocs", StaticFiles(directory=os.getenv("SDSS_HIPS"), html=True, follow_symlink=True), name="static")
