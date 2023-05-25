@@ -111,6 +111,32 @@ app.include_router(maskbits.router, prefix='/maskbits', tags=['maskbits'])
 app.include_router(mocs.router, prefix='/mocs', tags=['mocs'])
 
 
+def hack_auth(dd):
+    """ Hack the openapi docs for the auth login form """
+    cc = dd.copy()
+    for k, v in cc.items():
+        # recurse for dicts, then continue
+        if isinstance(v, dict):
+            hack_auth(v)
+            continue
+
+        # continue for non string values
+        if not isinstance(v, str):
+            continue
+
+        # update the login and callback routes
+        b = 'get_token_auth_login_post'
+        b2 = 'get_tokenhttps___api_sdss_org_crowd_credential_post'
+        if b == v:
+            dd[k] = 'AuthForm'
+        elif b2 == v:
+            dd[k] = 'CredForm'
+        elif b in v:
+            dd[k] = v.replace(f'Body_{b}', 'AuthForm')
+        elif b2 in v:
+            dd[k] = v.replace(f'Body_{b2}', 'CredForm')
+    return dd
+
 def custom_openapi():
     """ Custom OpenAPI spec to remove "release" POST body param from GET requests in the docs """
     # cache the openapi schema
@@ -133,7 +159,14 @@ def custom_openapi():
             continue
         gcont.pop('requestBody', None)
 
-    # hack the schema to improve Form schema names
+    # hack to rename ugly login auth schema for form fields to new names
+    # update get_token_auth_login_post name to AuthForm
+    # update get_tokenhttps___api_sdss_org_crowd_credential_post to CredForm
+
+    # hack the paths for the Auth Forms
+    hack_auth(openapi_schema['paths']['/auth/login'])
+
+    # hack the schema to improve auth Form schema names
     cc = openapi_schema['components']['schemas'].copy()
     for key, vals in openapi_schema['components']['schemas'].items():
         if key == 'Body_get_token_auth_login_post':

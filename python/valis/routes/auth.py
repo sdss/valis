@@ -67,7 +67,7 @@ def check_identity():
 def refresh_token():
     pass
 
-@auth_callback_router.post(f"{auth_base}/", response_model=CredToken)
+@auth_callback_router.post(f"{auth_base}", response_model=CredToken)
 def get_token(username: str = Form(...), password: str = Form(...)):
     pass
 
@@ -87,7 +87,7 @@ async def verify_token(request: Request):
 class Auth(Base):
 
     @router.post("/login", summary='Login to the SDSS API', response_model=Token, callbacks=callback_dict['get_token'])
-    async def get_token(self, form_data: OAuth2PasswordRequestForm = Depends()) -> dict:
+    async def get_token(self, form_data: OAuth2PasswordRequestForm = Depends()) -> Token:
         """ Authenticate your SDSS user credentials """
         async with httpx.AsyncClient() as client:
             rr = await client.post('https://api.sdss.org/crowd/credential',
