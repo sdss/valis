@@ -3,7 +3,7 @@
 #
 from __future__ import print_function, division, absolute_import
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi_utils.cbv import cbv
 import numpy as np
@@ -25,7 +25,7 @@ router = APIRouter()
 VALIS_SUPPORTED_FILES = ['.fits']
 
 
-async def get_filepath(name: str = Query(..., description='The sdss access path name', example='spec-lite'),
+async def get_filepath(name: str = Path(..., description='The sdss access path name', example='spec-lite'),
                        path: Type[PathModel] = Depends(extract_path)) -> str:
     """ Depedency to get a filepath from sdss_access """
     data = path.dict(include={'full', 'exists'})

@@ -13,7 +13,7 @@
 
 from __future__ import print_function, division, absolute_import
 from sdss_access.path import Path
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Path as FPath
 from fastapi_utils.cbv import cbv
 from pydantic import BaseModel, validator, PrivateAttr, Field, ValidationError, constr
 from typing import Type, List, Union, Dict, Optional
@@ -102,7 +102,7 @@ class PathBody(BaseBody):
     exists: bool = Field(False, description='Flag to check if the path exists')
 
 
-async def valid_name(name: str = Path(None, description='the sdss access path name', example='spec-lite'),
+async def valid_name(name: str = FPath(description='the sdss access path name', example='spec-lite'),
                      access: Path = Depends(get_access)):
     """ Dependency to validate a path name """
     try:
@@ -205,7 +205,7 @@ class Paths(Base):
         return self.process_path(path, part, exists)
 
     @router.post("/{name}", summary='Get the template or resolved path for an sdss_access path name.', response_model=PathResponse, response_model_exclude_unset=True)
-    async def post_path_name(self, name: str = Path(None, description='the sdss access path name', example='spec-lite'),
+    async def post_path_name(self, name: str = FPath(description='the sdss access path name', example='spec-lite'),
                              body: PathBody = None):
         """ Construct an sdss_access path
 
