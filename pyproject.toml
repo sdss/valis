@@ -32,7 +32,7 @@ valis = "valis.cli:main"
 python = "^3.8"
 sdss-tree = "^4.0.0"
 sdss-access = "^3.0.0"
-sdsstools = "^0.4.14"
+sdsstools = "^1.0.0"
 Sphinx = {version="^3.0.0", optional=true}
 fastapi = "^0.94.1"
 uvicorn = "^0.21.0"
