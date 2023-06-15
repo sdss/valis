@@ -2,23 +2,23 @@
 #
 
 
-def test_envs_default_sdss5(client):
+def test_envs_default_dr17(client):
     response = client.get("/envs")
-    assert response.status_code == 200
-    data = response.json()
-
-    assert 'BHM' in data['envs']
-    assert 'ROBOSTRATEGY_DATA' in data['envs']['SANDBOX']
-    assert 'APOGEE_DATA_N' in data['envs']['DATA']
-
-def test_envs_dr17(client):
-    response = client.get("/envs?release=DR17")
     assert response.status_code == 200
     data = response.json()
 
     assert 'BHM' not in data['envs']
     assert 'MANGA' in data['envs']
     assert 'APOGEE_THEJOKER' in data['envs']['APOGEE']
+
+def test_envs_sdss5(client):
+    response = client.get("/envs?release=WORK")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert 'BHM' in data['envs']
+    assert 'ROBOSTRATEGY_DATA' in data['envs']['SANDBOX']
+    assert 'APOGEE_DATA_N' in data['envs']['DATA']
 
 def test_envs_releases(client):
     response = client.get("/envs/releases/")
@@ -29,7 +29,7 @@ def test_envs_releases(client):
     assert not {'WORK', 'MPL10', 'IPL2'}.issubset(set(data))
 
 def test_envs_resolve_sdss5(client):
-    response = client.get("/envs/resolve")
+    response = client.get("/envs/resolve?release=WORK")
     assert response.status_code == 200
     data = response.json()
 

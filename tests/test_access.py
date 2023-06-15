@@ -3,7 +3,7 @@
 import pytest
 
 def test_paths(client):
-    response = client.get("/paths")
+    response = client.get("/paths?release=WORK")
     assert response.status_code == 200
     data = response.json()
     assert 'rsCompleteness' in data['names']
@@ -17,7 +17,7 @@ def test_paths_with_release(client):
     assert 'mangacube' in data['names']
 
 def test_paths_with_templates(client):
-    response = client.get("/paths?templates=True")
+    response = client.get("/paths?release=WORK&templates=True")
     assert response.status_code == 200
     data = response.json()
     assert 'rsCompleteness' in data
@@ -92,7 +92,7 @@ def test_path_post_invalid_release(client):
     assert data == {'detail': 'Validation Error: Validation error: release DR99 not a valid release'}
 
 def test_path_post_name_not_in_release(client):
-    params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'part':'location'}
+    params = {'kwargs':{'drpver':'v3_1_1', 'plate':8485, 'ifu':'1901', 'wave':'LOG'}, 'part':'location', 'release':'WORK'}
     response = client.post("/paths/mangacube", json=params)
     assert response.status_code == 422
     data = response.json()
