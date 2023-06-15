@@ -97,7 +97,7 @@ class PathModel(PathResponse):
 class PathBody(BaseBody):
     """ Body for SDSS access paths post requests """
     kwargs: dict = Field({}, description='The keyword variable arguments defining a path',
-                         example={"run2d": "v5_13_0", "plateid": 3606, "mjd": 55182, "fiberid": 22})
+                         example={"run2d": "v5_13_2", "plateid": 3606, "mjd": 55182, "fiberid": 22})
     part: PathPart = Field('full', description='The part of the path to return')
     exists: bool = Field(False, description='Flag to check if the path exists')
 
@@ -117,7 +117,7 @@ key_constr = constr(regex="(?:,|^)((\w+)=(?:([\w\d.]+)))")
 
 async def extract_path(name: str = Depends(valid_name),
                    kwargs: List[key_constr] = Query(None, description='the keyword variable arguments defining a path',
-                                             example=["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_0"]),
+                                             example=["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]),
                    access: Path = Depends(get_access)) -> Type[PathModel]:
     """ Dependency to extract and parse path name and keyword arguments """
 

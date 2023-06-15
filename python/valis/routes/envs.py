@@ -37,7 +37,7 @@ class Envs(Base):
 
 
     @router.get("/resolve", summary='Resolve the SDSS tree environment variables into their paths', response_model=Union[Dict[str, dict], Dict[str, str]])
-    async def resolve_envs(self, name: str = Query(None, descripion='the SDSS environment variable')) -> dict:
+    async def resolve_envs(self, name: str = Query(None, descripion='the SDSS environment variable', example='MANGA_SPECTRO_REDUX')) -> dict:
         """ Resolve an SDSS tree environment variable into its path """
         env = copy.deepcopy(self.tree.environ)
         env.pop('default')
