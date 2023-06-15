@@ -14,6 +14,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import pathlib
 from typing import Dict
 
 from fastapi import Depends, FastAPI
@@ -95,7 +96,11 @@ app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss\.(org|u
                    allow_origins=settings.valis_allow_origin,
                    allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
-app.mount("/static/mocs", StaticFiles(directory=os.getenv("SDSS_HIPS"), html=True, follow_symlink=True), name="static")
+# mount the MOCs to a static path
+hips_dir = pathlib.Path(os.getenv("SDSS_HIPS"))
+if not hips_dir.is_dir():
+    hips_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/static/mocs", StaticFiles(directory=hips_dir, html=True, follow_symlink=True), name="static")
 
 @app.get("/", summary='Hello World route', response_model=Dict[str, str])
 def hello(release = Depends(release)):
