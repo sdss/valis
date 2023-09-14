@@ -92,7 +92,7 @@ app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version
 app.mount("/valis", app)
 
 # add CORS for cross-domain, for any sdss.org or sdss.utah.edu domain
-app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss\.(org|utah\.edu)$",
+app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss5?\.(org|utah\.edu)$",
                    allow_origins=settings.valis_allow_origin,
                    allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 

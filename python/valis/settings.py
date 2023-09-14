@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 #
 
-from pydantic import BaseSettings, validator
+from pydantic import BaseSettings, validator, Field, AnyHttpUrl
 from enum import Enum
-from typing import List
+from typing import List, Union
 from valis import config
 
 
@@ -32,7 +32,7 @@ class EnvEnum(str, Enum):
 
 class Settings(BaseSettings):
     valis_env: EnvEnum = EnvEnum.dev
-    valis_allow_origin: List[str] = []
+    valis_allow_origin: Union[str, List[AnyHttpUrl]] = Field([], env="VALIS_ALLOW_ORIGIN")
 
     @validator('valis_allow_origin')
     def must_be_list(cls, v):
