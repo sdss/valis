@@ -98,12 +98,12 @@ app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss5?\.(org
 
 # mount the MOCs to a static path
 hips_dir = pathlib.Path(os.getenv("SDSS_HIPS"))
-if not hips_dir.is_dir():
+if not (hips_dir.is_dir() or hips_dir.is_symlink()):
     hips_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/static/mocs", StaticFiles(directory=hips_dir, html=True, follow_symlink=True), name="static")
 
 @app.get("/", summary='Hello World route', response_model=Dict[str, str])
-def hello(release = Depends(release)):
+def hello(release=Depends(release)):
     return {"Hello SDSS": "This is the FastAPI World", 'release': release}
 
 app.include_router(access.router, prefix='/paths', tags=['paths'], dependencies=[Depends(set_auth)])
