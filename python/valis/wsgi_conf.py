@@ -23,7 +23,7 @@ from __future__ import print_function, division, absolute_import
 import os
 
 socket_dir = os.getenv("VALIS_SOCKET_DIR", '/tmp/valis')
-bind = f"unix:{socket_dir}/valis.sock"
+bind = [f"unix:{socket_dir}/valis.sock", "0.0.0.0:8000"]
 workers = 4
 worker_class = "uvicorn.workers.UvicornWorker"
 daemon = True
