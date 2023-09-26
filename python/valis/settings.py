@@ -32,15 +32,18 @@ class EnvEnum(str, Enum):
 
 class Settings(BaseSettings):
     valis_env: EnvEnum = EnvEnum.dev
-    valis_allow_origin: Union[str, List[AnyHttpUrl]] = Field([], env="VALIS_ALLOW_ORIGIN")
-    valis_db_server: str = 'pipelines'
-    valis_db_remote: bool = False
-    valis_db_port: int = 5432
-    valis_db_user: str = None
-    valis_db_host: str = 'localhost'
-    valis_db_pass: str = None
+    allow_origin: Union[str, List[AnyHttpUrl]] = Field([], env="VALIS_ALLOW_ORIGIN")
+    db_server: str = 'pipelines'
+    db_remote: bool = False
+    db_port: int = 5432
+    db_user: str = None
+    db_host: str = 'localhost'
+    db_pass: str = None
 
-    @validator('valis_allow_origin')
+    class Config:
+        env_prefix = "valis_"
+
+    @validator('allow_origin')
     def must_be_list(cls, v):
         if not isinstance(v, list):
             return v.split(',') if ',' in v else [v]

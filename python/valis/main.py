@@ -16,6 +16,7 @@ from __future__ import absolute_import, division, print_function
 import os
 import pathlib
 from typing import Dict
+from functools import lru_cache
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -76,12 +77,13 @@ tags_metadata = [
     },
 ]
 
-from functools import lru_cache
+
 @lru_cache
 def get_settings():
     """ Get the valis settings """
     cfg = read_valis_config()
     return Settings(**cfg)
+
 
 settings = get_settings()
 
@@ -93,7 +95,7 @@ app.mount("/valis", app)
 
 # add CORS for cross-domain, for any sdss.org or sdss.utah.edu domain
 app.add_middleware(CORSMiddleware, allow_origin_regex="^https://.*\.sdss5?\.(org|utah\.edu)$",
-                   allow_origins=settings.valis_allow_origin,
+                   allow_origins=settings.allow_origin,
                    allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
 # mount the MOCs to a static path
@@ -102,9 +104,11 @@ if not (hips_dir.is_dir() or hips_dir.is_symlink()):
     hips_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/static/mocs", StaticFiles(directory=hips_dir, html=True, follow_symlink=True), name="static")
 
+
 @app.get("/", summary='Hello World route', response_model=Dict[str, str])
 def hello(release=Depends(release)):
     return {"Hello SDSS": "This is the FastAPI World", 'release': release}
+
 
 app.include_router(access.router, prefix='/paths', tags=['paths'], dependencies=[Depends(set_auth)])
 app.include_router(envs.router, prefix='/envs', tags=['envs'], dependencies=[Depends(set_auth)])
@@ -142,6 +146,7 @@ def hack_auth(dd):
         elif b2 in v:
             dd[k] = v.replace(f'Body_{b2}', 'CredForm')
     return dd
+
 
 def custom_openapi():
     """ Custom OpenAPI spec to remove "release" POST body param from GET requests in the docs """
