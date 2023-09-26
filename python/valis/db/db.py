@@ -43,12 +43,12 @@ pdb._state = PeeweeConnectionState()
 def connect_db():
     """ Connect to the peewee sdss5db database """
     from valis.main import settings
-    profset = pdb.set_profile(settings.valis_db_server)
-    if settings.valis_db_remote and not profset:
-        port = settings.valis_db_port
-        user = settings.valis_db_user
-        host = settings.valis_db_host
-        passwd = settings.valis_db_pass
+    profset = pdb.set_profile(settings.db_server)
+    if settings.db_remote and not profset:
+        port = settings.db_port
+        user = settings.db_user
+        host = settings.db_host
+        passwd = settings.db_pass
         pdb.connect_from_parameters(dbname='sdss5db', host=host, port=port,
                                     user=user, password=passwd)
 
