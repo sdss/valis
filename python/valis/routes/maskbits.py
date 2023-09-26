@@ -48,7 +48,7 @@ def get_file() -> pathlib.Path:
         raise HTTPException(status_code=404, detail='Could not find a valid sdssMaskbits.par file. Check proper file paths.')
 
 
-def read_maskbits(path: pathlib.Path =  Depends(get_file)) -> np.recarray:
+def read_maskbits(path: pathlib.Path = Depends(get_file)) -> np.recarray:
     """ Read the maskbits yanny file
 
     Read the sdssMasbits.par file with the yanny reader.
@@ -76,7 +76,8 @@ def read_maskbits(path: pathlib.Path =  Depends(get_file)) -> np.recarray:
         return data['MASKBITS']
 
 
-def make_table(schema: str = Query(..., description='The name of the SDSS flag', example='MANGA_DRP2QUAL'), masks: np.recarray = Depends(read_maskbits)):
+def make_table(schema: str = Query(..., description='The name of the SDSS flag',
+                                   example='MANGA_DRP2QUAL'), masks: np.recarray = Depends(read_maskbits)):
     """ Dependency to return an Astropy Table from the maskbits data
 
     _extended_summary_
@@ -94,9 +95,7 @@ def make_table(schema: str = Query(..., description='The name of the SDSS flag',
         _description_
     """
     tt = Table(masks)
-    if schema:
-        return tt[tt["flag"] == schema]
-    return tt
+    return tt[tt["flag"] == schema] if schema else tt
 
 
 class MaskBitResponse(BaseModel):
@@ -105,6 +104,7 @@ class MaskBitResponse(BaseModel):
     value: int = Field(None, description='The maskbit value')
     labels: List[str] = Field(None, description='A list of mask labels')
     bits: List[int] = Field(None, description='A list of integer mask bits')
+
 
 class MaskSchema(BaseModel):
     """ SDSS maskbit schema response model """
@@ -117,25 +117,29 @@ class MaskSchema(BaseModel):
 class Maskbits(Base):
     """ API routes for interacting with SDSS maskbits, defined in sdssMaskbits.par """
 
-    @router.get("/list", summary='List the available maskbits schema / flags', response_model=MaskBitResponse, response_model_exclude_unset=True)
-    async def get_schema(self, masks = Depends(read_maskbits)) -> dict:
+    @router.get("/list", summary='List the available maskbits schema / flags',
+                response_model=MaskBitResponse, response_model_exclude_unset=True)
+    async def get_schema(self, masks=Depends(read_maskbits)) -> dict:
         """ Get a list of available SDSS maskbits schema or flag names """
 
         return {"schema": sorted({i[0].decode('utf-8') for i in masks})}
 
-    @router.get("/schema", summary='Get the maskbits for a given schema / flag', response_model=Dict[str, MaskSchema])
+    @router.get("/schema", summary='Get the maskbits for a given schema / flag',
+                response_model=Dict[str, MaskSchema])
     async def get_bits(self, schema: str, tab: Table = Depends(make_table)) -> dict:
         """ Get the SDSS maskbit schema for a given flag name """
 
         return {schema: {c: tab[c].tolist() for c in tab.columns if c != 'flag'}}
 
-    @router.get("/bits/value", summary='Convert a list of bits into a maskbit value', response_model=MaskBitResponse, response_model_exclude_unset=True)
+    @router.get("/bits/value", summary='Convert a list of bits into a maskbit value',
+                response_model=MaskBitResponse, response_model_exclude_unset=True)
     async def bits_to_value(self, bits: Union[List[int], None] = Query([], description='A list of integer bits', example=[2, 8])) -> dict:
         """ Convert a list of integer bits into a maskbit value"""
         print('bits', bits, type(bits))
         return {'value': sum(1 << int(i) for i in bits)}
 
-    @router.get("/bits/labels", summary='Convert a list of bits into their labels', response_model=MaskBitResponse, response_model_exclude_unset=True)
+    @router.get("/bits/labels", summary='Convert a list of bits into their labels',
+                response_model=MaskBitResponse, response_model_exclude_unset=True)
     async def bits_to_labels(self, bits: Union[List[int], None] = Query([], description='A list of integer bits', example=[2, 8]),
                              tab: Table = Depends(make_table)) -> dict:
         """ Convert a list of integer bits into their labels for a given schema """
@@ -148,7 +152,8 @@ class Maskbits(Base):
         else:
             return {'labels': labels.tolist()}
 
-    @router.get("/labels/value", summary='Convert a list of labels into a maskbit value', response_model=MaskBitResponse, response_model_exclude_unset=True)
+    @router.get("/labels/value", summary='Convert a list of labels into a maskbit value',
+                response_model=MaskBitResponse, response_model_exclude_unset=True)
     async def labels_to_value(self, labels: Union[List[str], None] = Query([], description='A list of mask labels', example=['BADIFU', 'SCATFAIL']),
                               tab: Table = Depends(make_table)) -> dict:
         """ Convert a list of mask labels into a maskbit value for a given schema """
@@ -162,7 +167,8 @@ class Maskbits(Base):
         else:
             return {'value': sum(1 << int(i) for i in bits)}
 
-    @router.get("/labels/bits", summary='Convert a list of labels into their bits', response_model=MaskBitResponse, response_model_exclude_unset=True)
+    @router.get("/labels/bits", summary='Convert a list of labels into their bits',
+                response_model=MaskBitResponse, response_model_exclude_unset=True)
     async def labels_to_bits(self, labels: Union[List[str], None] = Query([], description='A list of mask labels', example=['BADIFU', 'SCATFAIL']),
                              tab: Table = Depends(make_table)) -> dict:
         """ Convert a list of mask labels into their respective bits for a given schema """
@@ -176,14 +182,16 @@ class Maskbits(Base):
         else:
             return {'bits': bits.tolist()}
 
-    @router.get("/value/bits", summary='Decompose a maskbit value into a list of bits', response_model=MaskBitResponse, response_model_exclude_unset=True)
+    @router.get("/value/bits", summary='Decompose a maskbit value into a list of bits',
+                response_model=MaskBitResponse, response_model_exclude_unset=True)
     async def value_to_bits(self, value: int = Query(..., description='A maskbit value', example=260), tab: Table = Depends(make_table)) -> dict:
         """ Decompose a maskbit value into its list of bits for a given schema """
 
         bits = tab['bit']
         return {'bits': [int(i) for i in bits if value & 1 << int(i)]}
 
-    @router.get("/value/labels", summary='Decompose a maskbit value into a list of labels', response_model=MaskBitResponse, response_model_exclude_unset=True)
+    @router.get("/value/labels", summary='Decompose a maskbit value into a list of labels',
+                response_model=MaskBitResponse, response_model_exclude_unset=True)
     async def value_to_labels(self, value: int = Query(..., description='A maskbit value', example=260), tab: Table = Depends(make_table)) -> dict:
         """ Decompose a maskbit value into its list of labels for a given schema """
 
