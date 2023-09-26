@@ -47,8 +47,10 @@ def connect_db():
     if settings.valis_db_remote and not profset:
         port = settings.valis_db_port
         user = settings.valis_db_user
-        pdb.set_profile('local')
-        pdb.connect_from_parameters(dbname='sdss5db', host='localhost', port=port, user=user)
+        host = settings.valis_db_host
+        passwd = settings.valis_db_pass
+        pdb.connect_from_parameters(dbname='sdss5db', host=host, port=port,
+                                    user=user, password=passwd)
 
     if not pdb.connected:
         pass
@@ -61,7 +63,8 @@ def get_db(db_state=Depends(reset_db_state)):
     try:
         yield None
     finally:
-        db.close()
+        if db:
+            db.close()
 
 
 def get_sqla_db():
@@ -69,6 +72,7 @@ def get_sqla_db():
     try:
         yield db
     finally:
-        db.close()
+        if db:
+            db.close()
 
 

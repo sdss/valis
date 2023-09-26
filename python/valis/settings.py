@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     valis_db_remote: bool = False
     valis_db_port: int = 5432
     valis_db_user: str = None
+    valis_db_host: str = 'localhost'
+    valis_db_pass: str = None
 
     @validator('valis_allow_origin')
     def must_be_list(cls, v):
