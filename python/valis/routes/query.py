@@ -21,11 +21,11 @@ class Query(Base):
     @router.get("/testa", summary='slqa test', response_model=CubeBase)
     async def get_testa(self, db=Depends(get_sqla_db)) -> dict:
         """ Get a list of available SDSS maskbits schema or flag names """
-        if db and db.connected:
-            from sdssdb.sqlalchemy.mangadb import datadb
-            return db.query(datadb.Cube).first()
-        else:
-            return {"message": "Not connected to database"}
+        #if db and db.connected:
+        from sdssdb.sqlalchemy.mangadb import datadb
+        return db.query(datadb.Cube).first()
+        #else:
+        #    return {"message": "Not connected to database"}
 
     @router.get("/testp", summary='peewee test', response_model=SourceBase,
                 dependencies=[Depends(get_db)])

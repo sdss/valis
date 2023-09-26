@@ -5,7 +5,7 @@
 from contextvars import ContextVar
 
 import peewee
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sdssdb.peewee.sdss5db import database as pdb
 from sdssdb.sqlalchemy.mangadb import database as sdb
 
@@ -53,12 +53,13 @@ def connect_db():
                                     user=user, password=passwd)
 
     if not pdb.connected:
-        pass
+        raise HTTPException(status_code=503, detail='Could not connect to database via sdssdb peewee.')
 
     return pdb
 
 
 def get_db(db_state=Depends(reset_db_state)):
+    """ Dependency to connect a database with peewee """
     db = connect_db()
     try:
         yield None
@@ -68,6 +69,10 @@ def get_db(db_state=Depends(reset_db_state)):
 
 
 def get_sqla_db():
+    """ Dependency to connect to a database with sqlalchemy """
+    if not sdb.connected:
+        raise HTTPException(status_code=503, detail='Could not connect to database via sdssdb sqla.')
+
     db = sdb.Session()
     try:
         yield db
