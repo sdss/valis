@@ -75,6 +75,10 @@ tags_metadata = [
         "name": "mocs",
         "description": "Access SDSS surveys MOCs",
     },
+    {
+        "name": "query",
+        "description": "Query the SDSS databases",
+    },
 ]
 
 

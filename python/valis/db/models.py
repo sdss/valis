@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 #
 
+# all resuable Pydantic models of the ORMs go here
+
 import peewee
 from typing import Any, Optional
 from pydantic import BaseModel, Field
@@ -32,8 +34,19 @@ class PeeweeBase(OrmBase):
         getter_dict = PeeweeGetterDict
 
 
+# class SDSSidStackedBaseA(OrmBase):
+#     """ Pydantic model for the SQLA vizdb.SDSSidStacked ORM """
+
+#     sdss_id: int = Field(..., description='the SDSS identifier')
+#     ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
+#     dec_sdss_id: float = Field(..., description='Declination of the most recent cross-match catalogid')
+#     catalogid21: Optional[int] = Field(description='the version 21 catalog id')
+#     catalogid25: Optional[int] = Field(description='the version 25 catalog id')
+#     catalogid31: Optional[int] = Field(description='the version 31 catalog id')
+
+
 class SDSSidStackedBase(PeeweeBase):
-    """ Pydantic model for the SQLA vizdb.SDSSidStacked ORM """
+    """ Pydantic model for the Peewee vizdb.SDSSidStacked ORM """
 
     sdss_id: int = Field(..., description='the SDSS identifier')
     ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
@@ -44,7 +57,7 @@ class SDSSidStackedBase(PeeweeBase):
 
 
 class SDSSidFlatBase(PeeweeBase):
-    """ Pydantic model for the SQLA vizdb.SDSSidFlat ORM """
+    """ Pydantic model for the Peewee vizdb.SDSSidFlat ORM """
 
     sdss_id: int = Field(..., description='the SDSS identifier')
     ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
@@ -57,7 +70,7 @@ class SDSSidFlatBase(PeeweeBase):
 
 
 class SDSSidPipesBase(PeeweeBase):
-    """ Pydantic model for the SQLA vizdb.SDSSidToPipes ORM """
+    """ Pydantic model for the Peewee vizdb.SDSSidToPipes ORM """
 
     sdss_id: int = Field(..., description='the SDSS identifier')
     in_boss: bool = Field(..., description='Flag if the sdss_id is in the BHM reductions')

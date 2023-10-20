@@ -42,6 +42,7 @@ pdb._state = PeeweeConnectionState()
 
 def connect_db(db, orm: str = 'peewee'):
     """ Connect to the peewee sdss5db database """
+
     from valis.main import settings
     profset = db.set_profile(settings.db_server)
     if settings.db_remote and not profset:
@@ -52,8 +53,7 @@ def connect_db(db, orm: str = 'peewee'):
         db.connect_from_parameters(dbname='sdss5db', host=host, port=port,
                                    user=user, password=passwd)
 
-    print(db)
-    print(db.connection_params)
+    # raise error if we cannot connect
     if not db.connected:
         raise HTTPException(status_code=503, detail=f'Could not connect to database via sdssdb {orm}.')
 
@@ -62,6 +62,8 @@ def connect_db(db, orm: str = 'peewee'):
 
 def get_pw_db(db_state=Depends(reset_db_state)):
     """ Dependency to connect a database with peewee """
+
+    # connect to the db, yield None since we don't need the db in peewee
     db = connect_db(pdb, orm='peewee')
     try:
         yield None
@@ -72,11 +74,9 @@ def get_pw_db(db_state=Depends(reset_db_state)):
 
 def get_sqla_db():
     """ Dependency to connect to a database with sqlalchemy """
+
+    # connect to the db, yield the db Session object for sql queries
     db = connect_db(sdb, orm='sqla')
-
-    if not db.connected:
-        raise HTTPException(status_code=503, detail='Could not connect to database via sdssdb sqla.')
-
     db = db.Session()
     try:
         yield db
