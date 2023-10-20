@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @cbv(router)
-class Query(Base):
+class QueryRoutes(Base):
     """ API routes for performing queries against sdss5db """
 
     # @router.get('/test_sqla', summary='Perform a cone search for SDSS targets with sdss_ids',
