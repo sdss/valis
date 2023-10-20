@@ -35,9 +35,9 @@ class Query(Base):
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def cone_search(self,
-                          ra=Query(..., description='right ascension in degrees', example=315.01417),
-                          dec=Query(..., description='declination in degrees', example=35.299),
-                          radius=Query(..., description='the search radius in degrees', example=0.01)):
+                          ra=Query(..., description='Right Ascension in degrees', example=315.01417),
+                          dec=Query(..., description='Declination in degrees', example=35.299),
+                          radius=Query(..., description='Search radius in degrees', example=0.01)):
         """ Perform a cone search """
         return list(cone_search(ra, dec, radius))
 
