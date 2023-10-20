@@ -1253,7 +1253,7 @@ docs = ["Sphinx (>=3.0.0)", "sphinx-bootstrap-theme (>=0.4.12)", "recommonmark (
 
 [[package]]
 name = "sdssdb"
-version = "0.6.6"
+version = "0.7.0"
 description = "SDSS product for database management"
 category = "main"
 optional = false
@@ -1640,7 +1640,7 @@ docs = ["Sphinx"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "de54b3ebbfefa12dd2cdbbb49ad6b27757e01b9f8a9140a5943373a21e0b55d5"
+content-hash = "970f96ba81edce4ba3d1d5fa87ceee2b359f0b6ea506cd97aaf44571fe5ba3b1"
 
 [metadata.files]
 aiofiles = [

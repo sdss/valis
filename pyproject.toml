@@ -46,7 +46,7 @@ httpx = "^0.24.0"
 astroquery = "^0.4.6"
 pandas = "^1.5.3"
 SQLAlchemy = "^1.4.35"
-sdssdb = "^0.6.6"
+sdssdb = "^0.7.0"
 
 
 [tool.poetry.dev-dependencies]
