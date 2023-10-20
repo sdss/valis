@@ -7,7 +7,7 @@ from contextvars import ContextVar
 import peewee
 from fastapi import Depends, HTTPException
 from sdssdb.peewee.sdss5db import database as pdb
-from sdssdb.sqlalchemy.mangadb import database as sdb
+from sdssdb.sqlalchemy.sdss5db import database as sdb
 
 # To make Peewee async-compatible, we need to hack the peewee connection state
 # See FastAPI/Peewee docs at https://fastapi.tiangolo.com/how-to/sql-databases-peewee/
@@ -40,27 +40,29 @@ class PeeweeConnectionState(peewee._ConnectionState):
 pdb._state = PeeweeConnectionState()
 
 
-def connect_db():
+def connect_db(db, orm: str = 'peewee'):
     """ Connect to the peewee sdss5db database """
     from valis.main import settings
-    profset = pdb.set_profile(settings.db_server)
+    profset = db.set_profile(settings.db_server)
     if settings.db_remote and not profset:
         port = settings.db_port
         user = settings.db_user
         host = settings.db_host
         passwd = settings.db_pass
-        pdb.connect_from_parameters(dbname='sdss5db', host=host, port=port,
-                                    user=user, password=passwd)
+        db.connect_from_parameters(dbname='sdss5db', host=host, port=port,
+                                   user=user, password=passwd)
 
-    if not pdb.connected:
-        raise HTTPException(status_code=503, detail='Could not connect to database via sdssdb peewee.')
+    print(db)
+    print(db.connection_params)
+    if not db.connected:
+        raise HTTPException(status_code=503, detail=f'Could not connect to database via sdssdb {orm}.')
 
-    return pdb
+    return db
 
 
-def get_db(db_state=Depends(reset_db_state)):
+def get_pw_db(db_state=Depends(reset_db_state)):
     """ Dependency to connect a database with peewee """
-    db = connect_db()
+    db = connect_db(pdb, orm='peewee')
     try:
         yield None
     finally:
@@ -70,10 +72,12 @@ def get_db(db_state=Depends(reset_db_state)):
 
 def get_sqla_db():
     """ Dependency to connect to a database with sqlalchemy """
-    if not sdb.connected:
+    db = connect_db(sdb, orm='sqla')
+
+    if not db.connected:
         raise HTTPException(status_code=503, detail='Could not connect to database via sdssdb sqla.')
 
-    db = sdb.Session()
+    db = db.Session()
     try:
         yield db
     finally:
