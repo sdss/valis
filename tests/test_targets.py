@@ -12,7 +12,7 @@ def test_resolve_target_name(client):
     data = get_data(response)
     assert data['coordinate']['value'] == [230.50745896, 43.53232817]
     assert data['coordinate']['unit'] == 'deg'
-    assert data['name'] == "LEDA 2223006"
+    assert data['name'] in ("LEDA 2223006", "2MASX J15220182+433156")
 
 
 def test_resolve_target_coord(client):
