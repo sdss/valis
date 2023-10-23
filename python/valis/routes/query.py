@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 
+from enum import Enum
 from typing import List
 from fastapi import APIRouter, Depends, Query
 from fastapi_utils.cbv import cbv
@@ -10,6 +11,13 @@ from valis.routes.base import Base
 from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase
 from valis.db.queries import cone_search
+
+
+class SearchCoordUnits(str, Enum):
+    """ Units of coordinate search radius """
+    degree: str = "degree"
+    arcmin: str = "arcmin"
+    arcsec: str = "arcsec"
 
 
 router = APIRouter()
@@ -35,9 +43,10 @@ class QueryRoutes(Base):
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def cone_search(self,
-                          ra=Query(..., description='Right Ascension in degrees', example=315.01417),
-                          dec=Query(..., description='Declination in degrees', example=35.299),
-                          radius=Query(..., description='Search radius in degrees', example=0.01)):
+                          ra: float = Query(..., description='Right Ascension in degrees', example=315.01417),
+                          dec: float = Query(..., description='Declination in degrees', example=35.299),
+                          radius: float = Query(..., description='Search radius in specified units', example=0.01),
+                          units: SearchCoordUnits = Query('degree', description='Units of search radius', example='degree')):
         """ Perform a cone search """
-        return list(cone_search(ra, dec, radius))
+        return list(cone_search(ra, dec, radius, units=units))
 
