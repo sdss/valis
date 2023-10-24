@@ -4,8 +4,8 @@
 Change Log
 ==========
 
-0.1.0
------
+0.1.0 (10-24-2023)
+------------------
 * Initial tag of software
 * Adds example query endpoint for cone searches against ``vizdb``
 * Adds initial connection to databases with ``sdssdb``
