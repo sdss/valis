@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sdss-valis"
-version = "0.1.0-alpha.0"
+version = "0.1.0"
 description = "the SDSS API for delivering and accessing remote information"
 authors = ["Brian Cherinka <bcherinka@stsci.edu>"]
 license = "BSD-3-Clause"
