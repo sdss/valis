@@ -40,11 +40,16 @@ class QueryRoutes(Base):
     #     return db.query(vizdb.SDSSidStacked).\
     #         filter(vizdb.SDSSidStacked.cone_search(ra, dec, radius, ra_col='ra_sdss_id', dec_col='dec_sdss_id')).all()
 
+    @router.get('/main', summary='Main query for Search UI')
+    async def main_search(self):
+        pass
+
+
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def cone_search(self,
-                          ra: Union[float, str] = Query(..., description='Right Ascension in degrees', example=315.01417),
-                          dec: Union[float, str] = Query(..., description='Declination in degrees', example=35.299),
+                          ra: Union[float, str] = Query(..., description='Right Ascension in degrees or hmsdms', example=315.01417),
+                          dec: Union[float, str] = Query(..., description='Declination in degrees or hmsdms', example=35.299),
                           radius: float = Query(..., description='Search radius in specified units', example=0.01),
                           units: SearchCoordUnits = Query('degree', description='Units of search radius', example='degree')):
         """ Perform a cone search """
