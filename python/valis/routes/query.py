@@ -37,6 +37,7 @@ class MainResponse(SDSSidStackedBase):
 class MainSearchResponse(BaseModel):
     """ The main query response model """
     status: str = Field(..., description='the query return status')
+    msg: str = Field(..., description='the response status message')
     data: List[MainResponse] = Field(..., description='the list of query results')
 
 
@@ -70,7 +71,7 @@ class QueryRoutes(Base):
         if body.ra and body.dec:
             query = cone_search(body.ra, body.dec, body.radius, units=body.units)
 
-        return {'status': 'success', 'data': list(query)}
+        return {'status': 'success', 'data': list(query), 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
