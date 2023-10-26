@@ -14,12 +14,14 @@
 from __future__ import print_function, division, absolute_import
 from sdss_access.path import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Path as FPath
-from fastapi_utils.cbv import cbv
-from pydantic import BaseModel, validator, PrivateAttr, Field, ValidationError, constr
+from fastapi_restful.cbv import cbv
+from pydantic import StringConstraints, BaseModel, field_validator, PrivateAttr, Field, ValidationError
 from typing import Type, List, Union, Dict, Optional
 from enum import Enum
 
 from valis.routes.base import Base, get_access, BaseBody
+from typing_extensions import Annotated
+
 
 class PathPart(str, Enum):
     """ A set of pre-defined choices for the `part` query param """
@@ -31,7 +33,7 @@ class PathPart(str, Enum):
 
 
 class PathResponse(BaseModel):
-    name: Optional[str]
+    name: Optional[str] = None
     kwargs: dict = {}
     template: str = None
     full: str = None
@@ -39,8 +41,9 @@ class PathResponse(BaseModel):
     file: str = None
     location: str = None
     exists: bool = None
-    needs_kwargs: bool = None
+    needs_kwargs: bool = Field(None, validate_default=True)
     warning: str = None
+
 
 class PathModel(PathResponse):
     """ A validator class for sdss_access path names and kwargs """
@@ -50,16 +53,18 @@ class PathModel(PathResponse):
         cls._path = kwargs.get('_path', None)
         return super(PathModel, cls).__new__(cls)
 
-    @validator('name')
-    def is_name(cls, v, values):
+    @field_validator('name')
+    @classmethod
+    def is_name(cls, v):
         if v not in cls._path.lookup_names():
             release = 'WORK' if cls._path.release in ('sdss5', 'sdss4', 'sdsswork') else cls._path.release.upper()
             raise ValueError(f'Validation error: path name {v} not a valid sdss_access name for release {release}')
         return v
 
-    @validator('kwargs')
-    def good_kwargs(cls, v, values):
-        name = values.get('name')
+    @field_validator('kwargs')
+    @classmethod
+    def good_kwargs(cls, v, info):
+        name = info.name
         keys = set(cls._path.lookup_keys(name))
 
         # return if no kwargs specified
@@ -79,10 +84,11 @@ class PathModel(PathResponse):
             raise ValueError(f'Validation error: Missing kwargs {mstr} for name: {name}')
         return v
 
-    @validator('needs_kwargs', always=True)
-    def check_kwargs(cls, v, values):
+    @field_validator('needs_kwargs')
+    @classmethod
+    def check_kwargs(cls, v, info):
         ''' Check and assign the needs_kwargs attribute'''
-        return any(cls._path.lookup_keys(values.get('name')))
+        return any(cls._path.lookup_keys(info.name))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -94,10 +100,11 @@ class PathModel(PathResponse):
             self.location = self._path.location(self.name, **self.kwargs)
             self.exists = self._path.exists(self.name, **self.kwargs)
 
+
 class PathBody(BaseBody):
     """ Body for SDSS access paths post requests """
     kwargs: dict = Field({}, description='The keyword variable arguments defining a path',
-                         example={"run2d": "v5_13_2", "plateid": 3606, "mjd": 55182, "fiberid": 22})
+                         examples=[{"run2d": "v5_13_2", "plateid": 3606, "mjd": 55182, "fiberid": 22}])
     part: PathPart = Field('full', description='The part of the path to return')
     exists: bool = Field(False, description='Flag to check if the path exists')
 
@@ -113,12 +120,13 @@ async def valid_name(name: str = FPath(description='the sdss access path name', 
         return name
 
 
-key_constr = constr(regex="(?:,|^)((\w+)=(?:([\w\d.]+)))")
+key_constr = Annotated[str, StringConstraints(pattern="(?:,|^)((\w+)=(?:([\w\d.]+)))")]
+
 
 async def extract_path(name: str = Depends(valid_name),
-                   kwargs: List[key_constr] = Query(None, description='the keyword variable arguments defining a path',
-                                             example=["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]),
-                   access: Path = Depends(get_access)) -> Type[PathModel]:
+                       kwargs: List[key_constr] = Query(None, description='the keyword variable arguments defining a path',
+                                                        example=["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]),
+                       access: Path = Depends(get_access)) -> Type[PathModel]:
     """ Dependency to extract and parse path name and keyword arguments """
 
     # parse the kwargs list into a dict
@@ -148,10 +156,12 @@ class KeywordModel(BaseModel):
 
 router = APIRouter()
 
+
 @cbv(router)
 class Paths(Base):
 
-    @router.get("/", summary='Get a list of all sdss_access path names or templates', response_model=Union[Dict[str, List[str]], Dict[str, str]])
+    @router.get("/", summary='Get a list of all sdss_access path names or templates',
+                response_model=Union[Dict[str, List[str]], Dict[str, str]])
     async def get_paths(self, templates: bool = Query(False, description='Flag to return templates definitions with names')):
         """ Get a list of sdss_access path names """
         if templates:
@@ -159,7 +169,8 @@ class Paths(Base):
         else:
             return {'names': list(self.path.lookup_names())}
 
-    @router.get("/keywords/{name}", summary='Get a list of keyword variables for a sdss_acccess path name.', response_model=KeywordModel)
+    @router.get("/keywords/{name}", summary='Get a list of keyword variables for a sdss_acccess path name.',
+                response_model=KeywordModel)
     async def get_path_kwargs(self, name: str = Depends(valid_name)):
         """ Get a list of input keyword arguments
 
@@ -177,7 +188,8 @@ class Paths(Base):
         """
         return {'name': name, 'kwargs': self.path.lookup_keys(name)}
 
-    @router.get("/{name}", summary='Get the template or resolved path for an sdss_access path name.', response_model=PathResponse, response_model_exclude_unset=True)
+    @router.get("/{name}", summary='Get the template or resolved path for an sdss_access path name.',
+                response_model=PathResponse, response_model_exclude_unset=True)
     async def get_path_name(self, path: Type[PathModel] = Depends(extract_path),
                             part: PathPart = Query('full', description='The part of the path to return'),
                             exists: bool = Query(False, description='Flag to check if the path exists')):
@@ -204,8 +216,10 @@ class Paths(Base):
         """
         return self.process_path(path, part, exists)
 
-    @router.post("/{name}", summary='Get the template or resolved path for an sdss_access path name.', response_model=PathResponse, response_model_exclude_unset=True)
-    async def post_path_name(self, name: str = FPath(description='the sdss access path name', example='spec-lite'),
+    @router.post("/{name}", summary='Get the template or resolved path for an sdss_access path name.',
+                 response_model=PathResponse, response_model_exclude_unset=True)
+    async def post_path_name(self, name: str = FPath(description='the sdss access path name',
+                                                     example='spec-lite'),
                              body: PathBody = None):
         """ Construct an sdss_access path
 

@@ -7,7 +7,7 @@ import httpx
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from fastapi_utils.cbv import cbv
+from fastapi_restful.cbv import cbv
 
 from valis.routes.base import Base, release
 

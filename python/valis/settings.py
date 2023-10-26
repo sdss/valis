@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 #
 
-from pydantic import BaseSettings, validator, Field, AnyHttpUrl
 from enum import Enum
-from typing import List, Union
+from typing import List, Union, Optional
 from valis import config
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator, Field, AnyHttpUrl
 
 
 def read_valis_config() -> dict:
@@ -23,7 +24,6 @@ def read_valis_config() -> dict:
     return {k: v for k, v in config.items() if k in skeys}
 
 
-
 class EnvEnum(str, Enum):
     dev = 'development'
     test = 'testing'
@@ -32,18 +32,17 @@ class EnvEnum(str, Enum):
 
 class Settings(BaseSettings):
     valis_env: EnvEnum = EnvEnum.dev
-    allow_origin: Union[str, List[AnyHttpUrl]] = Field([], env="VALIS_ALLOW_ORIGIN")
+    allow_origin: Union[str, List[AnyHttpUrl]] = Field([], validation_alias="VALIS_ALLOW_ORIGIN")
     db_server: str = 'pipelines'
     db_remote: bool = False
     db_port: int = 5432
-    db_user: str = None
-    db_host: str = 'localhost'
-    db_pass: str = None
+    db_user: Optional[str] = None
+    db_host: Optional[str] = 'localhost'
+    db_pass: Optional[str] = None
+    model_config = SettingsConfigDict(env_prefix="valis_")
 
-    class Config:
-        env_prefix = "valis_"
-
-    @validator('allow_origin')
+    @field_validator('allow_origin')
+    @classmethod
     def must_be_list(cls, v):
         if not isinstance(v, list):
             return v.split(',') if ',' in v else [v]

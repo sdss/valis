@@ -6,8 +6,8 @@ from __future__ import print_function, division, absolute_import
 
 from typing import List, Union, Dict
 from fastapi import APIRouter, HTTPException, Depends, Query, Path
-from fastapi_utils.cbv import cbv
-from fastapi_utils.enums import StrEnum
+from fastapi_restful.cbv import cbv
+from fastapi_restful.enums import StrEnum
 from enum import auto
 from pydantic import BaseModel, create_model
 
@@ -27,14 +27,17 @@ from valis.routes.auth import set_auth
 
 router = APIRouter()
 
+
 def get_datamodel():
     if not SDSSDataModel:
         raise HTTPException(status_code=400, detail='Error: SDSS datamodel product not available.')
     return SDSSDataModel()
 
+
 def get_products(release: str = Depends(release), dm: SDSSDataModel = Depends(get_datamodel)):
     products = dm.products.group_by("releases")
     return products.get(release, [])
+
 
 class InfoModel(BaseModel):
     """ Resposne model for info endpoint """
@@ -49,9 +52,11 @@ class TagGroup(StrEnum):
     release = auto()
     survey = auto()
 
+
 class TagModel(BaseModel):
     """ Response model for SDSS software tags """
     tags: Union[Tags, Dict[str, Dict[str, dict]]] = None
+
 
 class ProductResponse(BaseModel):
     """ Response model for SDSS product names """

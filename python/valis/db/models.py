@@ -6,32 +6,29 @@
 
 import peewee
 from typing import Any, Optional
-from pydantic import BaseModel, Field
-from pydantic.utils import GetterDict
+from pydantic import ConfigDict, BaseModel, Field
+#from pydantic.utils import GetterDict
 
 
-class PeeweeGetterDict(GetterDict):
-    """ Class to convert peewee.ModelSelect into a list """
-    def get(self, key: Any, default: Any = None):
-        res = getattr(self._obj, key, default)
-        if isinstance(res, peewee.ModelSelect):
-            return list(res)
-        return res
+# class PeeweeGetterDict(GetterDict):
+#     """ Class to convert peewee.ModelSelect into a list """
+#     def get(self, key: Any, default: Any = None):
+#         res = getattr(self._obj, key, default)
+#         if isinstance(res, peewee.ModelSelect):
+#             return list(res)
+#         return res
 
 
 class OrmBase(BaseModel):
     """ Base pydantic model for sqlalchemy ORMs """
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PeeweeBase(OrmBase):
     """ Base pydantic model for peewee ORMs """
-
-    class Config:
-        orm_mode = True
-        getter_dict = PeeweeGetterDict
+    # TODO[pydantic]: The following keys were removed: `getter_dict`.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+    model_config = ConfigDict(from_attributes=True) #, getter_dict=PeeweeGetterDict)
 
 
 # class SDSSidStackedBaseA(OrmBase):
@@ -51,9 +48,9 @@ class SDSSidStackedBase(PeeweeBase):
     sdss_id: int = Field(..., description='the SDSS identifier')
     ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
     dec_sdss_id: float = Field(..., description='Declination of the most recent cross-match catalogid')
-    catalogid21: Optional[int] = Field(description='the version 21 catalog id')
-    catalogid25: Optional[int] = Field(description='the version 25 catalog id')
-    catalogid31: Optional[int] = Field(description='the version 31 catalog id')
+    catalogid21: Optional[int] = Field(None, description='the version 21 catalog id')
+    catalogid25: Optional[int] = Field(None, description='the version 25 catalog id')
+    catalogid31: Optional[int] = Field(None, description='the version 31 catalog id')
 
 
 class SDSSidFlatBase(PeeweeBase):

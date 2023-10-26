@@ -5,7 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from fastapi_utils.cbv import cbv
+from fastapi_restful.cbv import cbv
 import numpy as np
 from pydantic import BaseModel
 from typing import Type, Union, Dict, Any, Optional, Callable, List

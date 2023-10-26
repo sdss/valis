@@ -5,7 +5,7 @@
 from enum import Enum
 from typing import List, Union
 from fastapi import APIRouter, Depends, Query
-from fastapi_utils.cbv import cbv
+from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field
 
 from valis.routes.base import Base
@@ -23,10 +23,10 @@ class SearchCoordUnits(str, Enum):
 
 class SearchModel(BaseModel):
     """ Input main query body model """
-    ra: Union[float, str] = Field(..., description='Right Ascension in degrees or hmsdms', example=315.01417)
-    dec: Union[float, str] = Field(..., description='Declination in degrees or hmsdms', example=35.299)
-    radius: float = Field(..., description='Search radius in specified units', example=0.01)
-    units: SearchCoordUnits = Field('degree', description='Units of search radius', example='degree')
+    ra: Union[float, str] = Field(..., description='Right Ascension in degrees or hmsdms', examples=[315.01417])
+    dec: Union[float, str] = Field(..., description='Declination in degrees or hmsdms', examples=[35.299])
+    radius: float = Field(..., description='Search radius in specified units', examples=[0.01])
+    units: SearchCoordUnits = Field('degree', description='Units of search radius', examples=['degree'])
 
 
 class MainResponse(SDSSidStackedBase):
