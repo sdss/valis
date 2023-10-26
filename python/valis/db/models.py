@@ -59,11 +59,11 @@ class SDSSidFlatBase(PeeweeBase):
     sdss_id: int = Field(..., description='the SDSS identifier')
     ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
     dec_sdss_id: float = Field(..., description='Declination of the most recent cross-match catalogid')
-    catalogid: int = Field(..., descrption='the catalogid associated with the given sdss_id')
-    version_id: int = Field(..., descrption='the version of the catalog for a given catalogid')
+    catalogid: int = Field(..., description='the catalogid associated with the given sdss_id')
+    version_id: int = Field(..., description='the version of the catalog for a given catalogid')
     n_associated: int = Field(..., description='The total number of sdss_ids associated with that catalogid.')
-    ra_cat: float = Field(..., descrption='Right Ascension, in degrees, specific to the catalogid')
-    dec_cat: float = Field(..., descrption='Declination, in degrees, specific to the catalogid')
+    ra_cat: float = Field(..., description='Right Ascension, in degrees, specific to the catalogid')
+    dec_cat: float = Field(..., description='Declination, in degrees, specific to the catalogid')
 
 
 class SDSSidPipesBase(PeeweeBase):

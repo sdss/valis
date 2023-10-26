@@ -25,10 +25,10 @@ router = APIRouter()
 VALIS_SUPPORTED_FILES = ['.fits']
 
 
-async def get_filepath(name: str = Path(..., description='The sdss access path name', example='spec-lite'),
+async def get_filepath(name: str = Path(..., description='The sdss access path name', examples=['spec-lite']),
                        path: Type[PathModel] = Depends(extract_path)) -> str:
     """ Depedency to get a filepath from sdss_access """
-    data = path.dict(include={'full', 'exists'})
+    data = path.model_dump(include={'full', 'exists'})
     filepath = data['full']
 
     # validate file existenence

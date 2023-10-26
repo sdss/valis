@@ -71,24 +71,24 @@ class DataModels(Base):
         """ Retrieve general SDSS metadata """
 
         return {'description': 'General metadata for the Sloan Digital Sky Survey (SDSS)',
-                'phases': dm.phases.dict()['__root__'],
-                'surveys': dm.surveys.dict()['__root__'],
-                'releases': dm.releases.dict()['__root__']}
+                'phases': dm.phases.model_dump()['__root__'],
+                'surveys': dm.surveys.model_dump()['__root__'],
+                'releases': dm.releases.model_dump()['__root__']}
 
     @router.get("/releases", summary='Get metadata on SDSS releases', response_model=InfoModel, response_model_exclude_unset=True)
     async def get_releases(self, dm: SDSSDataModel = Depends(get_datamodel)) -> dict:
         """ Retrieve a list of SDSS data releases """
-        return {'releases': dm.releases.dict()['__root__']}
+        return {'releases': dm.releases.model_dump()['__root__']}
 
     @router.get("/phases", summary='Get metadata on SDSS phases', response_model=InfoModel, response_model_exclude_unset=True)
     async def get_phases(self, dm: SDSSDataModel = Depends(get_datamodel)) -> dict:
         """ Retrieve a list of SDSS phases """
-        return {'phases': dm.phases.dict()['__root__']}
+        return {'phases': dm.phases.model_dump()['__root__']}
 
     @router.get("/surveys", summary='Get metadata on SDSS surveys', response_model=InfoModel, response_model_exclude_unset=True)
     async def get_surveys(self, dm: SDSSDataModel = Depends(get_datamodel)) -> dict:
         """ Retrieve a list of SDSS surveys """
-        return {'surveys': dm.surveys.dict()['__root__']}
+        return {'surveys': dm.surveys.model_dump()['__root__']}
 
     @router.get("/tags", summary='Get metadata on SDSS software tags', response_model=TagModel, response_model_exclude_unset=True)
     async def get_tags(self, group: TagGroup = Query(None, description='group the tags by release or survey'),
@@ -99,7 +99,7 @@ class DataModels(Base):
         elif group == 'survey':
             return {'tags': dm.tags.group_by('survey')}
         else:
-            return {'tags': dm.tags.dict()['__root__']}
+            return {'tags': dm.tags.model_dump()['__root__']}
 
     @router.get("/products", summary='Get a list of SDSS data products', dependencies=[Depends(set_auth)], response_model=ProductResponse)
     async def list_products(self, prods: list = Depends(get_products)) -> dict:
@@ -107,7 +107,7 @@ class DataModels(Base):
         return {'products': [p.name for p in prods]}
 
     @router.get("/products/{name}", summary='Retrieve a datamodel for an SDSS product', dependencies=[Depends(set_auth)], response_model=ProductModel)
-    async def get_product(self, name: str = Path(..., description='The datamodel file species name', example='sdR'), prods: list = Depends(get_products)) -> dict:
+    async def get_product(self, name: str = Path(..., description='The datamodel file species name', examples=['sdR']), prods: list = Depends(get_products)) -> dict:
         """ Get the JSON datamodel for an SDSS data product """
         product = [i for i in prods if i.name == name]
         if not product:
@@ -115,7 +115,7 @@ class DataModels(Base):
         return product[0].get_content(by_alias=True)
 
     @router.get("/schema/{name}", summary='Retrieve the datamodel schema for an SDSS product', dependencies=[Depends(set_auth)], response_model=SchemaModel)
-    async def get_schema(self, name: str = Path(..., description='The datamodel file species name', example='sdR'), prods: list = Depends(get_products)) -> dict:
+    async def get_schema(self, name: str = Path(..., description='The datamodel file species name', examples=['sdR']), prods: list = Depends(get_products)) -> dict:
         """ Get the Pydantic schema describing an SDSS product """
         product = [i for i in prods if i.name == name]
         if not product:

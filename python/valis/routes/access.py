@@ -15,7 +15,7 @@ from __future__ import print_function, division, absolute_import
 from sdss_access.path import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Path as FPath
 from fastapi_restful.cbv import cbv
-from pydantic import StringConstraints, BaseModel, field_validator, PrivateAttr, Field, ValidationError
+from pydantic import StringConstraints, BaseModel, field_validator, PrivateAttr, Field, ValidationError, model_validator
 from typing import Type, List, Union, Dict, Optional
 from enum import Enum
 
@@ -34,15 +34,15 @@ class PathPart(str, Enum):
 
 class PathResponse(BaseModel):
     name: Optional[str] = None
-    kwargs: dict = {}
-    template: str = None
-    full: str = None
-    url: str = None
-    file: str = None
-    location: str = None
-    exists: bool = None
-    needs_kwargs: bool = Field(None, validate_default=True)
-    warning: str = None
+    kwargs: Optional[dict] = {}
+    template: Optional[str] = None
+    full: Optional[str] = None
+    url: Optional[str] = None
+    file: Optional[str] = None
+    location: Optional[str] = None
+    exists: Optional[bool] = None
+    needs_kwargs: Optional[bool] = Field(None, validate_default=True)
+    warning: Optional[str] = None
 
 
 class PathModel(PathResponse):
@@ -51,12 +51,15 @@ class PathModel(PathResponse):
 
     def __new__(cls, *args, **kwargs):
         cls._path = kwargs.get('_path', None)
+        print(cls._path)
         return super(PathModel, cls).__new__(cls)
 
     @field_validator('name')
     @classmethod
     def is_name(cls, v):
+        print('is_name', v)
         if v not in cls._path.lookup_names():
+            print('not valid name')
             release = 'WORK' if cls._path.release in ('sdss5', 'sdss4', 'sdsswork') else cls._path.release.upper()
             raise ValueError(f'Validation error: path name {v} not a valid sdss_access name for release {release}')
         return v
@@ -64,7 +67,7 @@ class PathModel(PathResponse):
     @field_validator('kwargs')
     @classmethod
     def good_kwargs(cls, v, info):
-        name = info.name
+        name = info.data.get('name')
         keys = set(cls._path.lookup_keys(name))
 
         # return if no kwargs specified
@@ -84,11 +87,16 @@ class PathModel(PathResponse):
             raise ValueError(f'Validation error: Missing kwargs {mstr} for name: {name}')
         return v
 
-    @field_validator('needs_kwargs')
-    @classmethod
-    def check_kwargs(cls, v, info):
+    #@field_validator('needs_kwargs')
+    #@classmethod
+    @model_validator(mode='after')
+    def check_kwargs(self):
         ''' Check and assign the needs_kwargs attribute'''
-        return any(cls._path.lookup_keys(info.name))
+        #print('check_kwargs', info.data.get('name'), any(cls._path.lookup_keys(info.data.get('name'))))
+        #return any(cls._path.lookup_keys(info.data.get('name')))
+        print('check_kwargs', self.name, any(self._path.lookup_keys(self.name)))
+        self.needs_kwargs = any(self._path.lookup_keys(self.name))
+        return self
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -109,7 +117,7 @@ class PathBody(BaseBody):
     exists: bool = Field(False, description='Flag to check if the path exists')
 
 
-async def valid_name(name: str = FPath(description='the sdss access path name', example='spec-lite'),
+async def valid_name(name: str = FPath(description='the sdss access path name', examples=['spec-lite']),
                      access: Path = Depends(get_access)):
     """ Dependency to validate a path name """
     try:
@@ -125,7 +133,7 @@ key_constr = Annotated[str, StringConstraints(pattern="(?:,|^)((\w+)=(?:([\w\d.]
 
 async def extract_path(name: str = Depends(valid_name),
                        kwargs: List[key_constr] = Query(None, description='the keyword variable arguments defining a path',
-                                                        example=["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]),
+                                                        examples=[["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]]),
                        access: Path = Depends(get_access)) -> Type[PathModel]:
     """ Dependency to extract and parse path name and keyword arguments """
 
@@ -219,7 +227,7 @@ class Paths(Base):
     @router.post("/{name}", summary='Get the template or resolved path for an sdss_access path name.',
                  response_model=PathResponse, response_model_exclude_unset=True)
     async def post_path_name(self, name: str = FPath(description='the sdss access path name',
-                                                     example='spec-lite'),
+                                                     examples=['spec-lite']),
                              body: PathBody = None):
         """ Construct an sdss_access path
 
@@ -246,19 +254,20 @@ class Paths(Base):
         """
         # if no kwargs set to empty dict
         kwargs = body.kwargs or {}
+        print('here', name, kwargs, self.path)
         try:
             path = PathModel(name=name, kwargs=kwargs, _path=self.path)
         except ValidationError as ee:
-            raise HTTPException(status_code=422, detail=ee.errors()) from ee
+            raise HTTPException(status_code=422, detail=ee.errors(include_context=False)) from ee
         else:
             return self.process_path(path, body.part, body.exists)
 
     def process_path(self, path: Type[PathModel], part: PathPart, exists: bool) -> dict:
         if not path.kwargs and path.needs_kwargs:
-            out = path.dict(include={'template'})
+            out = path.model_dump(include={'template'})
             out['warning'] = 'Warning: No kwargs specified to construct a path.  Returning only template.'
             return out
         elif exists:
-            return path.dict(include={'exists'})
+            return path.model_dump(include={'exists'})
         else:
-            return path.dict() if part == 'all' else path.dict(include={part})
+            return path.model_dump() if part == 'all' else path.model_dump(include={part})

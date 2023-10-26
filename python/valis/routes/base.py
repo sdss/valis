@@ -20,7 +20,7 @@ class BaseBody(BaseModel):
     release: Optional[str] = Field(None, examples=['DR17'], description='The SDSS data release')
 
 
-async def release(release: str = Query(None, example='DR17', description='The SDSS data release'),
+async def release(release: str = Query(None, examples=['DR17'], description='The SDSS data release'),
                   body: BaseBody = None) -> str:
     """ Dependency to specify a release query or body parameter """
     try:

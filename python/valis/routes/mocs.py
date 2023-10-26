@@ -53,7 +53,7 @@ class Mocs(Base):
         return f'/static/mocs/{self.release.lower()}/{survey}/'
 
     @router.get('/json', summary='Get the MOC file in JSON format')
-    async def get_json(self, survey: str = Query(..., description='The SDSS survey name', example='manga')) -> MocModel:
+    async def get_json(self, survey: str = Query(..., description='The SDSS survey name', examples=['manga'])) -> MocModel:
         """ Get the MOC file in JSON format """
         # temporarily affixing the access path to sdss5 sandbox until
         # we decide on real org for DRs, etc
@@ -65,7 +65,7 @@ class Mocs(Base):
         return ORJSONResponseCustom(content=read_json(path), option=orjson.OPT_SERIALIZE_NUMPY)
 
     @router.get('/fits', summary='Download the MOC file in FITs format')
-    async def get_fits(self, survey: str = Query(..., description='The SDSS survey name', example='manga')):
+    async def get_fits(self, survey: str = Query(..., description='The SDSS survey name', examples=['manga'])):
         """ Download the MOC file in FITs format """
         # temporarily affixing the access path to sdss5 sandbox
         # we decide on real org for DRs, etc

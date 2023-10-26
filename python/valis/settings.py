@@ -20,7 +20,7 @@ def read_valis_config() -> dict:
     dict
         the custom settings config
     """
-    skeys = Settings.schema()['properties'].keys()
+    skeys = Settings.model_json_schema()['properties'].keys()
     return {k: v for k, v in config.items() if k in skeys}
 
 
