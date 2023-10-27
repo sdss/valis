@@ -51,15 +51,12 @@ class PathModel(PathResponse):
 
     def __new__(cls, *args, **kwargs):
         cls._path = kwargs.get('_path', None)
-        print(cls._path)
         return super(PathModel, cls).__new__(cls)
 
     @field_validator('name')
     @classmethod
     def is_name(cls, v):
-        print('is_name', v)
         if v not in cls._path.lookup_names():
-            print('not valid name')
             release = 'WORK' if cls._path.release in ('sdss5', 'sdss4', 'sdsswork') else cls._path.release.upper()
             raise ValueError(f'Validation error: path name {v} not a valid sdss_access name for release {release}')
         return v
@@ -87,14 +84,9 @@ class PathModel(PathResponse):
             raise ValueError(f'Validation error: Missing kwargs {mstr} for name: {name}')
         return v
 
-    #@field_validator('needs_kwargs')
-    #@classmethod
     @model_validator(mode='after')
     def check_kwargs(self):
         ''' Check and assign the needs_kwargs attribute'''
-        #print('check_kwargs', info.data.get('name'), any(cls._path.lookup_keys(info.data.get('name'))))
-        #return any(cls._path.lookup_keys(info.data.get('name')))
-        print('check_kwargs', self.name, any(self._path.lookup_keys(self.name)))
         self.needs_kwargs = any(self._path.lookup_keys(self.name))
         return self
 
@@ -254,7 +246,6 @@ class Paths(Base):
         """
         # if no kwargs set to empty dict
         kwargs = body.kwargs or {}
-        print('here', name, kwargs, self.path)
         try:
             path = PathModel(name=name, kwargs=kwargs, _path=self.path)
         except ValidationError as ee:

@@ -87,7 +87,7 @@ def test_path_post(client):
 
 
 def test_path_post_wget(client):
-    params = {'kwargs':{'drpver': 'v3_1_1', 'plate': 8485, 'ifu': '1901', 'wave': 'LOG'}, 'part': 'location'}
+    params = {'kwargs': {'drpver': 'v3_1_1', 'plate': 8485, 'ifu': '1901', 'wave': 'LOG'}, 'part': 'location'}
     response = client.post("/paths/mangacube?release=DR17", json=params)
     assert response.status_code == 200
     data = response.json()

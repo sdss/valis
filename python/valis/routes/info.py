@@ -17,7 +17,7 @@ try:
     from datamodel.models.releases import Releases
     from datamodel.models.versions import Tags
     from datamodel.models.yaml import ProductModel
-    SchemaModel = create_model("SchemaModel", **ProductModel.schema())
+    SchemaModel = create_model("SchemaModel", **ProductModel.model_json_schema())
 except ImportError:
     SDSSDataModel = None
     Phases = Surveys = Releases = Tags = ProductModel = SchemaModel = None

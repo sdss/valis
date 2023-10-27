@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi_restful.cbv import cbv
 import numpy as np
-from pydantic import BaseModel
-from typing import Type, Union, Dict, Any, Optional, Callable, List
+from pydantic import BaseModel, BeforeValidator
+from typing import Type, Union, Dict, Any, Optional, Callable, List, Annotated
 from astropy.io import fits
 from astropy.table import Table
 import pathlib
@@ -23,6 +23,10 @@ from valis.routes.access import extract_path, PathModel
 router = APIRouter()
 
 VALIS_SUPPORTED_FILES = ['.fits']
+
+
+Ext = Annotated[Union[int, str], BeforeValidator(lambda x: int(x) if str(x).isnumeric() else str(x)),
+                Query(description='The HDU extension number or name')]
 
 
 async def get_filepath(name: str = Path(..., description='The sdss access path name', examples=['spec-lite']),
@@ -42,13 +46,13 @@ async def get_filepath(name: str = Path(..., description='The sdss access path n
     return filepath
 
 
-async def header(filename: str = Depends(get_filepath), ext: Union[int, str] = Query(0, description='The HDU extension number or name')) -> dict:
+async def header(filename: str = Depends(get_filepath), ext: Ext = 0) -> dict:
     """ Dependency to retrieve a FITS header of a given HDU extension """
     with fits.open(filename) as hdu:
         yield hdu[ext].header
 
 
-async def get_ext(filename: str = Depends(get_filepath), ext: Union[int, str] = Query(0, description='The HDU extension number or name')):
+async def get_ext(filename: str = Depends(get_filepath), ext: Ext = 0):
     """ Dependency to get a FITS data, header """
     with fits.open(filename) as hdu:
         data = hdu[ext].data
@@ -63,9 +67,11 @@ async def get_ext(filename: str = Depends(get_filepath), ext: Union[int, str] = 
 def stream_bytes(data):
     yield numpy_to_bytes(data)
 
+
 # image hdu
 def stream_image_json(data):
     yield orjson.dumps(data, option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
+
 
 # imagehdu
 def stream_image_csv(data):
@@ -78,9 +84,11 @@ def stream_image_csv(data):
     np.savetxt(ii, data, delimiter=',', fmt=fmt)
     yield ii.getvalue()
 
+
 # table hdu
 def stream_table_json(data):
     yield orjson.dumps(data.tolist(), option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
+
 
 # table hdu
 def stream_table_csv(data):
@@ -88,7 +96,7 @@ def stream_table_csv(data):
     t = Table(data)
     try:
         t.write(ii, format='ascii.csv')
-    except ValueError as ee:
+    except ValueError:
         t.write(ii, format='ascii.ecsv')
 
     yield ii.getvalue()
@@ -101,7 +109,7 @@ class StreamFormat(str, Enum):
     bytes = "bytes"
 
 
-async def get_stream(filename: str = Depends(get_filepath), ext: Union[int, str] = Query(0, description='The HDU extension number or name'),
+async def get_stream(filename: str = Depends(get_filepath), ext: Ext = 0,
                      format: StreamFormat = 'json'):
     """ Dependency to stream FITS data """
     with fits.open(filename) as hdu:
@@ -146,6 +154,7 @@ def numpy_to_bytes(arr: np.array, sep: str = '|') -> bytes:
     arr_bytes = arr.ravel().tobytes()
     return bytes(arr_dtype + sep + arr_shape + sep + arr_bytes)
 
+
 def bytes_to_numpy(serialized_arr: bytes, sep: str = '|', record=False) -> np.array:
     """ Convert bytes data back to numpy"""
     sep = sep.encode('utf-8')
@@ -165,7 +174,6 @@ def bytes_to_numpy(serialized_arr: bytes, sep: str = '|', record=False) -> np.ar
     # for numpy.records i.e. BinTableHDUs
     dd = np.dtype((np.record, ast.literal_eval(arr_dtype[arr_dtype.find('['):-1])))
     return np.frombuffer(arr_str, dtype=dd)
-
 
 
 class ORJSONResponseCustom(JSONResponse):
@@ -189,9 +197,11 @@ class FileResponseModel(BaseModel):
     comments: dict = None
     data: dict = None
 
+
 class FileInfoModel(BaseModel):
     """ Response for file info endpoint """
     info: List[str]
+
 
 @cbv(router)
 class Files(Base):
@@ -216,7 +226,8 @@ class Files(Base):
             media = 'application/octet-stream'
         return FileResponse(filename, filename=ppath.name, media_type=media)
 
-    @router.get("/{name}/info", summary='Retrieve information on a FITS file', response_model=FileInfoModel)
+    @router.get("/{name}/info", summary='Retrieve information on a FITS file',
+                response_model=FileInfoModel)
     async def get_info(self, filename: str = Depends(get_filepath)):
         """ Return the output from FITS hdu.info """
         s = StringIO()
@@ -227,13 +238,16 @@ class Files(Base):
             info = ee.split('\n')
             return {"info": info}
 
-    @router.get("/{name}/header", summary='Retrieve a FITS file header', response_model=FileResponseModel, response_model_exclude_unset=True)
+    @router.get("/{name}/header", summary='Retrieve a FITS file header',
+                response_model=FileResponseModel, response_model_exclude_unset=True)
     async def get_header(self, header: fits.Header = Depends(header)):
         """ Return a FITS header """
         return {"header": dict(header.items()), 'comments': {k: header.comments[k] for k in header}}
 
-    @router.get("/{name}/data", summary='Retrieve FITS file data.  Loads entire data into memory.', response_model=FileResponseModel, response_model_exclude_unset=True)
-    async def get_filedata(self, fitsext: tuple = Depends(get_ext), header: bool = Query(True, description='Flag to return header info or not.')):
+    @router.get("/{name}/data", summary='Retrieve FITS file data.  Loads entire data into memory.',
+                response_model=FileResponseModel, response_model_exclude_unset=True)
+    async def get_filedata(self, fitsext: tuple = Depends(get_ext),
+                           header: bool = Query(True, description='Flag to return header info or not.')):
         """ Return file data content to the client """
         # extract the FITS data
         data, hdr = fitsext
@@ -247,10 +261,12 @@ class Files(Base):
         stream, media = streamdata
         return StreamingResponse(stream, media_type=media)
 
+
 class KeyModel(BaseModel):
     key: str
     value: Union[str, int, float]
     comment: str = None
+
 
 class HeaderModel(BaseModel):
     header: Dict[str, Union[str, int, float]]

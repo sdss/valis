@@ -5,6 +5,7 @@ import pytest
 
 from valis.routes.files import bytes_to_numpy
 
+
 def get_data(response):
     assert response.status_code == 200
     return response.json()
@@ -56,6 +57,7 @@ expdata = {0: None,
            2: {'object': ['a', 'b', 'c', ], 'flag': [0, 1, 2]}
            }
 
+
 @pytest.mark.parametrize('ext',
                          [0, 1, 2],
                          ids=['primary', 'image', 'table'])
@@ -74,6 +76,7 @@ def test_file_data(client, testfile, ext):
         assert data[0] == exp
     elif ext == 2:
         assert exp.items() <= data.items()
+
 
 @pytest.mark.parametrize('format',
                          ['json', 'csv', 'bytes'])
