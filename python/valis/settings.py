@@ -32,7 +32,7 @@ class EnvEnum(str, Enum):
 
 class Settings(BaseSettings):
     valis_env: EnvEnum = EnvEnum.dev
-    allow_origin: Union[str, List[AnyHttpUrl]] = Field([], validation_alias="VALIS_ALLOW_ORIGIN")
+    allow_origin: Union[str, List[AnyHttpUrl]] = Field([])
     db_server: str = 'pipelines'
     db_remote: bool = False
     db_port: int = 5432
@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     @classmethod
     def must_be_list(cls, v):
         if not isinstance(v, list):
-            return v.split(',') if ',' in v else [v]
-        return v
+            return v.split(',') if ',' in v else [str(v)]
+        return [str(i).rstrip('/') for i in v]
+
+    @field_validator('allow_origin')
+    @classmethod
+    def strip_slash(cls, v):
+        return [i.rstrip('/') for i in v]
 
