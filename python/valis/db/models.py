@@ -70,7 +70,7 @@ class SDSSidPipesBase(PeeweeBase):
     """ Pydantic model for the Peewee vizdb.SDSSidToPipes ORM """
 
     sdss_id: int = Field(..., description='the SDSS identifier')
-    in_boss: bool = Field(..., description='Flag if the sdss_id is in the BHM reductions')
-    in_apogee: bool = Field(..., description='Flag if the sdss_id is in the Apogee/MWM reductions')
-    in_astra: bool = Field(..., description='Flag if the sdss_id is in the Astra reductions')
+    in_boss: bool = Field(..., description='Flag if target is in the BHM reductions', examples=[False])
+    in_apogee: bool = Field(..., description='Flag if target is in the MWM reductions', examples=[False])
+    in_astra: bool = Field(..., description='Flag if the target is in the Astra reductions', examples=[False])
 

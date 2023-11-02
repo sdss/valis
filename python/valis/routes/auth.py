@@ -14,11 +14,13 @@ from valis.routes.base import Base, release
 router = APIRouter()
 auth_callback_router = APIRouter()
 
+
 class Token(BaseModel):
     """ SDSS OAuth2 access token """
     access_token: str
     token_type: str
     refresh_token: str = None
+
 
 class User(BaseModel):
     """ SDSS user"""
@@ -26,18 +28,26 @@ class User(BaseModel):
     fullname: str = None
     email: str = None
 
+
 class CredentialBase(BaseModel):
     msg: str
+
+
 class Member(CredentialBase):
     """ SDSS member credentials """
     member: User
+
+
 class Identity(CredentialBase):
     """ SDSS identity credentials """
     identity: str
+
+
 class CredToken(CredentialBase):
     """ SDSS credentials token """
     access: str
-    refresh : str = None
+    refresh: str = None
+
 
 class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
 
@@ -47,7 +57,9 @@ class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
             return None
         await super().__call__(request)
 
+
 oauth2_scheme = SDSSAuthPasswordBearer(tokenUrl="auth/login")
+
 
 async def set_auth(token: str = Depends(oauth2_scheme), release: str = Depends(release)):
     return {"token": token, 'release': release}
@@ -55,24 +67,29 @@ async def set_auth(token: str = Depends(oauth2_scheme), release: str = Depends(r
 
 auth_base = "https://api.sdss.org/crowd/credential"
 
+
 @auth_callback_router.post(f"{auth_base}/member", response_model=Member)
 def get_member():
     pass
+
 
 @auth_callback_router.post(f"{auth_base}/identity", response_model=Identity)
 def check_identity():
     pass
 
+
 @auth_callback_router.post(f"{auth_base}/refresh", response_model=CredToken)
 def refresh_token():
     pass
+
 
 @auth_callback_router.post(f"{auth_base}", response_model=CredToken)
 def get_token(username: str = Form(...), password: str = Form(...)):
     pass
 
+
 # create a dict to reference just a single route
-callback_dict = {i.name:[i] for i in auth_callback_router.routes}
+callback_dict = {i.name: [i] for i in auth_callback_router.routes}
 
 
 async def verify_token(request: Request):
@@ -82,6 +99,7 @@ async def verify_token(request: Request):
         if rr.is_error:
             raise HTTPException(status_code=rr.status_code, detail=rr.content)
         return rr.json()
+
 
 @cbv(router)
 class Auth(Base):

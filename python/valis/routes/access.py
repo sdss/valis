@@ -109,7 +109,7 @@ class PathBody(BaseBody):
     exists: bool = Field(False, description='Flag to check if the path exists')
 
 
-async def valid_name(name: str = FPath(description='the sdss access path name', examples=['spec-lite']),
+async def valid_name(name: str = FPath(description='the sdss access path name', example='spec-lite'),
                      access: Path = Depends(get_access)):
     """ Dependency to validate a path name """
     try:
@@ -125,7 +125,7 @@ key_constr = Annotated[str, StringConstraints(pattern="(?:,|^)((\w+)=(?:([\w\d.]
 
 async def extract_path(name: str = Depends(valid_name),
                        kwargs: List[key_constr] = Query(None, description='the keyword variable arguments defining a path',
-                                                        examples=[["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]]),
+                                                        example=["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]),
                        access: Path = Depends(get_access)) -> Type[PathModel]:
     """ Dependency to extract and parse path name and keyword arguments """
 
@@ -219,7 +219,7 @@ class Paths(Base):
     @router.post("/{name}", summary='Get the template or resolved path for an sdss_access path name.',
                  response_model=PathResponse, response_model_exclude_unset=True)
     async def post_path_name(self, name: str = FPath(description='the sdss access path name',
-                                                     examples=['spec-lite']),
+                                                     example='spec-lite'),
                              body: PathBody = None):
         """ Construct an sdss_access path
 

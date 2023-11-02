@@ -21,17 +21,17 @@ Simbad.add_votable_fields('ra(d)', 'dec(d)')
 
 class CoordModel(BaseModel):
     """ Pydantic model for a SkyCoord object """
-    value: Tuple[float, float] = Field(..., description='The coordinate value', examples=[(230.50745896, 43.53232817)])
-    frame: str = Field(..., description='The coordinate frame', examples=['icrs'])
-    unit: str = Field(..., description='The coordinate units', examples=['deg'])
+    value: Tuple[float, float] = Field(..., description='The coordinate value', example=(230.50745896, 43.53232817))
+    frame: str = Field(..., description='The coordinate frame', example='icrs')
+    unit: str = Field(..., description='The coordinate units', example='deg')
 
 
 class NameResponse(BaseModel):
     """ Response model for target name resolver endpoint """
     coordinate: CoordModel = Field(..., description='The resolved coordinate')
-    object_type: str = Field(..., description='The resolved type of object', examples=['G'])
-    name: str = Field(..., description='The resolved common target name', examples=['2MASX J15220182+4331560'])
-    identifiers: List[str] = Field(..., description='A list of resolved target identifiers', examples=[["LEDA 2223006", "CASG 697"]])
+    object_type: str = Field(..., description='The resolved type of object', example='G')
+    name: str = Field(..., description='The resolved common target name', example='2MASX J15220182+4331560')
+    identifiers: List[str] = Field(..., description='A list of resolved target identifiers', example=["LEDA 2223006", "CASG 697"])
 
 
 class DistModel(BaseModel):
@@ -80,7 +80,7 @@ class Target(Base):
     """ Endpoints for dealing with individual targets """
 
     @router.get("/resolve/name", summary='Resolve a target name with Sesame', response_model=NameResponse)
-    async def get_name(self, name: str = Query(..., description='the target name', examples=['MaNGA 7443-12701'])) -> dict:
+    async def get_name(self, name: str = Query(..., description='the target name', example='MaNGA 7443-12701')) -> dict:
         """ Resolve a target name using the Sesame Name Resolver service
 
         Sesame resolves against Simbad, NED, and Vizier databases, in that order.
@@ -109,11 +109,11 @@ class Target(Base):
 
     @router.get("/resolve/coord", summary='Resolve a target coordinate with Simbad')
     async def get_coord(self,
-                        coord: tuple = Query(None, description='the target coordinate', examples=[(230.50745896, 43.53232817)]),
-                        cunit: str = Query('deg', description='the coordinate unit', examples=['deg']),
-                        name: str = Query(None, description='the target name', examples=['MaNGA 7443-12701']),
-                        radius: float = Query(1.0, description='the radius to search around the coordinate', examples=[1.0]),
-                        runit: str = Query('arcmin', description='the unit of radius unit', examples=['arcmin'])) -> List[SimbadRow]:
+                        coord: tuple = Query(None, description='the target coordinate', example=(230.50745896, 43.53232817)),
+                        cunit: str = Query('deg', description='the coordinate unit', example='deg'),
+                        name: str = Query(None, description='the target name', example='MaNGA 7443-12701'),
+                        radius: float = Query(1.0, description='the radius to search around the coordinate', example=1.0),
+                        runit: str = Query('arcmin', description='the unit of radius unit', example='arcmin')) -> List[SimbadRow]:
         """ Resolve a coordinate using astroquery Simbad.query_region
 
         Perform a cone search using astroquery Simbad.query_region around

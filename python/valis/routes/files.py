@@ -29,7 +29,7 @@ Ext = Annotated[Union[int, str], BeforeValidator(lambda x: int(x) if str(x).isnu
                 Query(description='The HDU extension number or name')]
 
 
-async def get_filepath(name: str = Path(..., description='The sdss access path name', examples=['spec-lite']),
+async def get_filepath(name: str = Path(..., description='The sdss access path name', example='spec-lite'),
                        path: Type[PathModel] = Depends(extract_path)) -> str:
     """ Depedency to get a filepath from sdss_access """
     data = path.model_dump(include={'full', 'exists'})

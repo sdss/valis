@@ -10,8 +10,8 @@ from pydantic import BaseModel, Field
 
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase
-from valis.db.queries import cone_search
+from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
+from valis.db.queries import cone_search, append_pipes
 
 
 class SearchCoordUnits(str, Enum):
@@ -23,15 +23,14 @@ class SearchCoordUnits(str, Enum):
 
 class SearchModel(BaseModel):
     """ Input main query body model """
-    ra: Union[float, str] = Field(..., description='Right Ascension in degrees or hmsdms', examples=[315.01417])
-    dec: Union[float, str] = Field(..., description='Declination in degrees or hmsdms', examples=[35.299])
-    radius: float = Field(..., description='Search radius in specified units', examples=[0.01])
-    units: SearchCoordUnits = Field('degree', description='Units of search radius', examples=['degree'])
+    ra: Union[float, str] = Field(..., description='Right Ascension in degrees or hmsdms', example=315.01417)
+    dec: Union[float, str] = Field(..., description='Declination in degrees or hmsdms', example=35.299)
+    radius: float = Field(..., description='Search radius in specified units', example=0.01)
+    units: SearchCoordUnits = Field('degree', description='Units of search radius', example='degree')
 
 
-class MainResponse(SDSSidStackedBase):
+class MainResponse(SDSSidPipesBase, SDSSidStackedBase):
     """ Combined model from all individual query models """
-    pass
 
 
 class MainSearchResponse(BaseModel):
@@ -51,9 +50,9 @@ class QueryRoutes(Base):
     # @router.get('/test_sqla', summary='Perform a cone search for SDSS targets with sdss_ids',
     #             response_model=List[SDSSidStackedBaseA])
     # async def test_search(self,
-    #                       ra=Query(..., description='right ascension in degrees', examples=[315.01417]),
-    #                       dec=Query(..., description='declination in degrees', examples=[35.299]),
-    #                       radius=Query(..., description='the search radius in degrees', examples=[0.01]),
+    #                       ra=Query(..., description='right ascension in degrees', example=315.01417),
+    #                       dec=Query(..., description='declination in degrees', example=35.299),
+    #                       radius=Query(..., description='the search radius in degrees', example=0.01),
     #                       db=Depends(get_sqla_db)):
     #     """ Example for writing a route with a sqlalchemy ORM """
     #     from sdssdb.sqlalchemy.sdss5db import vizdb
@@ -71,15 +70,18 @@ class QueryRoutes(Base):
         if body.ra and body.dec:
             query = cone_search(body.ra, body.dec, body.radius, units=body.units)
 
-        return {'status': 'success', 'data': list(query), 'msg': 'data successfully retrieved'}
+        # append query to pipes
+        query = append_pipes(query)
+
+        return {'status': 'success', 'data': list(query.dicts()), 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def cone_search(self,
-                          ra: Union[float, str] = Query(..., description='Right Ascension in degrees or hmsdms', examples=[315.01417]),
-                          dec: Union[float, str] = Query(..., description='Declination in degrees or hmsdms', examples=[35.299]),
-                          radius: float = Query(..., description='Search radius in specified units', examples=[0.01]),
-                          units: SearchCoordUnits = Query('degree', description='Units of search radius', examples=['degree'])):
+                          ra: Union[float, str] = Query(..., description='Right Ascension in degrees or hmsdms', example=315.01417),
+                          dec: Union[float, str] = Query(..., description='Declination in degrees or hmsdms', example=35.299),
+                          radius: float = Query(..., description='Search radius in specified units', example=0.01),
+                          units: SearchCoordUnits = Query('degree', description='Units of search radius', example='degree')):
         """ Perform a cone search """
         return list(cone_search(ra, dec, radius, units=units))
 
