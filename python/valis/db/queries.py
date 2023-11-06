@@ -9,6 +9,7 @@ import peewee
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import vizdb
+from sdssdb.peewee.sdss5db import targetdb
 
 
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.ModelSelect:
@@ -115,3 +116,16 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
         where(vizdb.SDSSidStacked.cone_search(ra, dec, radius,
                                               ra_col='ra_sdss_id',
                                               dec_col='dec_sdss_id'))
+
+def carton_program_search(name: str, name_type: str = 'carton') -> peewee.ModelSelect:
+    """
+    Perform a search on either carton or program
+    """
+    search_name = targetdb.Carton.carton if name_type == 'carton' else targetdb.Carton.program
+    model = vizdb.SDSSidFlat.select()\
+                            .join(targetdb.Target,
+                                  on=(targetdb.Target.catalogid == vizdb.SDSSidFlat.catalogid))\
+                            .join(targetdb.CartonToTarget)\
+                            .join(targetdb.Carton)\
+                            .where(search_name == name)
+    return model
