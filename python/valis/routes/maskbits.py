@@ -7,7 +7,7 @@ from typing import List, Union, Dict
 
 from astropy.table import Table
 from fastapi import APIRouter, HTTPException, Depends, Query
-from fastapi_utils.cbv import cbv
+from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field
 
 from valis.io.yanny import yanny

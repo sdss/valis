@@ -5,13 +5,13 @@
 from enum import Enum
 from typing import List, Union
 from fastapi import APIRouter, Depends, Query
-from fastapi_utils.cbv import cbv
+from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field
 
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase
-from valis.db.queries import cone_search
+from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
+from valis.db.queries import cone_search, append_pipes
 
 
 class SearchCoordUnits(str, Enum):
@@ -29,9 +29,8 @@ class SearchModel(BaseModel):
     units: SearchCoordUnits = Field('degree', description='Units of search radius', example='degree')
 
 
-class MainResponse(SDSSidStackedBase):
+class MainResponse(SDSSidPipesBase, SDSSidStackedBase):
     """ Combined model from all individual query models """
-    pass
 
 
 class MainSearchResponse(BaseModel):
@@ -71,7 +70,10 @@ class QueryRoutes(Base):
         if body.ra and body.dec:
             query = cone_search(body.ra, body.dec, body.radius, units=body.units)
 
-        return {'status': 'success', 'data': list(query), 'msg': 'data successfully retrieved'}
+        # append query to pipes
+        query = append_pipes(query)
+
+        return {'status': 'success', 'data': list(query.dicts()), 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
