@@ -94,8 +94,7 @@ class QueryRoutes(Base):
     @router.get('/carton_program', summary='Search for all SDSS targets within a carton or program',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def carton_program(self,
-                             name: str = Query("manual_mwm_tess_ob",
-                                               description='Carton or program name', example='manual_mwm_tess_ob'),
+                             name: str = Query(..., description='Carton or program name', example='manual_mwm_tess_ob'),
                              name_type: str = Query('carton', enum=['carton', 'program'],
                                                     description='Specify search on carton or program', example='carton')):
         """ Perform a search on carton or program """
