@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase
-from valis.db.queries import cone_search
+from valis.db.queries import cone_search, carton_program_search
 
 
 class SearchCoordUnits(str, Enum):
@@ -83,3 +83,10 @@ class QueryRoutes(Base):
         """ Perform a cone search """
         return list(cone_search(ra, dec, radius, units=units))
 
+    @router.get('/carton_program', summary='Search for all SDSS targets within a carton or program',
+                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+    async def cone_search(self,
+                          name: str = Query(..., description='Carton or program name', example='manual_mwm_tess_ob'),
+                          name_type: str = Query(..., description='Specify search on carton or program', example='carton')):
+        """ Perform a search on carton or program """
+        return list(carton_program_search(name, name_type))
