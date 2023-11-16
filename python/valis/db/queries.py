@@ -120,6 +120,18 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
 def carton_program_search(name: str, name_type: str = 'carton') -> peewee.ModelSelect:
     """
     Perform a search on either carton or program
+
+    Parameters
+    ----------
+    name: str
+        Either the carton name or the program name
+    name_type: str
+        Which type you are searching on, either 'carton' or 'program'
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
     """
     search_name = targetdb.Carton.carton if name_type == 'carton' else targetdb.Carton.program
     model = vizdb.SDSSidFlat.select()\
