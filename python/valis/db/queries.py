@@ -117,7 +117,28 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
                                               ra_col='ra_sdss_id',
                                               dec_col='dec_sdss_id'))
 
-def carton_program_search(name: str, name_type: str = 'carton') -> peewee.ModelSelect:
+
+def carton_program_list(name_type: str) -> peewee.ModelSelect:
+    """
+    Return a list of either all cartons or programs from targetdb
+
+    Parameters
+    ----------
+    name_type: str
+        Which type you are searching on, either 'carton' or 'program'
+
+    Returns
+    -------
+    list
+        list of either all cartons in programs sorted in alphabetical order
+    """
+    model = targetdb.Carton.select(peewee.fn.DISTINCT(getattr(targetdb.Carton, name_type)))
+    model_list = [getattr(m, name_type) for m in model]
+    model_list.sort()
+    return model_list
+
+
+def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
     """
     Perform a search on either carton or program
 
