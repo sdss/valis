@@ -133,11 +133,12 @@ def carton_program_search(name: str, name_type: str = 'carton') -> peewee.ModelS
     peewee.ModelSelect
         the ORM query
     """
-    search_name = targetdb.Carton.carton if name_type == 'carton' else targetdb.Carton.program
-    model = vizdb.SDSSidFlat.select()\
+    model = vizdb.SDSSidFlat.select(peewee.fn.DISTINCT(vizdb.SDSSidFlat.sdss_id))\
                             .join(targetdb.Target,
                                   on=(targetdb.Target.catalogid == vizdb.SDSSidFlat.catalogid))\
                             .join(targetdb.CartonToTarget)\
                             .join(targetdb.Carton)\
-                            .where(search_name == name)
-    return model
+                            .where(getattr(targetdb.Carton, name_type) == name)
+    model_stack = vizdb.SDSSidStacked.select()\
+                                     .join(model, on=(model.c.sdss_id == vizdb.SDSSidStacked.sdss_id))
+    return model_stack
