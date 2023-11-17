@@ -30,6 +30,7 @@ async def override_auth():
 
 app.dependency_overrides[set_auth] = override_auth
 
+
 @pytest.fixture(scope='module')
 def client():
     yield TestClient(app)
@@ -46,7 +47,7 @@ def monkeymask(monkeypatch, tmp_path):
     monkeypatch.setenv('SDSS_SVN_ROOT', str(svn_dir))
 
 
-def create_fits(name = 'testfile.fits'):
+def create_fits(name='testfile.fits'):
     """ create a test fits hdulist """
 
     # create the FITS HDUList
@@ -92,7 +93,7 @@ def testfile(setup_sas):
     redux = os.getenv("TEST_REDUX", "")
     path = pathlib.Path(redux) / 'v1' / name
     if not path.exists():
-       path.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
     hdu.writeto(path, overwrite=True)
     return path
@@ -103,11 +104,12 @@ def testmoc(setup_sas):
     moc = os.getenv("SDSS_HIPS", "")
     path = pathlib.Path(moc) / 'dr17/manga/Moc.json'
     if not path.exists():
-       path.parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(path, 'w') as f:
         f.write("#MOCORDER 10\n")
         f.write("""{"9":[224407,224413,664253,664290,664292]}\n""")
+
 
 class MockTree(Tree):
     """ mock out the Tree class to insert test file """
@@ -124,6 +126,7 @@ class MockTree(Tree):
         paths.update({'test': '$TEST_REDUX/{ver}/testfile_{id}.fits'})
         paths.update({'sdss_moc': '$SDSS_HIPS/{release}/{survey}/Moc.{ext}'})
         return paths
+
 
 class MockPath(Path):
     """ mock out the Path class to insert test file """

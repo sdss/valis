@@ -4,9 +4,9 @@ import math
 import re
 import httpx
 from typing import Tuple, List, Union, Optional
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import field_validator, model_validator, BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query
-from fastapi_utils.cbv import cbv
+from fastapi_restful.cbv import cbv
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
@@ -24,6 +24,7 @@ class CoordModel(BaseModel):
     value: Tuple[float, float] = Field(..., description='The coordinate value', example=(230.50745896, 43.53232817))
     frame: str = Field(..., description='The coordinate frame', example='icrs')
     unit: str = Field(..., description='The coordinate units', example='deg')
+
 
 class NameResponse(BaseModel):
     """ Response model for target name resolver endpoint """
@@ -60,14 +61,16 @@ class SimbadRow(BaseModel):
     coo_bibcode: Optional[str] = Field(None)
     script_number_id: Optional[int] = Field(None)
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def lower_and_nan(cls, values):
         return {
             k.lower(): None if not isinstance(v, str) and math.isnan(v) else v
             for k, v in values.items()
         }
 
-    @validator('distance_result')
+    @field_validator('distance_result')
+    @classmethod
     def parse_distance(cls, v):
         return DistModel(value=v)
 
