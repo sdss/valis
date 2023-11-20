@@ -78,3 +78,54 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
         where(vizdb.SDSSidStacked.cone_search(ra, dec, radius,
                                               ra_col='ra_sdss_id',
                                               dec_col='dec_sdss_id'))
+
+
+def get_targets_by_sdss_id(sdss_id: int) -> peewee.ModelSelect:
+    """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on the sdss_id.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.SDSSidStacked table. We return the peewee ModelSelect
+    directly here so it can be easily combined with other queries, 
+    if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id == sdss_id)
+
+
+def get_targets_by_catalog_id(catalog_id: int) -> peewee.ModelSelect:
+    """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on the catalog_id.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.SDSSidStacked table. We return the peewee ModelSelect
+    directly here so it can be easily combined with other queries, 
+    if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+    catalog_id : int
+        the catalog_id
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    return vizdb.SDSSidStacked.select()\
+                              .join(vizdb.SDSSidFlat, on=(vizdb.SDSSidStacked.sdss_id == 
+                                                          vizdb.SDSSidFlat.sdss_id))\
+                              .where(vizdb.SDSSidFlat.catalogid == catalog_id)
