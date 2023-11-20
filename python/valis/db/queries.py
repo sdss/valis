@@ -11,6 +11,43 @@ from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import vizdb
 
 
+def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.ModelSelect:
+    """ Joins a query to the SDSSidToPipes table
+
+    Joines an existing query to the SDSSidToPipes table and returns
+    the in_boss, in_apogee, and in_astra columns. The table kwarg
+    is used inform which table you are joining from/to, either the
+    vizdb.SDSSidStacked or vizdb.SDSSidFlat table. Assumes the input query is
+    a select from one of those two.
+
+    Parameters
+    ----------
+    query : peewee.ModelSelect
+        the input query to join to
+    table : str, optional
+        the type of sdss_id table joining to, by default 'stacked'
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+
+    Raises
+    ------
+    ValueError
+        when table kwarg does not match allowed values
+    """
+    if table not in {'stacked', 'flat'}:
+        raise ValueError('table must be either "stacked" or "flat"')
+
+    model = vizdb.SDSSidStacked if table == 'stacked' else vizdb.SDSSidFlat
+    return query.select_extend(vizdb.SDSSidToPipes.in_boss,
+                               vizdb.SDSSidToPipes.in_apogee,
+                               vizdb.SDSSidToPipes.in_astra).\
+        join(vizdb.SDSSidToPipes, on=(model.sdss_id == vizdb.SDSSidToPipes.sdss_id),
+             attr='pipes')
+
+
 def convert_coords(ra: Union[str, float], dec: Union[str, float]) -> tuple:
     """ Convert sky coordinates to decimal degrees
 

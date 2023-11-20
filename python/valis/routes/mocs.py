@@ -8,7 +8,7 @@ import pathlib
 from typing import List, Dict
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query
-from fastapi_utils.cbv import cbv
+from fastapi_restful.cbv import cbv
 from fastapi.responses import FileResponse, RedirectResponse
 from valis.routes.base import Base
 from valis.routes.files import ORJSONResponseCustom

@@ -5,12 +5,13 @@
 from enum import Enum
 from typing import List, Union
 from fastapi import APIRouter, Depends, Query
-from fastapi_utils.cbv import cbv
+from fastapi_restful.cbv import cbv
+from pydantic import BaseModel, Field
 
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase
-from valis.db.queries import cone_search, get_targets_by_sdss_id, get_targets_by_catalog_id
+from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
+from valis.db.queries import cone_search, append_pipes, get_targets_by_sdss_id, get_targets_by_catalog_id
 
 
 class SearchCoordUnits(str, Enum):
@@ -18,6 +19,25 @@ class SearchCoordUnits(str, Enum):
     degree: str = "degree"
     arcmin: str = "arcmin"
     arcsec: str = "arcsec"
+
+
+class SearchModel(BaseModel):
+    """ Input main query body model """
+    ra: Union[float, str] = Field(..., description='Right Ascension in degrees or hmsdms', example=315.01417)
+    dec: Union[float, str] = Field(..., description='Declination in degrees or hmsdms', example=35.299)
+    radius: float = Field(..., description='Search radius in specified units', example=0.01)
+    units: SearchCoordUnits = Field('degree', description='Units of search radius', example='degree')
+
+
+class MainResponse(SDSSidPipesBase, SDSSidStackedBase):
+    """ Combined model from all individual query models """
+
+
+class MainSearchResponse(BaseModel):
+    """ The main query response model """
+    status: str = Field(..., description='the query return status')
+    msg: str = Field(..., description='the response status message')
+    data: List[MainResponse] = Field(..., description='the list of query results')
 
 
 router = APIRouter()
@@ -40,10 +60,20 @@ class QueryRoutes(Base):
     #     return db.query(vizdb.SDSSidStacked).\
     #         filter(vizdb.SDSSidStacked.cone_search(ra, dec, radius, ra_col='ra_sdss_id', dec_col='dec_sdss_id')).all()
 
-    @router.get('/main', summary='Main query for Search UI')
-    async def main_search(self):
-        pass
+    @router.post('/main', summary='Main query for the UI or combining queries',
+                 response_model=MainSearchResponse, dependencies=[Depends(get_pw_db)])
+    async def main_search(self, body: SearchModel):
+        """ Main query for UI and for combining queries together """
+        print('form data', body)
 
+        # build the coordinate query
+        if body.ra and body.dec:
+            query = cone_search(body.ra, body.dec, body.radius, units=body.units)
+
+        # append query to pipes
+        query = append_pipes(query)
+
+        return {'status': 'success', 'data': list(query.dicts()), 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
