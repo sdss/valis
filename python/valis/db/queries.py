@@ -8,7 +8,11 @@ from typing import Union
 import peewee
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from sdssdb.peewee.sdss5db import vizdb
+from sdssdb.peewee.sdss5db import vizdb, boss_drp as boss
+
+from valis.utils.versions import get_software_tag
+from valis.utils.paths import build_boss_path
+from valis.io.spectra import extract_data
 
 
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.ModelSelect:
@@ -46,6 +50,12 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.Mo
                                vizdb.SDSSidToPipes.in_astra).\
         join(vizdb.SDSSidToPipes, on=(model.sdss_id == vizdb.SDSSidToPipes.sdss_id),
              attr='pipes')
+
+
+def get_pipes(sdss_id: int) -> peewee.ModelSelect:
+    return vizdb.SDSSidToPipes.select().\
+        where(vizdb.SDSSidToPipes.sdss_id == sdss_id).\
+        distinct(vizdb.SDSSidToPipes.sdss_id)
 
 
 def convert_coords(ra: Union[str, float], dec: Union[str, float]) -> tuple:
@@ -115,3 +125,90 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
         where(vizdb.SDSSidStacked.cone_search(ra, dec, radius,
                                               ra_col='ra_sdss_id',
                                               dec_col='dec_sdss_id'))
+
+
+# test sdss ids
+# 23326 - boss/astra
+# 3350466 - apogee/astra
+# 54392544 - all true
+# 10 - all false
+# 57651832 - my file on disk
+# 57832526 - all true, in both astra snow_white, apogee_net (source_pk=912174,star_pk=2954029)
+
+
+# def get_target_info(sdss_id: int, release: str, fields: list = None):
+
+#     pipes = get_pipes(sdss_id).dicts().first()
+#     if pipes['in_boss']:
+#         query = get_boss_target(sdss_id, release, fields=fields)
+
+#     if pipes['in_astra']:
+#         pass
+
+#     if pipes['in_apogee']:
+#         pass
+
+#     return query
+
+
+def get_boss_target(sdss_id: int, release: str, fields: list = None,
+                    primary: bool = True) -> peewee.ModelSelect:
+    """_summary_
+
+    _extended_summary_
+
+    Parameters
+    ----------
+    sdss_id : int
+        _description_
+    release : str
+        _description_
+    fields : list, optional
+        _description_, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        _description_
+    """
+    # get the relevant software tag
+    run2d = get_software_tag(release, 'run2d')
+
+    # check fields
+    fields = fields or []
+    if fields and isinstance(fields[0], str):
+        fields = (getattr(boss.BossSpectrum, i) for i in fields)
+
+    # query for the target
+    query = boss.BossSpectrum.select(*fields).\
+        where(boss.BossSpectrum.sdss_id == sdss_id,
+              boss.BossSpectrum.run2d == run2d)
+
+    # filter on primary
+    if primary:
+        query = query.where(boss.BossSpectrum.specprimary == 1)
+
+    return query
+
+
+# def get_target():
+#     get_pipes()
+#     get_boss_target()
+#     get_boss_target()
+#     get_boss_target()
+#     #In [94]: q.select(q.star, q2.star).join(q2, on=(q.c.sdss_id==q2.c.sdss_id)).with_cte(q,q2).execute()
+#     return answer
+
+
+def get_a_spectrum(sdss_id: int, product: str, release: str):
+    # missing - query vizdb table to get sdss_id pipelines info
+    # missing - query to get apogee, astra target info
+    query = get_boss_target(sdss_id, release)
+    for row in query.dicts().iterator():
+        filepath = build_boss_path(row, release)
+        try:
+            yield extract_data(product, filepath)
+        except FileNotFoundError:
+            yield None
+
+

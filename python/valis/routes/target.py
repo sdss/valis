@@ -5,13 +5,16 @@ import re
 import httpx
 from typing import Tuple, List, Union, Optional
 from pydantic import field_validator, model_validator, BaseModel, Field
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
+from valis.db.queries import get_boss_target
+from valis.db.db import get_pw_db
+from valis.db.models import BossSpectrum
 
 router = APIRouter()
 
@@ -129,3 +132,9 @@ class Target(Base):
         # perform the cone search
         res = Simbad.query_region(s, radius=radius * u.Unit(runit))
         return res.to_pandas().to_dict('records')
+
+    @router.get('/id/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=BossSpectrum,
+                response_model_exclude_unset=True, response_model_exclude_none=True)
+    async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
+        return get_boss_target(sdss_id, self.release).dicts().first() or {}

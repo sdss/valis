@@ -74,3 +74,36 @@ class SDSSidPipesBase(PeeweeBase):
     in_apogee: bool = Field(..., description='Flag if target is in the MWM reductions', examples=[False])
     in_astra: bool = Field(..., description='Flag if the target is in the Astra reductions', examples=[False])
 
+
+class BossSpectrum(PeeweeBase):
+    sdss_id: int = None
+    field: int = None
+    mjd: int = None
+    catalogid: int = None
+    nexp: int = None
+    exptime: float = None
+    survey: str = None
+    firstcarton: str = None
+    objtype: str = None
+    specobjid: int = None
+
+
+# field': 101077,
+#  'mjd': 59845,
+#  'mjd_final': 59845.207,
+#  'obs': 'APO',
+#  'run2d': 'v6_1_1',
+#  'run1d': 'v6_1_1',
+#  'nexp': 4,
+#  'exptime': 3600.0,
+#  'target_index': 242,
+#  'spec_file': 'spec-101077-59845-27021603187129892.fits',
+#  'programname': 'ops_sky',
+#  'survey': 'OPS',
+#  'cadence': ' ',
+#  'firstcarton': 'ops_sky_boss_good',
+#  'sdss5_target_flags': <memory at 0x124360a00>,
+#  'objtype': 'SKY',
+#  'catalogid': 27021603187129892,
+#  'sdss_id': 23326,
+#  'specobjid': 3122187127310111744,
