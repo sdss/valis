@@ -24,7 +24,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 
 import valis
-from valis.routes import access, auth, envs, files, info, maskbits, mocs, target, query
+from valis.routes import access, auth, envs, files, info, maskbits, mocs, target, query, lists
 from valis.routes.auth import set_auth
 from valis.routes.base import release
 from valis.settings import Settings, read_valis_config
@@ -79,6 +79,10 @@ tags_metadata = [
         "name": "query",
         "description": "Query the SDSS databases",
     },
+    {
+        "name": "lists",
+        "description": "Return lists for query purposes",
+    },
 ]
 
 
@@ -123,6 +127,7 @@ app.include_router(target.router, prefix='/target', tags=['target'])
 app.include_router(maskbits.router, prefix='/maskbits', tags=['maskbits'])
 app.include_router(mocs.router, prefix='/mocs', tags=['mocs'])
 app.include_router(query.router, prefix='/query', tags=['query'])
+app.include_router(lists.router, prefix='/lists', tags=['lists'])
 
 
 def hack_auth(dd):
