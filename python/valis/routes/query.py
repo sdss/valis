@@ -85,7 +85,7 @@ class QueryRoutes(Base):
         """ Perform a cone search """
         return list(cone_search(ra, dec, radius, units=units))
 
-    @router.get('/carton_program', summary='Search for all SDSS targets within a carton or program',
+    @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def carton_program(self,
                              name: str = Query(..., description='Carton or program name', example='manual_mwm_tess_ob'),
