@@ -132,9 +132,7 @@ def carton_program_list(name_type: str) -> peewee.ModelSelect:
     list
         list of either all cartons in programs sorted in alphabetical order
     """
-    model = targetdb.Carton.select(peewee.fn.DISTINCT(getattr(targetdb.Carton, name_type)))
-    model_list = [getattr(m, name_type) for m in model]
-    model_list.sort()
+    model_list = sorted(targetdb.Carton.select(getattr(targetdb.Carton, name_type)).distinct().scalars())
     return model_list
 
 
