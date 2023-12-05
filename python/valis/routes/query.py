@@ -85,11 +85,19 @@ class QueryRoutes(Base):
         """ Perform a cone search """
         return list(cone_search(ra, dec, radius, units=units))
 
-    @router.get('/carton_program_all', summary='Return a list of all carton or programs',
+    @router.get('/list/cartons', summary='Return a list of all cartons',
                 response_model=list, dependencies=[Depends(get_pw_db)])
-    async def carton_program_all(self,
-                                 name_type: str = Query('carton', enum=['carton', 'program'],
-                                                        description='Specify search on carton or program', example='carton')):
+    async def cartons(self,
+                      name_type: str = Query('carton', enum=['carton'],
+                                             description='Specify search on carton or program', example='carton')):
+        """ Return a list of all carton or programs """
+        return carton_program_list(name_type)
+
+    @router.get('/list/programs', summary='Return a list of all programs',
+                response_model=list, dependencies=[Depends(get_pw_db)])
+    async def programs(self,
+                       name_type: str = Query('program', enum=['program'],
+                                              description='Specify search on carton or program', example='program')):
         """ Return a list of all carton or programs """
         return carton_program_list(name_type)
 
