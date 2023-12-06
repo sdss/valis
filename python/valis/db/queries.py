@@ -10,6 +10,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import vizdb
 from sdssdb.peewee.sdss5db import targetdb
+import itertools
 
 
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.ModelSelect:
@@ -134,6 +135,29 @@ def carton_program_list(name_type: str) -> peewee.ModelSelect:
     """
     model_list = sorted(targetdb.Carton.select(getattr(targetdb.Carton, name_type)).distinct().scalars())
     return model_list
+
+
+def carton_program_map(key: str = 'program') -> dict:
+    """
+    Return a mapping between programs and cartons
+
+    Parameters
+    ----------
+    key: str
+        what to do map grouping on
+
+    Returns
+    -------
+    mapping: dict
+        mapping between programs and cartons
+    """
+    model = targetdb.Carton.select(targetdb.Carton.carton, targetdb.Carton.program).dicts()
+
+    mapping = {}
+    kk = 'program' if key == 'carton' else 'carton'
+    for k, g in itertools.groupby(sorted(model, key=lambda x: x[key]), key=lambda x: x[key]):
+        mapping[k] = set(i[kk] for i in g)
+    return mapping
 
 
 def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
