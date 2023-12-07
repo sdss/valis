@@ -134,8 +134,8 @@ class Target(Base):
         return res.to_pandas().to_dict('records')
 
     @router.get('/ids/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=TargetMeta,
+                dependencies=[Depends(get_pw_db)], response_model=Union[TargetMeta, dict],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
-        print(self.release)
+        """ Return target metadata for a given sdss_id """
         return get_target_meta(sdss_id, self.release) or {}

@@ -8,8 +8,6 @@ from typing import Optional
 from pydantic import ConfigDict, BaseModel, Field
 
 
-
-
 class OrmBase(BaseModel):
     """ Base pydantic model for sqlalchemy ORMs """
     model_config = ConfigDict(from_attributes=True)

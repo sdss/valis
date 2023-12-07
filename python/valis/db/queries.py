@@ -4,16 +4,19 @@
 
 # all resuable queries go here
 
-from typing import Union
-import peewee
-import astropy.units as u
-from astropy.coordinates import SkyCoord
-from sdssdb.peewee.sdss5db import vizdb, targetdb, boss_drp as boss, apogee_drpdb as apo
-
-from valis.utils.versions import get_software_tag
-from valis.utils.paths import build_boss_path
-from valis.io.spectra import extract_data
 import itertools
+from typing import Union
+
+import astropy.units as u
+import peewee
+from astropy.coordinates import SkyCoord
+from sdssdb.peewee.sdss5db import apogee_drpdb as apo
+from sdssdb.peewee.sdss5db import boss_drp as boss
+from sdssdb.peewee.sdss5db import targetdb, vizdb
+
+from valis.io.spectra import extract_data
+from valis.utils.paths import build_boss_path
+from valis.utils.versions import get_software_tag
 
 
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.ModelSelect:
@@ -54,6 +57,22 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.Mo
 
 
 def get_pipes(sdss_id: int) -> peewee.ModelSelect:
+    """ Get the pipelines for an sdss_id
+
+    Get the table of boolean flags indicating which
+    pipelines the sdss_id is present in.  Provides
+    three flags for boss, apogee, astra pipelines.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
     return vizdb.SDSSidToPipes.select().\
         where(vizdb.SDSSidToPipes.sdss_id == sdss_id).\
         distinct(vizdb.SDSSidToPipes.sdss_id)
@@ -180,8 +199,7 @@ def get_targets_by_catalog_id(catalog_id: int) -> peewee.ModelSelect:
 
 
 def carton_program_list(name_type: str) -> peewee.ModelSelect:
-    """
-    Return a list of either all cartons or programs from targetdb
+    """ Return a list of either all cartons or programs from targetdb
 
     Parameters
     ----------
@@ -193,13 +211,11 @@ def carton_program_list(name_type: str) -> peewee.ModelSelect:
     list
         list of either all cartons in programs sorted in alphabetical order
     """
-    model_list = sorted(targetdb.Carton.select(getattr(targetdb.Carton, name_type)).distinct().scalars())
-    return model_list
+    return sorted(targetdb.Carton.select(getattr(targetdb.Carton, name_type)).distinct().scalars())
 
 
 def carton_program_map(key: str = 'program') -> dict:
-    """
-    Return a mapping between programs and cartons
+    """ Return a mapping between programs and cartons
 
     Parameters
     ----------
@@ -221,8 +237,7 @@ def carton_program_map(key: str = 'program') -> dict:
 
 
 def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
-    """
-    Perform a search on either carton or program
+    """ Perform a search on either carton or program
 
     Parameters
     ----------
@@ -242,9 +257,9 @@ def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
                             .join(targetdb.CartonToTarget)\
                             .join(targetdb.Carton)\
                             .where(getattr(targetdb.Carton, name_type) == name)
-    model_stack = vizdb.SDSSidStacked.select()\
-                                     .join(model, on=(model.c.sdss_id == vizdb.SDSSidStacked.sdss_id))
-    return model_stack
+    return vizdb.SDSSidStacked.select().join(
+        model, on=(model.c.sdss_id == vizdb.SDSSidStacked.sdss_id)
+    )
 
 
 # test sdss ids
@@ -256,40 +271,25 @@ def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
 # 57832526 - all true, in both astra snow_white, apogee_net (source_pk=912174,star_pk=2954029)
 
 
-# def get_target_info(sdss_id: int, release: str, fields: list = None):
-
-#     pipes = get_pipes(sdss_id).dicts().first()
-#     if pipes['in_boss']:
-#         query = get_boss_target(sdss_id, release, fields=fields)
-
-#     if pipes['in_astra']:
-#         pass
-
-#     if pipes['in_apogee']:
-#         pass
-
-#     return query
-
-
 def get_boss_target(sdss_id: int, release: str, fields: list = None,
                     primary: bool = True) -> peewee.ModelSelect:
-    """_summary_
-
-    _extended_summary_
+    """ Get BHM target metadata for an sdss_id
 
     Parameters
     ----------
     sdss_id : int
-        _description_
+        the input sdss_id
     release : str
-        _description_
+        the data release to look up
     fields : list, optional
-        _description_, by default None
+        a list of fields to retrieve from the database, by default None
+    primary : bool, default True
+        Flag to only use the primary observation
 
     Returns
     -------
     peewee.ModelSelect
-        _description_
+        the output query
     """
     # get the relevant software tag
     run2d = get_software_tag(release, 'run2d')
@@ -312,6 +312,7 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
 
 
 def get_apogee_target(sdss_id: int, release: str, fields: list = None):
+    """ temporary placeholder for apogee """
     # get the relevant software tag
     apred = get_software_tag(release, 'apred_vers')
 
@@ -337,6 +338,7 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None):
 
 
 def get_astra_target(sdss_id: int, release: str):
+    """ temporary placeholder for astra """
     apred = get_software_tag(release, 'apred_vers')
 
     query = apo.Star.raw('select a.*, s.* from astra_050.source as s join '
@@ -345,12 +347,29 @@ def get_astra_target(sdss_id: int, release: str):
     return query
 
 
-def get_target_meta(sdss_id: int, release: str):
+def get_target_meta(sdss_id: int, release: str) -> dict:
+    """ Get the target metadata for an sdss_id
+
+    Get all of the pipeline metadata for a given target sdss_id.
+    Combines metadata across boss, apogee, and astra pipelines.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the data release to look up
+
+    Returns
+    -------
+    dict
+        the output data
+    """
+    # get the pipeline flags
     pipes = get_pipes(sdss_id)
     res = pipes.dicts().first()
 
-    pipes = get_pipes(sdss_id).cte('pipes')
-
+    # get the boss metadata
     if res['in_boss']:
         bq = get_boss_target(sdss_id, release).cte('boss')
 
@@ -360,15 +379,21 @@ def get_target_meta(sdss_id: int, release: str):
     # if res['in_astra']:
     #     astra = get_astra_target(sdss_id, release).cte('astra')
 
+    # create a pipes cte
+    pipes = get_pipes(sdss_id).cte('pipes')
+
+    # construct the query
     query = pipes.select(pipes.star, bq.star).\
         join(bq, on=(pipes.c.sdss_id == bq.c.sdss_id)).\
         with_cte(pipes, bq)
 
+    # execute the query
     res = list(query.execute(boss.BossSpectrum._meta.database))
     return res[0] if res else res
 
 
 def get_a_spectrum(sdss_id: int, product: str, release: str):
+    """ temporary POC to get a spectrum """
     # missing - query vizdb table to get sdss_id pipelines info
     # missing - query to get apogee, astra target info
     query = get_boss_target(sdss_id, release)
