@@ -9,6 +9,8 @@ import peewee
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import vizdb
+from sdssdb.peewee.sdss5db import targetdb
+import itertools
 
 
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.ModelSelect:
@@ -166,3 +168,71 @@ def get_targets_by_catalog_id(catalog_id: int) -> peewee.ModelSelect:
                               .join(vizdb.SDSSidFlat, on=(vizdb.SDSSidStacked.sdss_id == 
                                                           vizdb.SDSSidFlat.sdss_id))\
                               .where(vizdb.SDSSidFlat.catalogid == catalog_id)
+
+
+def carton_program_list(name_type: str) -> peewee.ModelSelect:
+    """
+    Return a list of either all cartons or programs from targetdb
+
+    Parameters
+    ----------
+    name_type: str
+        Which type you are searching on, either 'carton' or 'program'
+
+    Returns
+    -------
+    list
+        list of either all cartons in programs sorted in alphabetical order
+    """
+    model_list = sorted(targetdb.Carton.select(getattr(targetdb.Carton, name_type)).distinct().scalars())
+    return model_list
+
+
+def carton_program_map(key: str = 'program') -> dict:
+    """
+    Return a mapping between programs and cartons
+
+    Parameters
+    ----------
+    key: str
+        what to do map grouping on
+
+    Returns
+    -------
+    mapping: dict
+        mapping between programs and cartons
+    """
+    model = targetdb.Carton.select(targetdb.Carton.carton, targetdb.Carton.program).dicts()
+
+    mapping = {}
+    kk = 'program' if key == 'carton' else 'carton'
+    for k, g in itertools.groupby(sorted(model, key=lambda x: x[key]), key=lambda x: x[key]):
+        mapping[k] = set(i[kk] for i in g)
+    return mapping
+
+
+def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
+    """
+    Perform a search on either carton or program
+
+    Parameters
+    ----------
+    name: str
+        Either the carton name or the program name
+    name_type: str
+        Which type you are searching on, either 'carton' or 'program'
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    model = vizdb.SDSSidFlat.select(peewee.fn.DISTINCT(vizdb.SDSSidFlat.sdss_id))\
+                            .join(targetdb.Target,
+                                  on=(targetdb.Target.catalogid == vizdb.SDSSidFlat.catalogid))\
+                            .join(targetdb.CartonToTarget)\
+                            .join(targetdb.Carton)\
+                            .where(getattr(targetdb.Carton, name_type) == name)
+    model_stack = vizdb.SDSSidStacked.select()\
+                                     .join(model, on=(model.c.sdss_id == vizdb.SDSSidStacked.sdss_id))
+    return model_stack
