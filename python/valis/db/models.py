@@ -4,19 +4,10 @@
 
 # all resuable Pydantic models of the ORMs go here
 
-import peewee
-from typing import Any, Optional
+from typing import Optional
 from pydantic import ConfigDict, BaseModel, Field
-#from pydantic.utils import GetterDict
 
 
-# class PeeweeGetterDict(GetterDict):
-#     """ Class to convert peewee.ModelSelect into a list """
-#     def get(self, key: Any, default: Any = None):
-#         res = getattr(self._obj, key, default)
-#         if isinstance(res, peewee.ModelSelect):
-#             return list(res)
-#         return res
 
 
 class OrmBase(BaseModel):
@@ -26,13 +17,11 @@ class OrmBase(BaseModel):
 
 class PeeweeBase(OrmBase):
     """ Base pydantic model for peewee ORMs """
-    # TODO[pydantic]: The following keys were removed: `getter_dict`.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
-    model_config = ConfigDict(from_attributes=True) #, getter_dict=PeeweeGetterDict)
+    model_config = ConfigDict(from_attributes=True)
 
 
 # class SDSSidStackedBaseA(OrmBase):
-#     """ Pydantic model for the SQLA vizdb.SDSSidStacked ORM """
+#     """ Pydantic response model for the SQLA vizdb.SDSSidStacked ORM """
 
 #     sdss_id: int = Field(..., description='the SDSS identifier')
 #     ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
@@ -43,18 +32,18 @@ class PeeweeBase(OrmBase):
 
 
 class SDSSidStackedBase(PeeweeBase):
-    """ Pydantic model for the Peewee vizdb.SDSSidStacked ORM """
+    """ Pydantic response model for the Peewee vizdb.SDSSidStacked ORM """
 
-    sdss_id: int = Field(..., description='the SDSS identifier')
-    ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
-    dec_sdss_id: float = Field(..., description='Declination of the most recent cross-match catalogid')
+    sdss_id: Optional[int] = Field(..., description='the SDSS identifier')
+    ra_sdss_id: Optional[float] = Field(..., description='Right Ascension of the most recent cross-match catalogid')
+    dec_sdss_id: Optional[float] = Field(..., description='Declination of the most recent cross-match catalogid')
     catalogid21: Optional[int] = Field(None, description='the version 21 catalog id')
     catalogid25: Optional[int] = Field(None, description='the version 25 catalog id')
     catalogid31: Optional[int] = Field(None, description='the version 31 catalog id')
 
 
 class SDSSidFlatBase(PeeweeBase):
-    """ Pydantic model for the Peewee vizdb.SDSSidFlat ORM """
+    """ Pydantic response model for the Peewee vizdb.SDSSidFlat ORM """
 
     sdss_id: int = Field(..., description='the SDSS identifier')
     ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
@@ -67,7 +56,7 @@ class SDSSidFlatBase(PeeweeBase):
 
 
 class SDSSidPipesBase(PeeweeBase):
-    """ Pydantic model for the Peewee vizdb.SDSSidToPipes ORM """
+    """ Pydantic response model for the Peewee vizdb.SDSSidToPipes ORM """
 
     sdss_id: int = Field(..., description='the SDSS identifier')
     in_boss: bool = Field(..., description='Flag if target is in the BHM reductions', examples=[False])
@@ -76,6 +65,7 @@ class SDSSidPipesBase(PeeweeBase):
 
 
 class BossSpectrum(PeeweeBase):
+    """ Pydantic response model for the BHM target metadata """
     sdss_id: int = None
     field: int = None
     mjd: int = None
@@ -89,25 +79,5 @@ class BossSpectrum(PeeweeBase):
 
 
 class TargetMeta(SDSSidPipesBase, BossSpectrum):
+    """ Pydantic response model for target metadata """
     pass
-
-
-# field': 101077,
-#  'mjd': 59845,
-#  'mjd_final': 59845.207,
-#  'obs': 'APO',
-#  'run2d': 'v6_1_1',
-#  'run1d': 'v6_1_1',
-#  'nexp': 4,
-#  'exptime': 3600.0,
-#  'target_index': 242,
-#  'spec_file': 'spec-101077-59845-27021603187129892.fits',
-#  'programname': 'ops_sky',
-#  'survey': 'OPS',
-#  'cadence': ' ',
-#  'firstcarton': 'ops_sky_boss_good',
-#  'sdss5_target_flags': <memory at 0x124360a00>,
-#  'objtype': 'SKY',
-#  'catalogid': 27021603187129892,
-#  'sdss_id': 23326,
-#  'specobjid': 3122187127310111744,
