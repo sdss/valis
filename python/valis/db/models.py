@@ -88,6 +88,10 @@ class BossSpectrum(PeeweeBase):
     specobjid: int = None
 
 
+class TargetMeta(SDSSidPipesBase, BossSpectrum):
+    pass
+
+
 # field': 101077,
 #  'mjd': 59845,
 #  'mjd_final': 59845.207,

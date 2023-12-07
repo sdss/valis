@@ -12,9 +12,9 @@ from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
-from valis.db.queries import get_boss_target
+from valis.db.queries import get_target_meta
 from valis.db.db import get_pw_db
-from valis.db.models import BossSpectrum
+from valis.db.models import TargetMeta
 
 router = APIRouter()
 
@@ -133,8 +133,9 @@ class Target(Base):
         res = Simbad.query_region(s, radius=radius * u.Unit(runit))
         return res.to_pandas().to_dict('records')
 
-    @router.get('/id/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=BossSpectrum,
+    @router.get('/ids/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=TargetMeta,
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
-        return get_boss_target(sdss_id, self.release).dicts().first() or {}
+        print(self.release)
+        return get_target_meta(sdss_id, self.release) or {}

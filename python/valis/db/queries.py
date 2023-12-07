@@ -8,7 +8,7 @@ from typing import Union
 import peewee
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from sdssdb.peewee.sdss5db import vizdb, boss_drp as boss
+from sdssdb.peewee.sdss5db import vizdb, boss_drp as boss, apogee_drpdb as apo
 
 from valis.utils.versions import get_software_tag
 from valis.utils.paths import build_boss_path
@@ -191,13 +191,61 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
     return query
 
 
-# def get_target():
-#     get_pipes()
-#     get_boss_target()
-#     get_boss_target()
-#     get_boss_target()
-#     #In [94]: q.select(q.star, q2.star).join(q2, on=(q.c.sdss_id==q2.c.sdss_id)).with_cte(q,q2).execute()
-#     return answer
+def get_apogee_target(sdss_id: int, release: str, fields: list = None):
+    # get the relevant software tag
+    apred = get_software_tag(release, 'apred_vers')
+
+    # check fields
+    fields = fields or []
+    if fields and isinstance(fields[0], str):
+        fields = (getattr(apo.Star, i) for i in fields)
+
+    # temporary
+    if sdss_id == 3350466:
+        pk = 2694289
+    elif sdss_id == 54392544:
+        pk = 2913357
+
+    # select a.* from apogee_drp.star as a join astra_050.apogee_visit_spectrum as v on a.pk=v.star_pk
+    # join astra_050.source as s on s.pk=v.source_pk where s.sdss_id=54392544;
+
+    query = apo.Star.select(*fields).\
+        where(apo.Star.pk == pk,
+              apo.Star.apred_vers == apred)
+
+    return query
+
+
+def get_astra_target(sdss_id: int, release: str):
+    apred = get_software_tag(release, 'apred_vers')
+
+    query = apo.Star.raw('select a.*, s.* from astra_050.source as s join '
+                         'astra_050.apogee_visit_spectrum as a on a.source_pk=s.pk '
+                         'where s.sdss_id = %s and a.apred = %s', sdss_id, apred)
+    return query
+
+
+def get_target_meta(sdss_id: int, release: str):
+    pipes = get_pipes(sdss_id)
+    res = pipes.dicts().first()
+
+    pipes = get_pipes(sdss_id).cte('pipes')
+
+    if res['in_boss']:
+        bq = get_boss_target(sdss_id, release).cte('boss')
+
+    # if res['in_apogee']:
+    #     # apogee = get_apogee_target(sdss_id, release).cte('apogee')
+
+    # if res['in_astra']:
+    #     astra = get_astra_target(sdss_id, release).cte('astra')
+
+    query = pipes.select(pipes.star, bq.star).\
+        join(bq, on=(pipes.c.sdss_id == bq.c.sdss_id)).\
+        with_cte(pipes, bq)
+
+    res = list(query.execute(boss.BossSpectrum._meta.database))
+    return res[0] if res else res
 
 
 def get_a_spectrum(sdss_id: int, product: str, release: str):
