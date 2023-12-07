@@ -12,7 +12,8 @@ from valis.routes.base import Base
 from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
-                              carton_program_list, carton_program_map)
+                              carton_program_list, carton_program_map, 
+                              get_targets_by_sdss_id, get_targets_by_catalog_id)
 
 
 class SearchCoordUnits(str, Enum):
@@ -86,6 +87,19 @@ class QueryRoutes(Base):
         """ Perform a cone search """
         return list(cone_search(ra, dec, radius, units=units))
 
+    @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
+                response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
+    async def sdss_id_search(self, sdss_id: Union[int, str] = Query(..., description='Value of sdss_id', example=47510284)):
+        """ Perform an sdss_id search. Assumes a maximum of one target per sdss_id. Empty object returned when no match is found."""
+        targets = get_targets_by_sdss_id(int(sdss_id))
+        return targets[0] if len(targets) > 0 else {}
+
+    @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
+                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+    async def catalog_id_search(self, catalog_id: Union[int, str] = Query(..., description='Value of catalog_id', example=7613823349)):
+        """ Perform a catalog_id search """
+        return list(get_targets_by_catalog_id(int(catalog_id)))
+
     @router.get('/list/cartons', summary='Return a list of all cartons',
                 response_model=list, dependencies=[Depends(get_pw_db)])
     async def cartons(self,
@@ -116,3 +130,4 @@ class QueryRoutes(Base):
                                                     description='Specify search on carton or program', example='carton')):
         """ Perform a search on carton or program """
         return list(carton_program_search(name, name_type))
+
