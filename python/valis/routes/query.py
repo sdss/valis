@@ -86,14 +86,15 @@ class QueryRoutes(Base):
         return list(cone_search(ra, dec, radius, units=units))
 
 
-    @router.get('/sdssid', summary='Perform a search of SDSS targets based on the sdss_id',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+    @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
+                response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
     async def sdss_id_search(self, sdss_id: Union[int, str] = Query(..., description='Value of sdss_id', example=47510284)):
-        """ Perform an sdss_id search """
-        return list(get_targets_by_sdss_id(int(sdss_id)))
+        """ Perform an sdss_id search. Assumes a maximum of one target per sdss_id. Empty object returned when no match is found."""
+        targets = get_targets_by_sdss_id(int(sdss_id))
+        return targets[0] if len(targets) > 0 else {}
 
 
-    @router.get('/catalogid', summary='Perform a search of SDSS targets based on the catalog_id',
+    @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def catalog_id_search(self, catalog_id: Union[int, str] = Query(..., description='Value of catalog_id', example=7613823349)):
         """ Perform a catalog_id search """
