@@ -8,11 +8,12 @@ from typing import Union
 import peewee
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from sdssdb.peewee.sdss5db import vizdb, boss_drp as boss, apogee_drpdb as apo
+from sdssdb.peewee.sdss5db import vizdb, targetdb, boss_drp as boss, apogee_drpdb as apo
 
 from valis.utils.versions import get_software_tag
 from valis.utils.paths import build_boss_path
 from valis.io.spectra import extract_data
+import itertools
 
 
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.ModelSelect:
@@ -125,6 +126,125 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
         where(vizdb.SDSSidStacked.cone_search(ra, dec, radius,
                                               ra_col='ra_sdss_id',
                                               dec_col='dec_sdss_id'))
+
+
+def get_targets_by_sdss_id(sdss_id: int) -> peewee.ModelSelect:
+    """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on the sdss_id.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.SDSSidStacked table. We return the peewee ModelSelect
+    directly here so it can be easily combined with other queries,
+    if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id == sdss_id)
+
+
+def get_targets_by_catalog_id(catalog_id: int) -> peewee.ModelSelect:
+    """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on the catalog_id.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.SDSSidStacked table. We return the peewee ModelSelect
+    directly here so it can be easily combined with other queries,
+    if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+    catalog_id : int
+        the catalog_id
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    return vizdb.SDSSidStacked.select()\
+                              .join(vizdb.SDSSidFlat, on=(vizdb.SDSSidStacked.sdss_id ==
+                                                          vizdb.SDSSidFlat.sdss_id))\
+                              .where(vizdb.SDSSidFlat.catalogid == catalog_id)
+
+
+def carton_program_list(name_type: str) -> peewee.ModelSelect:
+    """
+    Return a list of either all cartons or programs from targetdb
+
+    Parameters
+    ----------
+    name_type: str
+        Which type you are searching on, either 'carton' or 'program'
+
+    Returns
+    -------
+    list
+        list of either all cartons in programs sorted in alphabetical order
+    """
+    model_list = sorted(targetdb.Carton.select(getattr(targetdb.Carton, name_type)).distinct().scalars())
+    return model_list
+
+
+def carton_program_map(key: str = 'program') -> dict:
+    """
+    Return a mapping between programs and cartons
+
+    Parameters
+    ----------
+    key: str
+        what to do map grouping on
+
+    Returns
+    -------
+    mapping: dict
+        mapping between programs and cartons
+    """
+    model = targetdb.Carton.select(targetdb.Carton.carton, targetdb.Carton.program).dicts()
+
+    mapping = {}
+    kk = 'program' if key == 'carton' else 'carton'
+    for k, g in itertools.groupby(sorted(model, key=lambda x: x[key]), key=lambda x: x[key]):
+        mapping[k] = set(i[kk] for i in g)
+    return mapping
+
+
+def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
+    """
+    Perform a search on either carton or program
+
+    Parameters
+    ----------
+    name: str
+        Either the carton name or the program name
+    name_type: str
+        Which type you are searching on, either 'carton' or 'program'
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    model = vizdb.SDSSidFlat.select(peewee.fn.DISTINCT(vizdb.SDSSidFlat.sdss_id))\
+                            .join(targetdb.Target,
+                                  on=(targetdb.Target.catalogid == vizdb.SDSSidFlat.catalogid))\
+                            .join(targetdb.CartonToTarget)\
+                            .join(targetdb.Carton)\
+                            .where(getattr(targetdb.Carton, name_type) == name)
+    model_stack = vizdb.SDSSidStacked.select()\
+                                     .join(model, on=(model.c.sdss_id == vizdb.SDSSidStacked.sdss_id))
+    return model_stack
 
 
 # test sdss ids
@@ -258,5 +378,3 @@ def get_a_spectrum(sdss_id: int, product: str, release: str):
             yield extract_data(product, filepath)
         except FileNotFoundError:
             yield None
-
-
