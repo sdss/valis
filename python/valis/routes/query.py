@@ -11,7 +11,8 @@ from pydantic import BaseModel, Field
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
-from valis.db.queries import cone_search, append_pipes
+from valis.db.queries import (cone_search, append_pipes, carton_program_search,
+                              carton_program_list, carton_program_map)
 
 
 class SearchCoordUnits(str, Enum):
@@ -85,3 +86,33 @@ class QueryRoutes(Base):
         """ Perform a cone search """
         return list(cone_search(ra, dec, radius, units=units))
 
+    @router.get('/list/cartons', summary='Return a list of all cartons',
+                response_model=list, dependencies=[Depends(get_pw_db)])
+    async def cartons(self,
+                      name_type: str = Query('carton', enum=['carton'],
+                                             description='Specify search on carton or program', example='carton')):
+        """ Return a list of all carton or programs """
+        return carton_program_list(name_type)
+
+    @router.get('/list/programs', summary='Return a list of all programs',
+                response_model=list, dependencies=[Depends(get_pw_db)])
+    async def programs(self,
+                       name_type: str = Query('program', enum=['program'],
+                                              description='Specify search on carton or program', example='program')):
+        """ Return a list of all carton or programs """
+        return carton_program_list(name_type)
+
+    @router.get('/list/program-map', summary='Return a mapping of cartons in all programs',
+                response_model=dict, dependencies=[Depends(get_pw_db)])
+    async def program_map(self):
+        """ Return a mapping of cartons in all programs """
+        return carton_program_map()
+
+    @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
+                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+    async def carton_program(self,
+                             name: str = Query(..., description='Carton or program name', example='manual_mwm_tess_ob'),
+                             name_type: str = Query('carton', enum=['carton', 'program'],
+                                                    description='Specify search on carton or program', example='carton')):
+        """ Perform a search on carton or program """
+        return list(carton_program_search(name, name_type))
