@@ -4,7 +4,7 @@
 from __future__ import print_function, division, absolute_import
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, ORJSONResponse, StreamingResponse
 from fastapi_restful.cbv import cbv
 import numpy as np
 from pydantic import BaseModel, BeforeValidator
@@ -58,8 +58,7 @@ async def get_ext(filename: str = Depends(get_filepath), ext: Ext = 0):
         data = hdu[ext].data
         # convert binary table data into a dictionary
         if not hdu[ext].is_image:
-            t = Table(hdu[ext].data)
-            data = {c: t[c].data for c in t.columns}
+            data = dict(zip(hdu[ext].data.columns.names, zip(*hdu[ext].data)))
         yield data, hdu[ext].header
 
 
@@ -130,17 +129,16 @@ async def get_stream(filename: str = Depends(get_filepath), ext: Ext = 0,
 
 
 def npdefault(obj):
-    """ Custom default function for orjson numpy array serialization """
+    """ Custom default function for orjson numpy array serialization
+
+    orjson < 3.8 does not support np.int16. Support added
+    in >3.8, but still does not support string arrays
+
+    """
     if isinstance(obj, np.ndarray):
         if obj.dtype.type == np.str_:
             # for numpy string arrays
             return obj.tolist()
-        elif obj.dtype.type == np.int16:
-            # for numpy int16 arrays
-            return obj.astype(np.int32)
-        elif obj.dtype.type == np.uint16:
-            # for numpy uint16 arrays
-            return obj.astype(np.uint32)
     elif isinstance(obj, bytes):
         return obj.decode()
     raise TypeError
@@ -176,7 +174,7 @@ def bytes_to_numpy(serialized_arr: bytes, sep: str = '|', record=False) -> np.ar
     return np.frombuffer(arr_str, dtype=dd)
 
 
-class ORJSONResponseCustom(JSONResponse):
+class ORJSONResponseCustom(ORJSONResponse):
     """ Custom ORJSONResponse that allows passing options to orjson library """
     media_type = "application/json"
     option = None
