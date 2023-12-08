@@ -4,6 +4,14 @@
 Change Log
 ==========
 
+0.1.1 (unreleased)
+------------------
+* Adds endpoint for getting a BHM spectrum (POC)
+* Adds endpoint for getting target pipeline metadata for sdss_id
+* Adds endpoints for target search by sdss_id and catalogid
+* Adds endpoints for listing cartons and programs
+* Adds endpoints for target search by carton and program
+
 0.1.0 (10-24-2023)
 ------------------
 * Initial tag of software
