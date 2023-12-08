@@ -49,11 +49,11 @@ class DistModel(BaseModel):
 
 class SpectrumModel(BaseModel):
     """ Response model for a spectrum """
-    header: dict = {}
-    flux: list = []
-    wavelength: list = []
-    error: list = []
-    mask: list = []
+    header: dict = Field({}, description='The primary header')
+    flux: list = Field([], description='The spectrum flux array')
+    wavelength: list = Field([], description='The spectrum wavelength array')
+    error: list = Field([], description='The spectrum uncertainty array')
+    mask: list = Field([], description='The spectrum mask array')
 
     @model_serializer(when_used='json-unless-none')
     def spec_mod(self):
