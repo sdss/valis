@@ -63,7 +63,7 @@ class SDSSidPipesBase(PeeweeBase):
 
 
 class BossSpectrum(PeeweeBase):
-    """ Pydantic response model for the BHM target metadata """
+    """ Pydantic response model for the BHM pipeline metadata """
     sdss_id: int = None
     field: int = None
     mjd: int = None
@@ -77,5 +77,5 @@ class BossSpectrum(PeeweeBase):
 
 
 class TargetMeta(SDSSidPipesBase, BossSpectrum):
-    """ Pydantic response model for target metadata """
+    """ Pydantic response model for target pipeline metadata """
     pass

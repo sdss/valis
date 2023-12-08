@@ -392,7 +392,7 @@ def get_target_meta(sdss_id: int, release: str) -> dict:
     return res[0] if res else res
 
 
-def get_a_spectrum(sdss_id: int, product: str, release: str):
+def get_a_spectrum(sdss_id: int, product: str, release: str) -> dict:
     """ temporary POC to get a spectrum """
     # missing - query vizdb table to get sdss_id pipelines info
     # missing - query to get apogee, astra target info

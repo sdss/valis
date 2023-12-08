@@ -1,0 +1,12 @@
+[
+    {
+        "product": "specLite",
+        "aliases": ["specFull", "spec-lite", "spec"],
+        "parameters": {
+            "flux": {"extension": 1, "type": "table", "column": "FLUX", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
+            "wavelength": {"extension": 1, "type": "table", "column": "LOGLAM", "units": "Angstrom"},
+            "error": {"extension": 1, "type": "table", "column": "IVAR"},
+            "mask": {"extension": 1, "type": "table", "column": "OR_MASK"}
+        }
+    }
+]

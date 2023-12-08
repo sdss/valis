@@ -3,8 +3,9 @@ from __future__ import print_function, division, absolute_import
 import math
 import re
 import httpx
-from typing import Tuple, List, Union, Optional
-from pydantic import field_validator, model_validator, BaseModel, Field
+import orjson
+from typing import Tuple, List, Union, Optional, Annotated
+from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
 from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
 import astropy.units as u
@@ -12,7 +13,7 @@ from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
-from valis.db.queries import get_target_meta
+from valis.db.queries import get_target_meta, get_a_spectrum
 from valis.db.db import get_pw_db
 from valis.db.models import TargetMeta
 
@@ -44,6 +45,23 @@ class DistModel(BaseModel):
 
     def to_quantity(self):
         return self.value * u.Unit(self.unit)
+
+
+class SpectrumModel(BaseModel):
+    """ Response model for a spectrum """
+    header: dict = {}
+    flux: list = []
+    wavelength: list = []
+    error: list = []
+    mask: list = []
+
+    @model_serializer(when_used='json-unless-none')
+    def spec_mod(self):
+        return {'header': orjson.dumps(self.header),
+                'flux': orjson.dumps(self.flux, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+                'wavelength': orjson.dumps(self.wavelength, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+                'error': orjson.dumps(self.error, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+                'mask': orjson.dumps(self.mask, option=orjson.OPT_SERIALIZE_NUMPY).decode()}
 
 
 class SimbadRow(BaseModel):
@@ -133,9 +151,16 @@ class Target(Base):
         res = Simbad.query_region(s, radius=radius * u.Unit(runit))
         return res.to_pandas().to_dict('records')
 
-    @router.get('/ids/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
+    @router.get('/ids/{sdss_id}', summary='Retrieve pipeline metadata for a target sdss_id',
                 dependencies=[Depends(get_pw_db)], response_model=Union[TargetMeta, dict],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return target metadata for a given sdss_id """
         return get_target_meta(sdss_id, self.release) or {}
+
+    @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=List[SpectrumModel])
+    async def get_spectrum(self, sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
+                           product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
+                           ):
+        return get_a_spectrum(sdss_id, product, self.release)
