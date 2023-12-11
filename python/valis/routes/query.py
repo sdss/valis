@@ -13,7 +13,8 @@ from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map, 
-                              get_targets_by_sdss_id, get_targets_by_catalog_id)
+                              get_targets_by_sdss_id, get_targets_by_catalog_id,
+                              get_paged_sdss_id_list)
 
 
 class SearchCoordUnits(str, Enum):
@@ -99,6 +100,16 @@ class QueryRoutes(Base):
     async def catalog_id_search(self, catalog_id: Union[int, str] = Query(..., description='Value of catalog_id', example=7613823349)):
         """ Perform a catalog_id search """
         return list(get_targets_by_catalog_id(int(catalog_id)))
+
+    @router.get('/list/sdssid', summary='Return a paged list of sdss_id values',
+                response_model=List[int], dependencies=[Depends(get_pw_db)])
+    async def sdss_id_list(self, search_string: str = Query(default="", description='String that matches the starting digits of the returned sdss_id values', example=""),
+                                 page_number: int = Query(..., description='Page number of the returned items', gt=0, example=1),
+                                 items_per_page: int = Query(..., description='Number of items displayed in a page', gt=0, example=10)):
+        """ Return an ordered and paged list of sdss_id values."""
+        sdss_ids = get_paged_sdss_id_list(search_string, page_number, items_per_page)
+        return list(sdss_ids.scalars())
+        
 
     @router.get('/list/cartons', summary='Return a list of all cartons',
                 response_model=list, dependencies=[Depends(get_pw_db)])

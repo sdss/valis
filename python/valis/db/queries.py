@@ -119,6 +119,36 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
                                               dec_col='dec_sdss_id'))
 
 
+def get_paged_sdss_id_list(search_string: str = "", page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
+    """ Return a paged list of sdss_id values.
+
+    Return paginated and ordered sdss_id column values from the 
+    vizdb.SDSSidStacked table using the peewee ORM.
+    We return the peewee ModelSelect
+    directly here so it can be easily combined with other queries, 
+    if needed. 
+
+    Parameters
+    ----------
+    search_string : str
+        String that matches the starting digits of the returned sdss_id values. If empty, no matching is applied.
+    page_number : int
+        Page number of the returned sdss_id values.
+    items_per_page : int
+        Number of sdss_id values displayed in the page.
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    where_condition = vizdb.SDSSidStacked.sdss_id.cast('TEXT') ** (search_string + "%") if search_string else True
+    return vizdb.SDSSidStacked.select(vizdb.SDSSidStacked.sdss_id)\
+                              .where(where_condition)\
+                              .order_by(vizdb.SDSSidStacked.sdss_id)\
+                              .paginate(page_number, items_per_page)
+
+
 def get_targets_by_sdss_id(sdss_id: int) -> peewee.ModelSelect:
     """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on the sdss_id.
 
