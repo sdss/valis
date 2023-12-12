@@ -4,8 +4,13 @@
 
 # all resuable Pydantic models of the ORMs go here
 
-from typing import Optional
+import datetime
+from typing import Optional, List
 from pydantic import ConfigDict, BaseModel, Field
+
+
+# for how to specify required, optional, default, etc, see
+# https://docs.pydantic.dev/latest/migration/#required-optional-and-nullable-fields
 
 
 class OrmBase(BaseModel):
@@ -47,10 +52,10 @@ class SDSSidFlatBase(PeeweeBase):
     ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
     dec_sdss_id: float = Field(..., description='Declination of the most recent cross-match catalogid')
     catalogid: int = Field(..., description='the catalogid associated with the given sdss_id')
-    version_id: int = Field(..., description='the version of the catalog for a given catalogid')
+    version_id: Optional[int] = Field(None, description='the version of the catalog for a given catalogid')
     n_associated: int = Field(..., description='The total number of sdss_ids associated with that catalogid.')
-    ra_cat: float = Field(..., description='Right Ascension, in degrees, specific to the catalogid')
-    dec_cat: float = Field(..., description='Declination, in degrees, specific to the catalogid')
+    ra_catalogid: Optional[float] = Field(None, description='Right Ascension, in degrees, specific to the catalogid')
+    dec_catalogid: Optional[float] = Field(None, description='Declination, in degrees, specific to the catalogid')
 
 
 class SDSSidPipesBase(PeeweeBase):
@@ -76,6 +81,50 @@ class BossSpectrum(PeeweeBase):
     specobjid: int = None
 
 
-class TargetMeta(SDSSidPipesBase, BossSpectrum):
-    """ Pydantic response model for target pipeline metadata """
+class CatalogModel(PeeweeBase):
+    """ Pydantic model for source catalog information """
+    catalogid: int
+    version: int
+    lead: str
+    ra: float
+    dec: float
+    pmra: Optional[float] = None
+    pmdec: Optional[float] = None
+    parallax: Optional[float] = None
+
+
+class CatalogResponse(CatalogModel, SDSSidFlatBase):
+    """ Response model for source catalog and sdss_id information """
     pass
+
+
+class CartonModel(PeeweeBase):
+    """ Response model for target and carton information """
+    catalogid: int
+    version: int
+    ra: float
+    dec: float
+    pmra: Optional[float] = None
+    pmdec: Optional[float] = None
+    parallax: Optional[float] = None
+    epoch: float
+    program: str
+    carton: str
+    category: int
+    run_on: Optional[datetime.datetime] = None
+
+
+class PipesModel(PeeweeBase):
+    """ Pydantic model for pipeline metadata """
+    boss: BossSpectrum = None
+    apogee: dict = None
+    astra: dict = None
+
+
+class TargetModel(SDSSidStackedBase, SDSSidPipesBase):
+    """ Pydantic response model for sdss_id target metadata """
+    catalogs: List[CatalogModel] = None
+    cartons: List[CartonModel] = None
+    pipelines: PipesModel = None
+
+

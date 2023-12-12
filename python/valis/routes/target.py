@@ -13,9 +13,9 @@ from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
-from valis.db.queries import get_target_meta, get_a_spectrum
+from valis.db.queries import get_target_meta, get_a_spectrum, get_catalog_sources, get_target_programs
 from valis.db.db import get_pw_db
-from valis.db.models import TargetMeta
+from valis.db.models import TargetModel, CatalogResponse, CartonModel
 
 router = APIRouter()
 
@@ -152,7 +152,7 @@ class Target(Base):
         return res.to_pandas().to_dict('records')
 
     @router.get('/ids/{sdss_id}', summary='Retrieve pipeline metadata for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=Union[TargetMeta, dict],
+                dependencies=[Depends(get_pw_db)], response_model=Union[TargetModel, dict],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return target metadata for a given sdss_id """
@@ -164,3 +164,17 @@ class Target(Base):
                            product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
                            ):
         return get_a_spectrum(sdss_id, product, self.release)
+
+    @router.get('/catalogs/{sdss_id}', summary='Retrieve catalog information for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=List[CatalogResponse],
+                response_model_exclude_unset=True, response_model_exclude_none=True)
+    async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
+        """ Return catalog information for a given sdss_id """
+        return get_catalog_sources(sdss_id).dicts().iterator()
+
+    @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=List[CartonModel],
+                response_model_exclude_unset=True, response_model_exclude_none=True)
+    async def get_cartons(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
+        """ Return carton information for a given sdss_id """
+        return get_target_programs(sdss_id).dicts().iterator()

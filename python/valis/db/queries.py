@@ -13,6 +13,8 @@ from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import apogee_drpdb as apo
 from sdssdb.peewee.sdss5db import boss_drp as boss
 from sdssdb.peewee.sdss5db import targetdb, vizdb
+from sdssdb.peewee.sdss5db import catalogdb as cat
+
 
 from valis.io.spectra import extract_data
 from valis.utils.paths import build_boss_path
@@ -53,7 +55,7 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.Mo
                                vizdb.SDSSidToPipes.in_apogee,
                                vizdb.SDSSidToPipes.in_astra).\
         join(vizdb.SDSSidToPipes, on=(model.sdss_id == vizdb.SDSSidToPipes.sdss_id),
-             attr='pipes')
+             attr='pipes').distinct(vizdb.SDSSidToPipes.sdss_id)
 
 
 def get_pipes(sdss_id: int) -> peewee.ModelSelect:
@@ -365,8 +367,9 @@ def get_target_meta(sdss_id: int, release: str) -> dict:
     dict
         the output data
     """
-    # get the pipeline flags
-    pipes = get_pipes(sdss_id)
+    # get the id and pipeline flags
+    query = get_targets_by_sdss_id(sdss_id)
+    pipes = append_pipes(query)
     res = pipes.dicts().first()
 
     # get the boss metadata
@@ -403,3 +406,19 @@ def get_a_spectrum(sdss_id: int, product: str, release: str) -> dict:
             yield extract_data(product, filepath)
         except FileNotFoundError:
             yield None
+
+
+def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
+
+    s = vizdb.SDSSidFlat.select(vizdb.SDSSidFlat).where(vizdb.SDSSidFlat.sdss_id == sdss_id).alias('s')
+    return cat.Catalog.select(cat.Catalog, s.star).\
+        join(s, on=(s.c.catalogid == cat.Catalog.catalogid)).order_by(cat.Catalog.version.desc())
+
+
+def get_target_programs(sdss_id: int) -> peewee.ModelSelect:
+
+    return vizdb.SDSSidFlat.select(targetdb.Target, targetdb.Carton).\
+        join(targetdb.Target, on=(targetdb.Target.catalogid == vizdb.SDSSidFlat.catalogid)).\
+        join(targetdb.CartonToTarget).join(targetdb.Carton).where(vizdb.SDSSidFlat.sdss_id == sdss_id).\
+        order_by(targetdb.Carton.run_on, vizdb.SDSSidFlat.catalogid)
+
