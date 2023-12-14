@@ -3,15 +3,19 @@ from __future__ import print_function, division, absolute_import
 import math
 import re
 import httpx
-from typing import Tuple, List, Union, Optional
-from pydantic import field_validator, model_validator, BaseModel, Field
-from fastapi import APIRouter, HTTPException, Query
+import orjson
+from typing import Tuple, List, Union, Optional, Annotated
+from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
+from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
+from valis.db.queries import get_target_meta, get_a_spectrum, get_catalog_sources, get_target_cartons, get_boss_target
+from valis.db.db import get_pw_db
+from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
 
 router = APIRouter()
 
@@ -41,6 +45,23 @@ class DistModel(BaseModel):
 
     def to_quantity(self):
         return self.value * u.Unit(self.unit)
+
+
+class SpectrumModel(BaseModel):
+    """ Response model for a spectrum """
+    header: dict = Field({}, description='The primary header')
+    flux: list = Field([], description='The spectrum flux array')
+    wavelength: list = Field([], description='The spectrum wavelength array')
+    error: list = Field([], description='The spectrum uncertainty array')
+    mask: list = Field([], description='The spectrum mask array')
+
+    @model_serializer(when_used='json-unless-none')
+    def spec_mod(self):
+        return {'header': orjson.dumps(self.header),
+                'flux': orjson.dumps(self.flux, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+                'wavelength': orjson.dumps(self.wavelength, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+                'error': orjson.dumps(self.error, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+                'mask': orjson.dumps(self.mask, option=orjson.OPT_SERIALIZE_NUMPY).decode()}
 
 
 class SimbadRow(BaseModel):
@@ -129,3 +150,51 @@ class Target(Base):
         # perform the cone search
         res = Simbad.query_region(s, radius=radius * u.Unit(runit))
         return res.to_pandas().to_dict('records')
+
+    @router.get('/ids/{sdss_id}', summary='Retrieve pipeline metadata for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=Union[SDSSModel, dict],
+                response_model_exclude_unset=True, response_model_exclude_none=True)
+    async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
+        """ Return target metadata for a given sdss_id """
+        return get_target_meta(sdss_id, self.release) or {}
+
+    @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=List[SpectrumModel])
+    async def get_spectrum(self, sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
+                           product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
+                           ):
+        return get_a_spectrum(sdss_id, product, self.release)
+
+    @router.get('/catalogs/{sdss_id}', summary='Retrieve catalog information for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=List[CatalogResponse],
+                response_model_exclude_unset=True, response_model_exclude_none=True)
+    async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
+        """ Return catalog information for a given sdss_id """
+        return get_catalog_sources(sdss_id).dicts().iterator()
+
+    @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
+                dependencies=[Depends(get_pw_db)], response_model=List[CartonModel],
+                response_model_exclude_unset=True, response_model_exclude_none=True)
+    async def get_cartons(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
+        """ Return carton information for a given sdss_id """
+        return get_target_cartons(sdss_id).dicts().iterator()
+
+    @router.get('/pipelines/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
+                dependencies=[Depends(get_pw_db)],
+                response_model=PipesModel,
+                response_model_exclude_unset=True)
+    async def get_pipeline(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
+                           pipe: Annotated[str,
+                                           Query(enum=['all', 'boss', 'apogee', 'astra'],
+                                                 description='Specify search on specific pipeline',
+                                                 example='boss')] = 'all'):
+        if pipe == 'boss':
+            return {'boss': get_boss_target(sdss_id, self.release).dicts().first()}
+        if pipe == 'apogee':
+            return {'apogee': {}}
+        if pipe == 'astra':
+            return {'astra': {}}
+
+        return {'boss': get_boss_target(sdss_id, self.release).dicts().first(),
+                'apogee': {},
+                'astra': {}}

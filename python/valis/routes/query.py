@@ -3,8 +3,8 @@
 #
 
 from enum import Enum
-from typing import List, Union
-from fastapi import APIRouter, Depends, Query
+from typing import List, Union, Dict, Annotated
+from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ from valis.routes.base import Base
 from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
-                              carton_program_list, carton_program_map, 
+                              carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id)
 
 
@@ -66,6 +66,7 @@ class QueryRoutes(Base):
                  response_model=MainSearchResponse, dependencies=[Depends(get_pw_db)])
     async def main_search(self, body: SearchModel):
         """ Main query for UI and for combining queries together """
+
         print('form data', body)
 
         # build the coordinate query
@@ -80,54 +81,69 @@ class QueryRoutes(Base):
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def cone_search(self,
-                          ra: Union[float, str] = Query(..., description='Right Ascension in degrees or hmsdms', example=315.01417),
-                          dec: Union[float, str] = Query(..., description='Declination in degrees or hmsdms', example=35.299),
-                          radius: float = Query(..., description='Search radius in specified units', example=0.01),
-                          units: SearchCoordUnits = Query('degree', description='Units of search radius', example='degree')):
+                          ra: Annotated[Union[float, str], Query(description='Right Ascension in degrees or hmsdms', example=315.01417)],
+                          dec: Annotated[Union[float, str], Query(description='Declination in degrees or hmsdms', example=35.299)],
+                          radius: Annotated[float, Query(description='Search radius in specified units', example=0.01)],
+                          units: Annotated[SearchCoordUnits, Query(description='Units of search radius', example='degree')] = "degree"):
         """ Perform a cone search """
+
         return list(cone_search(ra, dec, radius, units=units))
 
     @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
                 response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
-    async def sdss_id_search(self, sdss_id: Union[int, str] = Query(..., description='Value of sdss_id', example=47510284)):
-        """ Perform an sdss_id search. Assumes a maximum of one target per sdss_id. Empty object returned when no match is found."""
-        targets = get_targets_by_sdss_id(int(sdss_id))
-        return targets[0] if len(targets) > 0 else {}
+    async def sdss_id_search(self, sdss_id: Annotated[int, Query(description='Value of sdss_id', example=47510284)]):
+        """ Perform an sdss_id search.
+
+        Assumes a maximum of one target per sdss_id.
+        Empty object returned when no match is found.
+
+        """
+
+        targets = get_targets_by_sdss_id(int(sdss_id)).dicts().first()
+
+        # throw exception when it's a bad sdss_id
+        if not targets:
+            raise HTTPException(status_code=400, detail=f'Invalid sdss_id {sdss_id}.')
+
+        return targets or {}
 
     @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
-    async def catalog_id_search(self, catalog_id: Union[int, str] = Query(..., description='Value of catalog_id', example=7613823349)):
+    async def catalog_id_search(self, catalog_id: Annotated[int, Query(description='Value of catalog_id', example=7613823349)]):
         """ Perform a catalog_id search """
-        return list(get_targets_by_catalog_id(int(catalog_id)))
+
+        return list(get_targets_by_catalog_id(catalog_id))
 
     @router.get('/list/cartons', summary='Return a list of all cartons',
                 response_model=list, dependencies=[Depends(get_pw_db)])
-    async def cartons(self,
-                      name_type: str = Query('carton', enum=['carton'],
-                                             description='Specify search on carton or program', example='carton')):
+    async def cartons(self):
         """ Return a list of all carton or programs """
-        return carton_program_list(name_type)
+
+        return carton_program_list("carton")
 
     @router.get('/list/programs', summary='Return a list of all programs',
                 response_model=list, dependencies=[Depends(get_pw_db)])
-    async def programs(self,
-                       name_type: str = Query('program', enum=['program'],
-                                              description='Specify search on carton or program', example='program')):
+    async def programs(self):
         """ Return a list of all carton or programs """
-        return carton_program_list(name_type)
+
+        return carton_program_list("program")
 
     @router.get('/list/program-map', summary='Return a mapping of cartons in all programs',
-                response_model=dict, dependencies=[Depends(get_pw_db)])
+                response_model=Dict[str, List[str]], dependencies=[Depends(get_pw_db)])
     async def program_map(self):
         """ Return a mapping of cartons in all programs """
+
         return carton_program_map()
 
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def carton_program(self,
-                             name: str = Query(..., description='Carton or program name', example='manual_mwm_tess_ob'),
-                             name_type: str = Query('carton', enum=['carton', 'program'],
-                                                    description='Specify search on carton or program', example='carton')):
+                             name: Annotated[str, Query(description='Carton or program name', example='manual_mwm_tess_ob')],
+                             name_type: Annotated[str,
+                                                  Query(enum=['carton', 'program'],
+                                                        description='Specify search on carton or program',
+                                                        example='carton')] = 'carton'):
         """ Perform a search on carton or program """
+
         return list(carton_program_search(name, name_type))
 
