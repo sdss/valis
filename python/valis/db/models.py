@@ -5,7 +5,7 @@
 # all resuable Pydantic models of the ORMs go here
 
 import datetime
-from typing import Optional, List
+from typing import Optional
 from pydantic import ConfigDict, BaseModel, Field
 
 
@@ -67,6 +67,11 @@ class SDSSidPipesBase(PeeweeBase):
     in_astra: bool = Field(..., description='Flag if the target is in the Astra reductions', examples=[False])
 
 
+class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
+    """ Main Pydantic response for SDSS id plus Pipes flags """
+    pass
+
+
 class BossSpectrum(PeeweeBase):
     """ Pydantic response model for the BHM pipeline metadata """
     sdss_id: int = None
@@ -116,15 +121,9 @@ class CartonModel(PeeweeBase):
 
 class PipesModel(PeeweeBase):
     """ Pydantic model for pipeline metadata """
-    boss: BossSpectrum = None
-    apogee: dict = None
-    astra: dict = None
+    boss: Optional[BossSpectrum] = None
+    apogee: Optional[dict] = None
+    astra: Optional[dict] = None
 
-
-class TargetModel(SDSSidStackedBase, SDSSidPipesBase):
-    """ Pydantic response model for sdss_id target metadata """
-    catalogs: List[CatalogModel] = None
-    cartons: List[CartonModel] = None
-    pipelines: PipesModel = None
 
 

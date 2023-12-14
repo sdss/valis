@@ -13,9 +13,9 @@ from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
-from valis.db.queries import get_target_meta, get_a_spectrum, get_catalog_sources, get_target_programs
+from valis.db.queries import get_target_meta, get_a_spectrum, get_catalog_sources, get_target_cartons, get_boss_target
 from valis.db.db import get_pw_db
-from valis.db.models import TargetModel, CatalogResponse, CartonModel
+from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
 
 router = APIRouter()
 
@@ -152,7 +152,7 @@ class Target(Base):
         return res.to_pandas().to_dict('records')
 
     @router.get('/ids/{sdss_id}', summary='Retrieve pipeline metadata for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=Union[TargetModel, dict],
+                dependencies=[Depends(get_pw_db)], response_model=Union[SDSSModel, dict],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return target metadata for a given sdss_id """
@@ -177,4 +177,24 @@ class Target(Base):
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_cartons(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return carton information for a given sdss_id """
-        return get_target_programs(sdss_id).dicts().iterator()
+        return get_target_cartons(sdss_id).dicts().iterator()
+
+    @router.get('/pipelines/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
+                dependencies=[Depends(get_pw_db)],
+                response_model=PipesModel,
+                response_model_exclude_unset=True)
+    async def get_pipeline(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
+                           pipe: Annotated[str,
+                                           Query(enum=['all', 'boss', 'apogee', 'astra'],
+                                                 description='Specify search on specific pipeline',
+                                                 example='boss')] = 'all'):
+        if pipe == 'boss':
+            return {'boss': get_boss_target(sdss_id, self.release).dicts().first()}
+        if pipe == 'apogee':
+            return {'apogee': {}}
+        if pipe == 'astra':
+            return {'astra': {}}
+
+        return {'boss': get_boss_target(sdss_id, self.release).dicts().first(),
+                'apogee': {},
+                'astra': {}}
