@@ -126,4 +126,12 @@ class PipesModel(PeeweeBase):
     astra: Optional[dict] = None
 
 
-
+class DbMetadata(PeeweeBase):
+    """ Pydantic response model for the db metadata """
+    schema: str
+    table_name: str
+    column_name: str
+    display_name: str
+    description: str
+    unit: Optional[str] = None
+    sql_type: Optional[str] = None

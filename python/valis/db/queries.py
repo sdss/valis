@@ -476,3 +476,25 @@ def get_target_cartons(sdss_id: int) -> peewee.ModelSelect:
         join(targetdb.CartonToTarget).join(targetdb.Carton).where(vizdb.SDSSidFlat.sdss_id == sdss_id).\
         order_by(targetdb.Carton.run_on, vizdb.SDSSidFlat.catalogid)
 
+
+def get_db_metadata(schema: str = None) -> peewee.ModelSelect:
+    """ Get the sdss5db database metadata
+
+    Get the sdss5db database table and column metadata.
+    By default returns all schema, but a specific one can be
+    specified with the ``schema`` keyword.
+
+    Parameters
+    ----------
+    schema : str, optional
+        the database schema name, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
+    query = vizdb.DbMetadata.select()
+    if schema:
+        query = query.where(vizdb.DbMetadata.schema == schema)
+    return query
