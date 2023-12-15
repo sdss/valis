@@ -128,10 +128,10 @@ class PipesModel(PeeweeBase):
 
 class DbMetadata(PeeweeBase):
     """ Pydantic response model for the db metadata """
-    schema: str
-    table_name: str
-    column_name: str
-    display_name: str
-    description: str
-    unit: Optional[str] = None
-    sql_type: Optional[str] = None
+    schema: str = Field(..., description='the database schema name')
+    table_name: str = Field(..., description='the database table name')
+    column_name: str = Field(..., description='the database column name')
+    display_name: str = Field(..., description='a human-readable display name for the column')
+    description: str = Field(..., description='a description of the database column')
+    unit: Optional[str] = Field(None, description='the unit if any for the database column')
+    sql_type: Optional[str] = Field(None, description='the data type of the column')
