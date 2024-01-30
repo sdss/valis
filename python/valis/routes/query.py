@@ -14,6 +14,7 @@ from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id)
+from sdssdb.peewee.sdss5db import database
 
 
 class SearchCoordUnits(str, Enum):
@@ -144,6 +145,7 @@ class QueryRoutes(Base):
                                                         description='Specify search on carton or program',
                                                         example='carton')] = 'carton'):
         """ Perform a search on carton or program """
-
-        return list(carton_program_search(name, name_type))
+        with database.atomic() as transaction:
+            database.execute_sql('SET LOCAL enable_seqscan=false;')
+            return list(carton_program_search(name, name_type))
 
