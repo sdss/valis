@@ -45,6 +45,10 @@ def build_file_path(values: dict, product: str, release: str, remap: dict = None
     ValueError
         when not all path template keywords can be found
     """
+    if not values:
+        print('No input values dictionary found.  Cannot build filepath.')
+        return ''
+
     path = Path(release=release)
 
     if product not in path.lookup_names():
