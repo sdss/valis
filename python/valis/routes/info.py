@@ -4,6 +4,7 @@
 
 from __future__ import print_function, division, absolute_import
 
+from collections import defaultdict
 from typing import List, Union, Dict, Annotated
 from fastapi import APIRouter, HTTPException, Depends, Query, Path
 from fastapi_restful.cbv import cbv
@@ -40,6 +41,14 @@ def get_datamodel():
 def get_products(release: str = Depends(release), dm: SDSSDataModel = Depends(get_datamodel)):
     products = dm.products.group_by("releases")
     return products.get(release, [])
+
+
+def convert_metadata(data) -> dict:
+    """ Convert db metadata output to a dict of dicts """
+    mm = defaultdict(dict)
+    for i in data:
+        mm[i['schema']].update({i['column_name']: i})
+    return mm
 
 
 class InfoModel(BaseModel):
@@ -129,8 +138,9 @@ class DataModels(Base):
             raise HTTPException(status_code=400, detail=f'{name} not found a valid SDSS data product for release {self.release}')
         return product[0].get_schema()
 
-    @router.get('/database', summary='Retrieve sdss5db database table and column metadata', dependencies=[Depends(get_pw_db)],
-                response_model=List[DbMetadata])
+    @router.get('/database', summary='Retrieve sdss5db database table and column metadata',
+                dependencies=[Depends(get_pw_db)],
+                response_model=Dict[str, Dict[str, DbMetadata]])
     async def get_dbmetadata(self, schema: Annotated[str, Query(description='The sdss5db database schema name', example='targetdb')] = None):
         """ Get the sdss5db database table and column metadata """
-        return get_db_metadata(schema=schema).dicts().iterator()
+        return convert_metadata(get_db_metadata(schema=schema).dicts().iterator())
