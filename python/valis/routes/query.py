@@ -3,10 +3,10 @@
 #
 
 from enum import Enum
-from typing import List, Union, Dict, Annotated
+from typing import List, Union, Dict, Annotated, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi_restful.cbv import cbv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, BeforeValidator
 
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
@@ -14,6 +14,9 @@ from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id)
+
+# convert string floats to proper floats
+Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
 
 
 class SearchCoordUnits(str, Enum):
@@ -25,10 +28,13 @@ class SearchCoordUnits(str, Enum):
 
 class SearchModel(BaseModel):
     """ Input main query body model """
-    ra: Union[float, str] = Field(..., description='Right Ascension in degrees or hmsdms', example=315.01417)
-    dec: Union[float, str] = Field(..., description='Declination in degrees or hmsdms', example=35.299)
-    radius: float = Field(..., description='Search radius in specified units', example=0.01)
-    units: SearchCoordUnits = Field('degree', description='Units of search radius', example='degree')
+    ra: Optional[Union[float, str]] = Field(None, description='Right Ascension in degrees or hmsdms', example=315.01417)
+    dec: Optional[Union[float, str]] = Field(None, description='Declination in degrees or hmsdms', example=35.299)
+    radius: Optional[Float] = Field(None, description='Search radius in specified units', example=0.01)
+    units: Optional[SearchCoordUnits] = Field('degree', description='Units of search radius', example='degree')
+    id: Optional[Union[int, str]] = Field(None, description='The SDSS identifier', example=23326)
+    program: Optional[str] = Field(None, description='The program name', example='bhm_rm')
+    carton: Optional[str] = Field(None, description='The carton name', example='bhm_rm_core')
 
 
 class MainResponse(SDSSidPipesBase, SDSSidStackedBase):
@@ -73,10 +79,18 @@ class QueryRoutes(Base):
         if body.ra and body.dec:
             query = cone_search(body.ra, body.dec, body.radius, units=body.units)
 
+        # build the id query
+        elif body.id:
+            query = get_targets_by_sdss_id(body.id)
+
+        # build the program/carton query
+        elif body.program or body.carton:
+            query = carton_program_search(body.program or body.carton, 'program' if body.program else 'carton')
+
         # append query to pipes
         query = append_pipes(query)
 
-        return {'status': 'success', 'data': list(query.dicts()), 'msg': 'data successfully retrieved'}
+        return {'status': 'success', 'data': query.dicts().iterator(), 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
