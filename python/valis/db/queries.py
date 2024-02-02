@@ -287,22 +287,30 @@ def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
     # get the relevant software tag boss
     run2d = get_software_tag(release, 'run2d')
 
+    query_boss = vizdb.SDSSidStacked.select()\
+                                    .join(boss.BossSpectrum,
+                                          on=(boss.BossSpectrum.sdss_id == vizdb.SDSSidStacked.sdss_id))\
+                                    .where(boss.BossSpectrum.run2d == run2d,
+                                           boss.BossSpectrum.obs == obs).distinct()
+
     # get the relevant software tag apogee
     apred = get_software_tag(release, 'apred_vers')
 
+    # temporary, need to join with sdss_id
+    query_ap = apo.Star.select()\
+                       .where(apo.Star.telescope == obs.lower() + '25m',
+                              apo.Star.apred_vers == apred)
+    sdss_id_ap = [3350466]
+
     if obsWave == 'boss':
-        query = vizdb.SDSSidStacked.select()\
-                                   .join(boss.BossSpectrum,
-                                         on=(boss.BossSpectrum.sdss_id == vizdb.SDSSidStacked.sdss_id))\
-                                   .where(boss.BossSpectrum.run2d == run2d,
-                                          boss.BossSpectrum.obs == obs).distinct()
+        return query_boss
     elif obsWave == 'apogee':
-        query_ap = apo.Star.select().\
-                           .where(apo.Star.telescope == obs.lower() + '25m',
-                                  apo.Star.apred_vers == apred)
         # temportary, just return some sdss_id
-        query = vizdb.SDSSidStacked.select()\
-                                   .where(vizdb.SDSSidStacked.sdss_id == 3350466)
+        return query = vizdb.SDSSidStacked.select()\
+                                          .where(vizdb.SDSSidStacked.sdss_id << sdss_id_ap)
+    else:
+        raise ValueError('Did not pass "boss", "apogee" or "all" to obsWave')
+
     return query
 
 
