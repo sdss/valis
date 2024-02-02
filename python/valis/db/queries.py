@@ -284,8 +284,11 @@ def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
     peewee.ModelSelect
         the ORM query
     """
-    # get the relevant software tag
+    # get the relevant software tag boss
     run2d = get_software_tag(release, 'run2d')
+
+    # get the relevant software tag apogee
+    apred = get_software_tag(release, 'apred_vers')
 
     if obsWave == 'boss':
         query = vizdb.SDSSidStacked.select()\
@@ -293,6 +296,13 @@ def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
                                          on=(boss.BossSpectrum.sdss_id == vizdb.SDSSidStacked.sdss_id))\
                                    .where(boss.BossSpectrum.run2d == run2d,
                                           boss.BossSpectrum.obs == obs).distinct()
+    elif obsWave == 'apogee':
+        query_ap = apo.Star.select().\
+                           .where(apo.Star.telescope == obs.lower() + '25m',
+                                  apo.Star.apred_vers == apred)
+        # temportary, just return some sdss_id
+        query = vizdb.SDSSidStacked.select()\
+                                   .where(vizdb.SDSSidStacked.sdss_id == 3350466)
     return query
 
 
