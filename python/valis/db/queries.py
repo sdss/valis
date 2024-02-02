@@ -300,19 +300,24 @@ def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
     query_ap = apo.Star.select()\
                        .where(apo.Star.telescope == obs.lower() + '25m',
                               apo.Star.apred_vers == apred)
+    # temportary, just return some sdss_id
     sdss_id_ap = [3350466]
+    query_ap = vizdb.SDSSidStacked.select()\
+                                  .where(vizdb.SDSSidStacked.sdss_id << sdss_id_ap)
+
+    # return union of the above
+    query_all = vizdb.SDSSidStacked.select()\
+                                   .where((vizdb.SDSSidStacked.sdss_id << query_boss) |
+                                          (vizdb.SDSSidStacked.sdss_id << query_ap))
 
     if obsWave == 'boss':
         return query_boss
     elif obsWave == 'apogee':
-        # temportary, just return some sdss_id
-        query = vizdb.SDSSidStacked.select()\
-                                   .where(vizdb.SDSSidStacked.sdss_id << sdss_id_ap)
-        return query
+        return query_ap
+    elif obsWave == 'all':
+        return query_all
     else:
         raise ValueError('Did not pass "boss", "apogee" or "all" to obsWave')
-
-    return query
 
 
 # test sdss ids
