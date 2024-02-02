@@ -264,6 +264,38 @@ def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
     )
 
 
+def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
+    """ Return all targets with spectra from a given observatory
+
+    Parameters
+    ----------
+    release : str
+        the data release to look up
+
+    obs: str
+        Observatory to get targets from. Either 'APO' or 'LCO'
+
+    obsWave: str
+        Which spectrograph to return data from. Can be 'boss',
+        'apogee' or 'all' for both.
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    # get the relevant software tag
+    run2d = get_software_tag(release, 'run2d')
+
+    if obsWave == 'boss':
+        query = vizdb.SDSSidStacked.select()\
+                                   .join(boss.BossSpectrum,
+                                         on=(boss.BossSpectrum.sdss_id == vizdb.SDSSidStacked.sdss_id))\
+                                   .where(boss.BossSpectrum.run2d == run2d,
+                                          boss.BossSpectrum.obs == obs).distinct()
+    return query
+
+
 # test sdss ids
 # 23326 - boss/astra
 # 3350466 - apogee/astra
