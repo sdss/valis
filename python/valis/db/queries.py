@@ -306,8 +306,9 @@ def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
         return query_boss
     elif obsWave == 'apogee':
         # temportary, just return some sdss_id
-        return query = vizdb.SDSSidStacked.select()\
-                                          .where(vizdb.SDSSidStacked.sdss_id << sdss_id_ap)
+        query = vizdb.SDSSidStacked.select()\
+                                   .where(vizdb.SDSSidStacked.sdss_id << sdss_id_ap)
+        return query
     else:
         raise ValueError('Did not pass "boss", "apogee" or "all" to obsWave')
 
