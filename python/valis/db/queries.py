@@ -296,14 +296,14 @@ def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
     # get the relevant software tag apogee
     apred = get_software_tag(release, 'apred_vers')
 
-    # temporary, need to join with sdss_id
-    query_ap = apo.Star.select()\
-                       .where(apo.Star.telescope == obs.lower() + '25m',
-                              apo.Star.apred_vers == apred)
-    # temportary, just return some sdss_id
-    sdss_id_ap = [3350466]
+    # temporary, need to join with sdss_id when added
     query_ap = vizdb.SDSSidStacked.select()\
-                                  .where(vizdb.SDSSidStacked.sdss_id << sdss_id_ap)
+                                  .join(vizdb.SDSSidFlat,
+                                        on=(vizdb.SDSSidFlat.sdss_id == vizdb.SDSSidStacked.sdss_id))\
+                                  .join(apo.Star,
+                                        on=(apo.Star.catalogid == vizdb.SDSSidFlat.catalogid))\
+                                  .where(apo.Star.telescope == obs.lower() + '25m',
+                                         apo.Star.apred_vers == apred).distinct()
 
     # return union of the above
     query_all = vizdb.SDSSidStacked.select()\
