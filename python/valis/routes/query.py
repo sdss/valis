@@ -13,7 +13,8 @@ from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
-                              get_targets_by_sdss_id, get_targets_by_catalog_id)
+                              get_targets_by_sdss_id, get_targets_by_catalog_id,
+                              get_targets_by_sdss_id_list)
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -46,6 +47,11 @@ class MainSearchResponse(BaseModel):
     status: str = Field(..., description='the query return status')
     msg: str = Field(..., description='the response status message')
     data: List[MainResponse] = Field(..., description='the list of query results')
+
+
+class SDSSIdsModel(BaseModel):
+    """Request body for the endpoint returning targets from an sdss_id list"""
+    sdss_id_list: List[int] = Field(description='List of sdss_id values', example=[67660076, 67151446])
 
 
 router = APIRouter()
@@ -121,6 +127,12 @@ class QueryRoutes(Base):
 
         return targets or {}
 
+    @router.post('/sdssid', summary='Perform a search for SDSS targets based on a list of sdss_id values',
+                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+    async def sdss_ids_search(self, body: SDSSIdsModel):
+        """ Perform a search for SDSS targets based on a list of input sdss_id values."""
+        return list(get_targets_by_sdss_id_list(body.sdss_id_list))
+    
     @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def catalog_id_search(self, catalog_id: Annotated[int, Query(description='Value of catalog_id', example=7613823349)]):
