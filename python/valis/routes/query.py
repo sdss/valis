@@ -13,7 +13,8 @@ from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
-                              get_targets_by_sdss_id, get_targets_by_catalog_id)
+                              get_targets_by_sdss_id, get_targets_by_catalog_id,
+                              get_mappers, get_paged_target_list_by_mapper)
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -46,6 +47,12 @@ class MainSearchResponse(BaseModel):
     status: str = Field(..., description='the query return status')
     msg: str = Field(..., description='the response status message')
     data: List[MainResponse] = Field(..., description='the list of query results')
+
+
+class Mapper(BaseModel):
+    """ Mapper ID and name label """
+    pk: int = Field(..., description='the mapper id (primary key on the database)')
+    label: str = Field(..., description='the mapper name label')
 
 
 router = APIRouter()
@@ -149,6 +156,12 @@ class QueryRoutes(Base):
 
         return carton_program_map()
 
+    @router.get('/list/mappers', summary='Return list of all mappers',
+                response_model=List[Mapper], dependencies=[Depends(get_pw_db)])
+    async def get_mappers_list(self):
+        """ Return a list of all mappers """
+        return list(get_mappers())
+
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def carton_program(self,
@@ -160,4 +173,14 @@ class QueryRoutes(Base):
         """ Perform a search on carton or program """
 
         return list(carton_program_search(name, name_type))
+
+    @router.get('/mapper', summary='Perform a search for SDSS targets based on the mapper',
+                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+    async def get_target_list_by_mapper(self, mapper: str = Query(default="MWM", description='String (integer) that identifies the name label (id/primary key) of the mapper', example="MWM"),
+                                 page_number: int = Query(..., description='Page number of the returned items', gt=0, example=1),
+                                 items_per_page: int = Query(..., description='Number of items displayed in a page', gt=0, example=10)):
+        """ Return an ordered and paged list of targets based on the mapper."""
+        targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
+        return list(targets)
+    
 
