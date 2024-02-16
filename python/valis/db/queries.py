@@ -6,6 +6,7 @@
 
 from typing import Union
 import peewee
+from peewee import fn
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import vizdb
@@ -119,7 +120,7 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
                                               dec_col='dec_sdss_id'))
 
 
-def get_paged_sdss_id_list(search_string: str = "", page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
+def get_paged_sdss_id_list(search_integer: int, page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
     """ Return a paged list of sdss_id values.
 
     Return paginated and ordered sdss_id column values from the 
@@ -142,7 +143,20 @@ def get_paged_sdss_id_list(search_string: str = "", page_number: int = 1, items_
     peewee.ModelSelect
         the ORM query
     """
-    where_condition = vizdb.SDSSidStacked.sdss_id.cast('TEXT') ** (search_string + "%") if search_string else True
+    
+    max_sdss_id = vizdb.SDSSidStacked.select(fn.MAX(vizdb.SDSSidStacked.sdss_id)).scalar()
+
+    max_num_digits = len(str(max_sdss_id))
+    num_search_digits = len(str(search_integer))
+    max_i =  max(0, max_num_digits - num_search_digits + 1)
+
+    where_condition = (False)
+    for i in range(0, max_i):
+        min_id = int(search_integer * 10**(i))
+        max_id = int((search_integer + 1) * 10**(i))
+        where = ((vizdb.SDSSidStacked.sdss_id >=  min_id) & (vizdb.SDSSidStacked.sdss_id < max_id))
+        where_condition = where_condition | where
+
     return vizdb.SDSSidStacked.select(vizdb.SDSSidStacked.sdss_id)\
                               .where(where_condition)\
                               .order_by(vizdb.SDSSidStacked.sdss_id)\

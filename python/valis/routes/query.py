@@ -103,11 +103,11 @@ class QueryRoutes(Base):
 
     @router.get('/list/sdssid', summary='Return a paged list of sdss_id values',
                 response_model=List[int], dependencies=[Depends(get_pw_db)])
-    async def sdss_id_list(self, search_string: str = Query(default="", description='String that matches the starting digits of the returned sdss_id values', example=""),
+    async def sdss_id_list(self, search_integer: int = Query(default="", description='Integer that matches the starting digits of the returned sdss_id values', ge=1, example=1),
                                  page_number: int = Query(..., description='Page number of the returned items', gt=0, example=1),
                                  items_per_page: int = Query(..., description='Number of items displayed in a page', gt=0, example=10)):
         """ Return an ordered and paged list of sdss_id values."""
-        sdss_ids = get_paged_sdss_id_list(search_string, page_number, items_per_page)
+        sdss_ids = get_paged_sdss_id_list(search_integer, page_number, items_per_page)
         return list(sdss_ids.scalars())
         
 
