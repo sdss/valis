@@ -148,7 +148,7 @@ def get_paged_sdss_id_list(search_integer: int, page_number: int = 1, items_per_
 
     max_num_digits = len(str(max_sdss_id))
     num_search_digits = len(str(search_integer))
-    max_i =  max(0, max_num_digits - num_search_digits + 1)
+    max_i =  max_num_digits - num_search_digits + 1
 
     where_condition = (False)
     for i in range(0, max_i):
