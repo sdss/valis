@@ -264,7 +264,7 @@ def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
     )
 
 
-def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
+def get_targets_obs(release: str, obs: str, spectrograph: str) -> peewee.ModelSelect:
     """ Return all targets with spectra from a given observatory
 
     Parameters
@@ -275,7 +275,7 @@ def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
     obs: str
         Observatory to get targets from. Either 'APO' or 'LCO'
 
-    obsWave: str
+    spectrograph: str
         Which spectrograph to return data from. Can be 'boss',
         'apogee' or 'all' for both.
 
@@ -310,11 +310,11 @@ def get_targets_obs(release: str, obs: str, obsWave: str) -> peewee.ModelSelect:
                                    .where((vizdb.SDSSidStacked.sdss_id << query_boss) |
                                           (vizdb.SDSSidStacked.sdss_id << query_ap))
 
-    if obsWave == 'boss':
+    if spectrograph == 'boss':
         return query_boss
-    elif obsWave == 'apogee':
+    elif spectrograph == 'apogee':
         return query_ap
-    elif obsWave == 'all':
+    elif spectrograph == 'all':
         return query_all
     else:
         raise ValueError('Did not pass "boss", "apogee" or "all" to obsWave')

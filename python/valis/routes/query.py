@@ -156,11 +156,11 @@ class QueryRoutes(Base):
                                  Query(enum=['APO', 'LCO'],
                                        description='Observatory to get targets from. Either "APO" or "LCO"',
                                        example='APO')] = 'APO',
-                  obsWave: Annotated[str,
-                                     Query(enum=['boss', 'apogee', 'all'],
-                                           description='Which spectrograph to return data from',
-                                           example='boss')] = 'boss'):
+                  spectrograph: Annotated[str,
+                                          Query(enum=['boss', 'apogee', 'all'],
+                                                description='Which spectrograph to return data from',
+                                                example='boss')] = 'boss'):
         """ Perform a search on carton or program """
 
-        return list(get_targets_obs(release, obs, obsWave))
+        return list(get_targets_obs(release, obs, spectrograph))
 
