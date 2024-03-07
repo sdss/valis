@@ -13,7 +13,8 @@ from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
-                              get_targets_by_sdss_id, get_targets_by_catalog_id)
+                              get_targets_by_sdss_id, get_targets_by_catalog_id,
+                              get_targets_obs)
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -160,4 +161,20 @@ class QueryRoutes(Base):
         """ Perform a search on carton or program """
 
         return list(carton_program_search(name, name_type))
+
+    @router.get('/obs', summary='Return targets with spectrum at observatory',
+                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+    async def obs(self,
+                  release: Annotated[str, Query(description='Data release to query', example='IPL3')],
+                  obs: Annotated[str,
+                                 Query(enum=['APO', 'LCO'],
+                                       description='Observatory to get targets from. Either "APO" or "LCO"',
+                                       example='APO')] = 'APO',
+                  spectrograph: Annotated[str,
+                                          Query(enum=['boss', 'apogee', 'all'],
+                                                description='Which spectrograph to return data from',
+                                                example='boss')] = 'boss'):
+        """ Perform a search on carton or program """
+
+        return list(get_targets_obs(release, obs, spectrograph))
 
