@@ -5,6 +5,7 @@
 # all resuable queries go here
 
 import itertools
+import packaging
 from typing import Union
 
 import astropy.units as u
@@ -14,10 +15,11 @@ from sdssdb.peewee.sdss5db import apogee_drpdb as apo
 from sdssdb.peewee.sdss5db import boss_drp as boss
 from sdssdb.peewee.sdss5db import targetdb, vizdb
 from sdssdb.peewee.sdss5db import catalogdb as cat
+from sdssdb.peewee.sdss5db import astradb as astra
 
 
 from valis.io.spectra import extract_data
-from valis.utils.paths import build_boss_path
+from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
 from valis.utils.versions import get_software_tag
 
 
@@ -352,6 +354,11 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
     # get the relevant software tag
     run2d = get_software_tag(release, 'run2d')
 
+    if isinstance(run2d, list):
+        vercond = boss.BossSpectrum.run2d.in_(run2d)
+    else:
+        vercond = boss.BossSpectrum.run2d == run2d
+
     # check fields
     fields = fields or [boss.BossSpectrum]
     if fields and isinstance(fields[0], str):
@@ -360,7 +367,7 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
     # query for the target
     query = boss.BossSpectrum.select(*fields).\
         where(boss.BossSpectrum.sdss_id == sdss_id,
-              boss.BossSpectrum.run2d == run2d)
+              vercond)
 
     # filter on primary
     if primary:
@@ -374,35 +381,59 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None):
     # get the relevant software tag
     apred = get_software_tag(release, 'apred_vers')
 
+    if isinstance(apred, list):
+        vercond = apo.Star.apred_vers.in_(apred)
+    else:
+        vercond = apo.Star.apred_vers == apred
+
     # check fields
     fields = fields or [apo.Star]
     if fields and isinstance(fields[0], str):
         fields = (getattr(apo.Star, i) for i in fields)
 
-    # temporary
-    if sdss_id == 3350466:
-        pk = 2694289
-    elif sdss_id == 54392544:
-        pk = 2913357
+    # # temporary
+    # if sdss_id == 3350466:
+    #     pk = 2694289
+    # elif sdss_id == 54392544:
+    #     pk = 2913357
 
     # select a.* from apogee_drp.star as a join astra_050.apogee_visit_spectrum as v on a.pk=v.star_pk
     # join astra_050.source as s on s.pk=v.source_pk where s.sdss_id=54392544;
 
-    query = apo.Star.select(*fields).\
-        where(apo.Star.pk == pk,
-              apo.Star.apred_vers == apred)
+    # query = apo.Star.select(*fields).\
+    #     where(apo.Star.pk == pk,
+    #           apo.Star.apred_vers == apred)
 
-    return query
+    s = get_astra_target(sdss_id, release)
+    if not s:
+        return
+
+    a = s.first().apogee_visit_spectrum.first()
+    if not a:
+        return
+
+    return apo.Star.select().where(apo.Star.pk == a.star_pk, vercond)
 
 
-def get_astra_target(sdss_id: int, release: str):
+def get_astra_target(sdss_id: int, release: str, fields: list = None):
     """ temporary placeholder for astra """
-    apred = get_software_tag(release, 'apred_vers')
+    # apred = get_software_tag(release, 'apred_vers')
 
-    query = apo.Star.raw('select a.*, s.* from astra_050.source as s join '
-                         'astra_050.apogee_visit_spectrum as a on a.source_pk=s.pk '
-                         'where s.sdss_id = %s and a.apred = %s', sdss_id, apred)
-    return query
+    # query = apo.Star.raw('select a.*, s.* from astra_050.source as s join '
+    #                      'astra_050.apogee_visit_spectrum as a on a.source_pk=s.pk '
+    #                      'where s.sdss_id = %s and a.apred = %s', sdss_id, apred)
+
+    vastra = get_software_tag(release, 'v_astra')
+    if not vastra or vastra != "0.5.0":
+        print('astra only supports DR19 / IPL3 = version 0.5.0')
+        return None
+
+    # check fields
+    fields = fields or [astra.Source]
+    if fields and isinstance(fields[0], str):
+        fields = (getattr(astra.Source, i) for i in fields)
+
+    return astra.Source.select(*fields).where(astra.Source.sdss_id == sdss_id)
 
 
 def get_target_meta(sdss_id: int, release: str) -> dict:
@@ -456,10 +487,10 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> pe
         return get_boss_target(sdss_id, release)
 
     if pipeline == 'apogee':
-        return
+        return get_apogee_target(sdss_id, release)
 
     if pipeline == 'astra':
-        return
+        return get_astra_target(sdss_id, release)
 
     # get which pipelines
     res = get_pipes(sdss_id).dicts().first()
@@ -467,6 +498,10 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> pe
     # get the boss metadata
     if res['in_boss']:
         bq = get_boss_target(sdss_id, release)
+    if res['in_apogee']:
+        apq = get_apogee_target(sdss_id, release)
+    if res['in_astra']:
+        asq = get_astra_target(sdss_id, release)
 
     # create a pipes cte
     pipes = get_pipes(sdss_id)
@@ -554,3 +589,14 @@ def get_db_metadata(schema: str = None) -> peewee.ModelSelect:
     if schema:
         query = query.where(vizdb.DbMetadata.schema == schema)
     return query
+
+
+def starfields(model: peewee.ModelSelect) -> peewee.NodeList:
+    """ Return the peewee star fields
+
+    Peewee moved its "star" field to "__star__" in versions
+    3.17.1+ to avoid real fields named "star".
+    """
+    pw_ver = peewee.__version__
+    oldver = packaging.version.parse(pw_ver) < packaging.version.parse('3.17.1')
+    return model.star if oldver else model.__star__

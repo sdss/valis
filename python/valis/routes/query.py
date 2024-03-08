@@ -70,7 +70,8 @@ class QueryRoutes(Base):
     #         filter(vizdb.SDSSidStacked.cone_search(ra, dec, radius, ra_col='ra_sdss_id', dec_col='dec_sdss_id')).all()
 
     @router.post('/main', summary='Main query for the UI or combining queries',
-                 response_model=MainSearchResponse, dependencies=[Depends(get_pw_db)])
+                 dependencies=[Depends(get_pw_db)],
+                 response_model=MainSearchResponse)
     async def main_search(self, body: SearchModel):
         """ Main query for UI and for combining queries together """
 
@@ -177,4 +178,3 @@ class QueryRoutes(Base):
         """ Perform a search on carton or program """
 
         return list(get_targets_obs(release, obs, spectrograph))
-

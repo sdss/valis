@@ -14,8 +14,10 @@ from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_target_cartons, get_boss_target, build_boss_path)
-from valis.db.db import get_pw_db
+                              get_target_cartons, get_boss_target, get_apogee_target,
+                              get_astra_target, build_boss_path, build_apogee_path,
+                              build_astra_path)
+from valis.db.db import get_pw_db, pdb
 from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
 
 router = APIRouter()
@@ -150,10 +152,16 @@ class Target(Base):
 
         # perform the cone search
         res = Simbad.query_region(s, radius=radius * u.Unit(runit))
+
+        # raise an error if no result found
+        if not res:
+            raise HTTPException(status_code=404, detail=Simbad.last_parsed_result.error_raw)
+
+        # return successful result
         return res.to_pandas().to_dict('records')
 
     @router.get('/ids/{sdss_id}', summary='Retrieve pipeline metadata for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
+                #dependencies=[Depends(get_pw_db)],
                 response_model=Union[SDSSModel, dict],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
@@ -161,14 +169,15 @@ class Target(Base):
         return get_target_meta(sdss_id, self.release) or {}
 
     @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=List[SpectrumModel])
+                #dependencies=[Depends(get_pw_db)],
+                response_model=List[SpectrumModel])
     async def get_spectrum(self, sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
                            product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
                            ):
         return get_a_spectrum(sdss_id, product, self.release)
 
     @router.get('/catalogs/{sdss_id}', summary='Retrieve catalog information for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
+                #dependencies=[Depends(get_pw_db)],
                 response_model=List[CatalogResponse],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
@@ -176,7 +185,7 @@ class Target(Base):
         return get_catalog_sources(sdss_id).dicts().iterator()
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
+                #dependencies=[Depends(get_pw_db)],
                 response_model=List[CartonModel],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_cartons(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
@@ -184,7 +193,7 @@ class Target(Base):
         return get_target_cartons(sdss_id).dicts().iterator()
 
     @router.get('/pipelines/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
+                #dependencies=[Depends(get_pw_db)],
                 response_model=PipesModel,
                 response_model_exclude_unset=True)
     async def get_pipeline(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
@@ -193,16 +202,23 @@ class Target(Base):
                                                  description='Specify search on specific pipeline',
                                                  example='boss')] = 'all'):
 
-        boss = get_boss_target(sdss_id, self.release).dicts().first() or {}
+        boss = get_boss_target(sdss_id, self.release) or {}
+        apogee = get_apogee_target(sdss_id, self.release) or {}
+        astra = get_astra_target(sdss_id, self.release) or {}
+        boss = boss.dicts().first() if boss else {}
+        apogee = apogee.dicts().first() if apogee else {}
+        astra = astra.dicts().first() if astra else {}
 
         if pipe == 'boss':
             return {'boss': boss, 'files': {'boss': build_boss_path(boss, self.release)}}
         if pipe == 'apogee':
-            return {'apogee': {}}
+            return {'apogee': apogee, 'files': {'apogee': build_apogee_path(apogee, self.release)}}
         if pipe == 'astra':
-            return {'astra': {}}
+            return {'astra': astra, 'files': {'astra': build_astra_path(astra, self.release)}}
 
         return {'boss': boss,
-                'apogee': {},
-                'astra': {},
-                'files': {'boss': build_boss_path(boss, self.release)}}
+                'apogee': apogee,
+                'astra': astra,
+                'files': {'boss': build_boss_path(boss, self.release),
+                          'apogee': build_apogee_path(apogee, self.release),
+                          'astra': build_astra_path(astra, self.release)}}
