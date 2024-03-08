@@ -15,6 +15,7 @@ from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id,
                               get_targets_obs)
+from sdssdb.peewee.sdss5db import database
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -159,8 +160,9 @@ class QueryRoutes(Base):
                                                         description='Specify search on carton or program',
                                                         example='carton')] = 'carton'):
         """ Perform a search on carton or program """
-
-        return list(carton_program_search(name, name_type))
+        with database.atomic() as transaction:
+            database.execute_sql('SET LOCAL enable_seqscan=false;')
+            return list(carton_program_search(name, name_type))
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
