@@ -29,6 +29,15 @@ from valis.routes.auth import set_auth
 from valis.routes.base import release
 from valis.settings import Settings, read_valis_config
 
+# set up the solara server
+try:
+    os.environ['SOLARA_ROOT_PATH'] = '/solara'
+    os.environ['SOLARA_APP'] = 'sdss_solara.pages.jdaviz_embed'
+    os.environ['SOLARA_THEME_VARIANT'] = 'dark'
+    # this solara import needs to come after the os environ setup
+    import solara.server.fastapi as solara_server
+except ImportError:
+    solara_server = None
 
 tags_metadata = [
     {
@@ -123,6 +132,10 @@ app.include_router(target.router, prefix='/target', tags=['target'])
 app.include_router(maskbits.router, prefix='/maskbits', tags=['maskbits'])
 app.include_router(mocs.router, prefix='/mocs', tags=['mocs'])
 app.include_router(query.router, prefix='/query', tags=['query'])
+
+# mount the solara server
+if solara_server:
+    app.mount('/solara/', app=solara_server.app)
 
 
 def hack_auth(dd):
