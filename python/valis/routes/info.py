@@ -23,7 +23,7 @@ except ImportError:
     SDSSDataModel = None
     Phases = Surveys = Releases = Tags = ProductModel = SchemaModel = None
 
-from valis.db.db import get_pw_db, pdb
+from valis.db.db import get_pw_db
 from valis.db.models import DbMetadata
 from valis.db.queries import get_db_metadata
 from valis.routes.base import Base, release
@@ -139,7 +139,7 @@ class DataModels(Base):
         return product[0].get_schema()
 
     @router.get('/database', summary='Retrieve sdss5db database table and column metadata',
-                #dependencies=[Depends(get_pw_db)],
+                dependencies=[Depends(get_pw_db)],
                 response_model=Dict[str, Dict[str, DbMetadata]])
     async def get_dbmetadata(self, schema: Annotated[str, Query(description='The sdss5db database schema name', example='targetdb')] = None):
         """ Get the sdss5db database table and column metadata """

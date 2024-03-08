@@ -60,7 +60,7 @@ def connect_db(db, orm: str = 'peewee'):
     return db
 
 # local local dev
-pdb.connect_from_parameters(dbname='sdss5db', host='localhost', port=6000, user='u0857802')
+# pdb.connect_from_parameters(dbname='sdss5db', host='localhost', port=6000, user='u0857802')
 
 def get_pw_db(db_state=Depends(reset_db_state)):
     """ Dependency to connect a database with peewee """
