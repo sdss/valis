@@ -391,19 +391,6 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None):
     if fields and isinstance(fields[0], str):
         fields = (getattr(apo.Star, i) for i in fields)
 
-    # # temporary
-    # if sdss_id == 3350466:
-    #     pk = 2694289
-    # elif sdss_id == 54392544:
-    #     pk = 2913357
-
-    # select a.* from apogee_drp.star as a join astra_050.apogee_visit_spectrum as v on a.pk=v.star_pk
-    # join astra_050.source as s on s.pk=v.source_pk where s.sdss_id=54392544;
-
-    # query = apo.Star.select(*fields).\
-    #     where(apo.Star.pk == pk,
-    #           apo.Star.apred_vers == apred)
-
     s = get_astra_target(sdss_id, release)
     if not s:
         return
@@ -412,16 +399,11 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None):
     if not a:
         return
 
-    return apo.Star.select().where(apo.Star.pk == a.star_pk, vercond)
+    return apo.Star.select(*fields).where(apo.Star.pk == a.star_pk, vercond)
 
 
 def get_astra_target(sdss_id: int, release: str, fields: list = None):
     """ temporary placeholder for astra """
-    # apred = get_software_tag(release, 'apred_vers')
-
-    # query = apo.Star.raw('select a.*, s.* from astra_050.source as s join '
-    #                      'astra_050.apogee_visit_spectrum as a on a.source_pk=s.pk '
-    #                      'where s.sdss_id = %s and a.apred = %s', sdss_id, apred)
 
     vastra = get_software_tag(release, 'v_astra')
     if not vastra or vastra != "0.5.0":
@@ -507,7 +489,7 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> pe
     pipes = get_pipes(sdss_id)
 
     # construct and return the query
-    return pipes.select_extend(bq.star).join(bq, on=(pipes.model.sdss_id == bq.c.sdss_id), attr='boss')
+    return pipes.select_extend(starfields(bq)).join(bq, on=(pipes.model.sdss_id == bq.c.sdss_id), attr='boss')
 
 
 def get_a_spectrum(sdss_id: int, product: str, release: str) -> dict:
@@ -541,7 +523,7 @@ def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
     """
 
     s = vizdb.SDSSidFlat.select(vizdb.SDSSidFlat).where(vizdb.SDSSidFlat.sdss_id == sdss_id).alias('s')
-    return cat.Catalog.select(cat.Catalog, s.star).\
+    return cat.Catalog.select(cat.Catalog, starfields(s)).\
         join(s, on=(s.c.catalogid == cat.Catalog.catalogid)).order_by(cat.Catalog.version.desc())
 
 
