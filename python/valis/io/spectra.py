@@ -9,6 +9,7 @@ from functools import lru_cache
 import astropy.units as u
 from astropy.io import fits
 from astropy.nddata import InverseVariance
+from astropy.wcs import WCS
 
 try:
     from specutils import Spectrum1D
@@ -45,7 +46,7 @@ def get_product_model(product: str) -> dict:
     return prod[0] if prod else None
 
 
-def extract_data(product: str, filepath: str) -> dict:
+def extract_data(product: str, filepath: str, multispec: int | str = None) -> dict:
     """ Extract spectral data from a file
 
     Extract the spectral data for a given data product
@@ -53,12 +54,18 @@ def extract_data(product: str, filepath: str) -> dict:
     identify where in the file the relevant spectral information
     lives.  Extracts header, flux, error, mask and wavelength.
 
+    If multispec provided, extracts the spectral information from that
+    extension.  Currently assumes the same parameters for each extension,
+    see the mwmStar file.
+
     Parameters
     ----------
     product : str
         the name of the data product
     filepath : str
         the filepath to open
+    multispec : int | str
+        the name or number of the extension in a multi-spectral extension file
 
     Returns
     -------
@@ -74,17 +81,31 @@ def extract_data(product: str, filepath: str) -> dict:
         # get the header, remove keys delineating header groups
         data['header'] = {k: v for k, v in hdulist['PRIMARY'].header.items() if k}
         for param, info in prod["parameters"].items():
+            extension = multispec or info['extension']
             if info["type"] == "table":
                 # get the table data
-                vals = hdulist[info['extension']].data[info["column"]]
+                vals = hdulist[extension].data[info["column"]]
 
                 # convert loglam wavelengths
                 if info['column'] == 'LOGLAM':
                     vals = 10 ** vals
 
                 data[param] = vals
+            elif info["type"] == "wcs":
+                wcs = WCS(data['header'])
+                vals = wcs.array_index_to_world(range(info["nwave"]))
+
+                # convert loglam wavelengths
+                if info['column'] == "LOGLAM":
+                    vals = 10 ** vals
+
+                # convert quantity to array
+                if isinstance(vals, u.Quantity):
+                    vals = vals.value
+
+                data[param] = vals
             else:
-                data[param] = hdulist[info['extension']].data
+                data[param] = hdulist[extension].data
 
         return data
 
