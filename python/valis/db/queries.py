@@ -264,6 +264,62 @@ def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
     )
 
 
+def get_targets_obs(release: str, obs: str, spectrograph: str) -> peewee.ModelSelect:
+    """ Return all targets with spectra from a given observatory
+
+    Parameters
+    ----------
+    release : str
+        the data release to look up
+
+    obs: str
+        Observatory to get targets from. Either 'APO' or 'LCO'
+
+    spectrograph: str
+        Which spectrograph to return data from. Can be 'boss',
+        'apogee' or 'all' for both.
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    # get the relevant software tag boss
+    run2d = get_software_tag(release, 'run2d')
+
+    query_boss = vizdb.SDSSidStacked.select()\
+                                    .join(boss.BossSpectrum,
+                                          on=(boss.BossSpectrum.sdss_id == vizdb.SDSSidStacked.sdss_id))\
+                                    .where(boss.BossSpectrum.run2d == run2d,
+                                           boss.BossSpectrum.obs == obs).distinct()
+
+    # get the relevant software tag apogee
+    apred = get_software_tag(release, 'apred_vers')
+
+    # temporary, need to join with sdss_id when added
+    query_ap = vizdb.SDSSidStacked.select()\
+                                  .join(vizdb.SDSSidFlat,
+                                        on=(vizdb.SDSSidFlat.sdss_id == vizdb.SDSSidStacked.sdss_id))\
+                                  .join(apo.Star,
+                                        on=(apo.Star.catalogid == vizdb.SDSSidFlat.catalogid))\
+                                  .where(apo.Star.telescope == obs.lower() + '25m',
+                                         apo.Star.apred_vers == apred).distinct()
+
+    # return union of the above
+    query_all = vizdb.SDSSidStacked.select()\
+                                   .where((vizdb.SDSSidStacked.sdss_id << query_boss) |
+                                          (vizdb.SDSSidStacked.sdss_id << query_ap))
+
+    if spectrograph == 'boss':
+        return query_boss
+    elif spectrograph == 'apogee':
+        return query_ap
+    elif spectrograph == 'all':
+        return query_all
+    else:
+        raise ValueError('Did not pass "boss", "apogee" or "all" to obsWave')
+
+
 # test sdss ids
 # 23326 - boss/astra
 # 3350466 - apogee/astra

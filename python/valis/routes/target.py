@@ -13,7 +13,8 @@ from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
-from valis.db.queries import get_target_meta, get_a_spectrum, get_catalog_sources, get_target_cartons, get_boss_target
+from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
+                              get_target_cartons, get_boss_target, build_boss_path)
 from valis.db.db import get_pw_db
 from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
 
@@ -152,7 +153,8 @@ class Target(Base):
         return res.to_pandas().to_dict('records')
 
     @router.get('/ids/{sdss_id}', summary='Retrieve pipeline metadata for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=Union[SDSSModel, dict],
+                dependencies=[Depends(get_pw_db)],
+                response_model=Union[SDSSModel, dict],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return target metadata for a given sdss_id """
@@ -166,14 +168,16 @@ class Target(Base):
         return get_a_spectrum(sdss_id, product, self.release)
 
     @router.get('/catalogs/{sdss_id}', summary='Retrieve catalog information for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=List[CatalogResponse],
+                dependencies=[Depends(get_pw_db)],
+                response_model=List[CatalogResponse],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return catalog information for a given sdss_id """
         return get_catalog_sources(sdss_id).dicts().iterator()
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=List[CartonModel],
+                dependencies=[Depends(get_pw_db)],
+                response_model=List[CartonModel],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_cartons(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return carton information for a given sdss_id """
@@ -188,13 +192,17 @@ class Target(Base):
                                            Query(enum=['all', 'boss', 'apogee', 'astra'],
                                                  description='Specify search on specific pipeline',
                                                  example='boss')] = 'all'):
+
+        boss = get_boss_target(sdss_id, self.release).dicts().first() or {}
+
         if pipe == 'boss':
-            return {'boss': get_boss_target(sdss_id, self.release).dicts().first()}
+            return {'boss': boss, 'files': {'boss': build_boss_path(boss, self.release)}}
         if pipe == 'apogee':
             return {'apogee': {}}
         if pipe == 'astra':
             return {'astra': {}}
 
-        return {'boss': get_boss_target(sdss_id, self.release).dicts().first(),
+        return {'boss': boss,
                 'apogee': {},
-                'astra': {}}
+                'astra': {},
+                'files': {'boss': build_boss_path(boss, self.release)}}

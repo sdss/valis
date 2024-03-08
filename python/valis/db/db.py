@@ -66,7 +66,7 @@ def get_pw_db(db_state=Depends(reset_db_state)):
     # connect to the db, yield None since we don't need the db in peewee
     db = connect_db(pdb, orm='peewee')
     try:
-        yield None
+        yield db
     finally:
         if db:
             db.close()

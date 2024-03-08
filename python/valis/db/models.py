@@ -119,16 +119,24 @@ class CartonModel(PeeweeBase):
     run_on: Optional[datetime.datetime] = None
 
 
+class PipeFiles(BaseModel):
+    """ Pydantic model for lists of files """
+    boss: Optional[str] = None
+    apogee: Optional[str] = None
+    astra: Optional[str] = None
+
+
 class PipesModel(PeeweeBase):
     """ Pydantic model for pipeline metadata """
     boss: Optional[BossSpectrum] = None
     apogee: Optional[dict] = None
     astra: Optional[dict] = None
+    files: Optional[PipeFiles] = None
 
 
 class DbMetadata(PeeweeBase):
     """ Pydantic response model for the db metadata """
-    schema: str = Field(..., description='the database schema name')
+    dbschema: str = Field(..., description='the database schema name', alias='schema')
     table_name: str = Field(..., description='the database table name')
     column_name: str = Field(..., description='the database column name')
     display_name: str = Field(..., description='a human-readable display name for the column')
