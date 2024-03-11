@@ -6,7 +6,7 @@
 
 import itertools
 import packaging
-from typing import Union
+from typing import Union, Generator
 
 import astropy.units as u
 import peewee
@@ -18,7 +18,7 @@ from sdssdb.peewee.sdss5db import catalogdb as cat
 from sdssdb.peewee.sdss5db import astradb as astra
 
 
-from valis.io.spectra import extract_data
+from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
 from valis.utils.versions import get_software_tag
 
@@ -441,14 +441,8 @@ def get_target_meta(sdss_id: int, release: str) -> dict:
     return pipes.dicts().first()
 
 
-def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> peewee.ModelSelect:
-    """ Get the pipeline info for a target sdss id
-
-    Get the pipeline info for a target sdss_id. Can specify either
-    "boss", "apogee", or "astra" pipeline.  Defaults to getting all
-    available pipeline info.
-
-    Note: currently only works for BHM
+def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
+    """ Get the pipeline metadata for a pipeline
 
     Parameters
     ----------
@@ -457,45 +451,105 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> pe
     release : str
         the SDSS data release
     pipeline : str, optional
-        _description_, by default 'all'
+        the name of the pipeline
 
     Returns
     -------
-    peewee.ModelSelect
-        the output query
+    dict
+        the output pipeline data
+    """
+    # get boss pipeline target
+    if pipeline == 'boss' and (qq := get_boss_target(sdss_id, release)):
+        res = qq.dicts().first()
+        return {pipeline: res, 'files': {pipeline: build_boss_path(res, release)}}
+
+    # get apogee pipeline target
+    elif pipeline == 'apogee' and (qq := get_apogee_target(sdss_id, release)):
+        res = qq.dicts().first()
+        return {pipeline: res, 'files': {pipeline: build_apogee_path(res, release)}}
+
+    # get astra pipeline target
+    elif pipeline == 'astra' and (qq := get_astra_target(sdss_id, release)):
+        res = qq.dicts().first()
+        return {pipeline: res, 'files': {pipeline: build_astra_path(res, release)}}
+
+
+def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> dict:
+    """  Get the pipeline info for a target sdss id
+
+    Get the pipeline info for a target sdss_id. Can specify either
+    "boss", "apogee", or "astra" pipeline.  Defaults to getting all
+    available pipeline info.
+
+    Also returns any spectral filepaths associated with that
+    pipeline data.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the SDSS data release
+    pipeline : str, optional
+        the name of the pipeline, by default 'all'
+
+    Returns
+    -------
+    dict
+        a dictionary of pipeline result data
+    """
+    # get the pipeline lookup table
+    pipes = get_pipes(sdss_id).dicts().first()
+
+    # create initial dict
+    data = {'info': {},
+            'boss': {}, 'apogee': {}, 'astra': {},
+            'files': {'boss': '', 'apogee': '', 'astra': ''}}
+    data['info'].update(pipes)
+
+    # get only a given pipeline data
+    if pipeline in {'boss', 'apogee', 'astra'} and pipes[f'in_{pipeline}']:
+        if (res := get_pipe_meta(sdss_id, release, pipeline)):
+            data.update(res)
+
+    # get everything
+    elif pipeline == 'all':
+        # get boss
+        if pipes['in_boss'] and (res := get_pipe_meta(sdss_id, release, 'boss')):
+            data.update(res)
+
+        # get apogee
+        if pipes['in_apogee'] and (res := get_pipe_meta(sdss_id, release, 'apogee')):
+            data.update(res)
+
+        # get astra
+        if pipes['in_astra'] and  (res := get_pipe_meta(sdss_id, release, 'astra')):
+            data.update(res)
+
+    return data
+
+
+def _yield_boss_spectrum(sdss_id: int, product: str, release: str) -> Generator:
+    """ Yield a boss spectrum
+
+    Yield the boss spectral data for a given target sdss_id and data release,
+    and a SDSS data product, i.e. sdss_access path name.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    product : str
+        the name of the SDSS data product
+    release : str
+        the SDSS data release
+
+    Yields
+    -------
+    generator
+        the extracted spectral data from the file
     """
 
-    if pipeline == 'boss':
-        return get_boss_target(sdss_id, release)
-
-    if pipeline == 'apogee':
-        return get_apogee_target(sdss_id, release)
-
-    if pipeline == 'astra':
-        return get_astra_target(sdss_id, release)
-
-    # get which pipelines
-    res = get_pipes(sdss_id).dicts().first()
-
-    # get the boss metadata
-    if res['in_boss']:
-        bq = get_boss_target(sdss_id, release)
-    if res['in_apogee']:
-        apq = get_apogee_target(sdss_id, release)
-    if res['in_astra']:
-        asq = get_astra_target(sdss_id, release)
-
-    # create a pipes cte
-    pipes = get_pipes(sdss_id)
-
-    # construct and return the query
-    return pipes.select_extend(starfields(bq)).join(bq, on=(pipes.model.sdss_id == bq.c.sdss_id), attr='boss')
-
-
-def get_a_spectrum(sdss_id: int, product: str, release: str) -> dict:
-    """ temporary POC to get a spectrum """
-    # missing - query vizdb table to get sdss_id pipelines info
-    # missing - query to get apogee, astra target info
     query = get_boss_target(sdss_id, release)
     for row in query.dicts().iterator():
         filepath = build_boss_path(row, release)
@@ -503,6 +557,93 @@ def get_a_spectrum(sdss_id: int, product: str, release: str) -> dict:
             yield extract_data(product, filepath)
         except FileNotFoundError:
             yield None
+
+
+def _yield_apogee_spectrum(sdss_id: int, product: str, release: str) -> Generator:
+    """ Yield a apogee spectrum
+
+    Yield the apogee spectral data for a given target sdss_id and data release,
+    and a SDSS data product, i.e. sdss_access path name.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    product : str
+        the name of the SDSS data product
+    release : str
+        the SDSS data release
+
+    Yields
+    -------
+    generator
+        the extracted spectral data from the file
+    """
+    query = get_apogee_target(sdss_id, release)
+    for row in query.dicts().iterator():
+        filepath = build_apogee_path(row, release)
+        try:
+            yield extract_data(product, filepath)
+        except FileNotFoundError:
+            yield None
+
+
+def _yield_astra_spectrum(sdss_id: int, product: str, release: str) -> Generator:
+    """ Yield a astra spectrum
+
+    Yield the astra spectral data for a given target sdss_id and data release,
+    and a SDSS data product, i.e. sdss_access path name.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    product : str
+        the name of the SDSS data product
+    release : str
+        the SDSS data release
+
+    Yields
+    -------
+    generator
+        the extracted spectral data from the file
+    """
+    query = get_astra_target(sdss_id, release)
+    for row in query.dicts().iterator():
+        filepath = build_astra_path(row, release)
+        try:
+            yield extract_data(product, filepath)
+        except FileNotFoundError:
+            yield None
+
+
+def get_a_spectrum(sdss_id: int, product: str, release: str) -> Generator:
+    """ Yield a spectrum
+
+    Yield the spectral data for a given target sdss_id and data release,
+    and a SDSS data product, i.e. sdss_access path name.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    product : str
+        the name of the SDSS data product
+    release : str
+        the SDSS data release
+
+    Yields
+    -------
+    generator
+        the extracted spectral data from the file
+    """
+    model = get_product_model(product)
+    if model['pipeline'] == 'boss':
+        yield from _yield_boss_spectrum(sdss_id, product, release)
+    elif model['pipeline'] == 'apogee':
+        yield from _yield_apogee_spectrum(sdss_id, product, release)
+    elif model['pipeline'] == 'astra':
+        yield from _yield_astra_spectrum(sdss_id, product, release)
 
 
 def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:

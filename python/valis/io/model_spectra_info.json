@@ -2,6 +2,7 @@
     {
         "product": "specLite",
         "aliases": ["specFull", "spec-lite", "spec"],
+        "pipeline": "boss",
         "multi_spectra": false,
         "parameters": {
             "flux": {"extension": 1, "type": "table", "column": "FLUX", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
@@ -13,6 +14,7 @@
     {
         "product": "apStar",
         "aliases": ["apstar"],
+        "pipeline": "apogee",
         "multi_spectra": false,
         "parameters": {
             "flux": {"extension": 1, "type": "image", "column": "FLUX", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
@@ -24,6 +26,7 @@
     {
         "product": "mwmStar",
         "aliases": ["mwmstar"],
+        "pipeline": "astra",
         "multi_spectra": true,
         "spectral_extensions": ["BOSS/APO", "BOSS/LCO", "APOGEE/APO", "APOGEE/LCO"],
         "parameters": {

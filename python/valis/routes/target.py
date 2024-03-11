@@ -14,9 +14,7 @@ from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_target_cartons, get_boss_target, get_apogee_target,
-                              get_astra_target, build_boss_path, build_apogee_path,
-                              build_astra_path)
+                              get_target_cartons, get_target_pipeline)
 from valis.db.db import get_pw_db
 from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
 
@@ -202,23 +200,4 @@ class Target(Base):
                                                  description='Specify search on specific pipeline',
                                                  example='boss')] = 'all'):
 
-        boss = get_boss_target(sdss_id, self.release) or {}
-        apogee = get_apogee_target(sdss_id, self.release) or {}
-        astra = get_astra_target(sdss_id, self.release) or {}
-        boss = boss.dicts().first() if boss else {}
-        apogee = apogee.dicts().first() if apogee else {}
-        astra = astra.dicts().first() if astra else {}
-
-        if pipe == 'boss':
-            return {'boss': boss, 'files': {'boss': build_boss_path(boss, self.release)}}
-        if pipe == 'apogee':
-            return {'apogee': apogee, 'files': {'apogee': build_apogee_path(apogee, self.release)}}
-        if pipe == 'astra':
-            return {'astra': astra, 'files': {'astra': build_astra_path(astra, self.release)}}
-
-        return {'boss': boss,
-                'apogee': apogee,
-                'astra': astra,
-                'files': {'boss': build_boss_path(boss, self.release),
-                          'apogee': build_apogee_path(apogee, self.release),
-                          'astra': build_astra_path(astra, self.release)}}
+        return get_target_pipeline(sdss_id, self.release, pipe)
