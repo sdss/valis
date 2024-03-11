@@ -171,8 +171,9 @@ class Target(Base):
                 response_model=List[SpectrumModel])
     async def get_spectrum(self, sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
                            product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
+                           ext: Annotated[str, Query(description='For multi-extension spectra, e.g. mwmStar, the name of the spectral extension', example='BOSS/APO')] = None,
                            ):
-        return get_a_spectrum(sdss_id, product, self.release)
+        return get_a_spectrum(sdss_id, product, self.release, ext=ext)
 
     @router.get('/catalogs/{sdss_id}', summary='Retrieve catalog information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],

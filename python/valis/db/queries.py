@@ -560,7 +560,7 @@ def _yield_boss_spectrum(sdss_id: int, product: str, release: str) -> Generator:
 
 
 def _yield_apogee_spectrum(sdss_id: int, product: str, release: str) -> Generator:
-    """ Yield a apogee spectrum
+    """ Yield an apogee spectrum
 
     Yield the apogee spectral data for a given target sdss_id and data release,
     and a SDSS data product, i.e. sdss_access path name.
@@ -588,8 +588,8 @@ def _yield_apogee_spectrum(sdss_id: int, product: str, release: str) -> Generato
             yield None
 
 
-def _yield_astra_spectrum(sdss_id: int, product: str, release: str) -> Generator:
-    """ Yield a astra spectrum
+def _yield_astra_spectrum(sdss_id: int, product: str, release: str, ext: str) -> Generator:
+    """ Yield an astra spectrum
 
     Yield the astra spectral data for a given target sdss_id and data release,
     and a SDSS data product, i.e. sdss_access path name.
@@ -602,6 +602,8 @@ def _yield_astra_spectrum(sdss_id: int, product: str, release: str) -> Generator
         the name of the SDSS data product
     release : str
         the SDSS data release
+    ext : str
+        the name of spectral extension
 
     Yields
     -------
@@ -612,12 +614,12 @@ def _yield_astra_spectrum(sdss_id: int, product: str, release: str) -> Generator
     for row in query.dicts().iterator():
         filepath = build_astra_path(row, release)
         try:
-            yield extract_data(product, filepath)
+            yield extract_data(product, filepath, multispec=ext)
         except FileNotFoundError:
             yield None
 
 
-def get_a_spectrum(sdss_id: int, product: str, release: str) -> Generator:
+def get_a_spectrum(sdss_id: int, product: str, release: str, ext: str = None) -> Generator:
     """ Yield a spectrum
 
     Yield the spectral data for a given target sdss_id and data release,
@@ -631,6 +633,8 @@ def get_a_spectrum(sdss_id: int, product: str, release: str) -> Generator:
         the name of the SDSS data product
     release : str
         the SDSS data release
+    ext : str
+        the name of the spectral extension, e.g. BOSS/APO
 
     Yields
     -------
@@ -643,7 +647,7 @@ def get_a_spectrum(sdss_id: int, product: str, release: str) -> Generator:
     elif model['pipeline'] == 'apogee':
         yield from _yield_apogee_spectrum(sdss_id, product, release)
     elif model['pipeline'] == 'astra':
-        yield from _yield_astra_spectrum(sdss_id, product, release)
+        yield from _yield_astra_spectrum(sdss_id, product, release, ext=ext)
 
 
 def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
