@@ -5,6 +5,7 @@
 import pathlib
 import json
 from functools import lru_cache
+from typing import Union
 
 import astropy.units as u
 from astropy.io import fits
@@ -46,7 +47,7 @@ def get_product_model(product: str) -> dict:
     return prod[0] if prod else None
 
 
-def extract_data(product: str, filepath: str, multispec: int | str = None) -> dict:
+def extract_data(product: str, filepath: str, multispec: Union[int, str] = None) -> dict:
     """ Extract spectral data from a file
 
     Extract the spectral data for a given data product
