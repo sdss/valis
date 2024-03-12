@@ -149,51 +149,30 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
                                               dec_col='dec_sdss_id'))
 
 
-def get_targets_by_sdss_id(sdss_id: int) -> peewee.ModelSelect:
-    """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on the sdss_id.
+def get_targets_by_sdss_id(sdss_id: Union[int, list[int]] = []) -> peewee.ModelSelect:
+    """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on sdss_id values.
 
     Perform a search for SDSS targets using the peewee ORM in the
-    vizdb.SDSSidStacked table. We return the peewee ModelSelect
-    directly here so it can be easily combined with other queries,
-    if needed.
+    vizdb.SDSSidStacked table, based on single or multiple sdss_ids values.
+    We return the peewee ModelSelect directly here so it can be easily combined 
+    with other queries, if needed.
 
     In the route endpoint itself, remember to return wrap this in a list.
 
     Parameters
     ----------
-    sdss_id : int
-        the sdss_id
+    sdss_id : Union[int, list[int]]
+        the sdss_id or list of sdss_id values
 
     Returns
     -------
     peewee.ModelSelect
         the ORM query
     """
+    if type(sdss_id) == int:
+        sdss_id = [sdss_id]
 
-    return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id == sdss_id)
-
-def get_targets_by_sdss_id_list(sdss_id_list: list = []) -> peewee.ModelSelect:
-    """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on a list if sdss_ids.
-
-    Perform a search for SDSS targets from a list of sdss_id values, 
-    using the peewee ORM in the vizdb.SDSSidStacked table. 
-    We return the peewee ModelSelect directly here so it can be 
-    easily combined with other queries, if needed.
-
-    In the route endpoint itself, remember to return wrap this in a list.
-
-    Parameters
-    ----------
-    sdss_id_list : List[int]
-        list of sdss_id values
-
-    Returns
-    -------
-    peewee.ModelSelect
-        the ORM query
-    """
-
-    return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id.in_(sdss_id_list))
+    return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id.in_(sdss_id))
 
 def get_targets_by_catalog_id(catalog_id: int) -> peewee.ModelSelect:
     """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on the catalog_id.

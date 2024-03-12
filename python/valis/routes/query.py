@@ -13,8 +13,7 @@ from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
-                              get_targets_by_sdss_id, get_targets_by_catalog_id,
-                              get_targets_by_sdss_id_list)
+                              get_targets_by_sdss_id, get_targets_by_catalog_id)
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -131,7 +130,7 @@ class QueryRoutes(Base):
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def sdss_ids_search(self, body: SDSSIdsModel):
         """ Perform a search for SDSS targets based on a list of input sdss_id values."""
-        return list(get_targets_by_sdss_id_list(body.sdss_id_list))
+        return list(get_targets_by_sdss_id(body.sdss_id_list))
     
     @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
