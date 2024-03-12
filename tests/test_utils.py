@@ -6,6 +6,9 @@ import pytest
 from valis.utils.paths import build_boss_path, build_apogee_path, build_file_path
 
 
+datamodel = pytest.importorskip("datamodel")
+
+
 boss_res = {'field': 15078, 'mjd': 59187, 'run2d': 'v6_1_2', 'obs': 'APO',
             'nexp': 4, 'catalogid': 4291570940, 'sdss_id': 54392544}
 astra_res = {'sdss_id': 54392544, 'catalogid': 27021597850854486, 'v_astra': '0.5.0'}
