@@ -14,7 +14,7 @@ from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_target_cartons, get_boss_target, build_boss_path)
+                              get_target_cartons, get_target_pipeline)
 from valis.db.db import get_pw_db
 from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
 
@@ -150,6 +150,12 @@ class Target(Base):
 
         # perform the cone search
         res = Simbad.query_region(s, radius=radius * u.Unit(runit))
+
+        # raise an error if no result found
+        if not res:
+            raise HTTPException(status_code=404, detail=Simbad.last_parsed_result.error_raw)
+
+        # return successful result
         return res.to_pandas().to_dict('records')
 
     @router.get('/ids/{sdss_id}', summary='Retrieve pipeline metadata for a target sdss_id',
@@ -161,11 +167,13 @@ class Target(Base):
         return get_target_meta(sdss_id, self.release) or {}
 
     @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
-                dependencies=[Depends(get_pw_db)], response_model=List[SpectrumModel])
+                dependencies=[Depends(get_pw_db)],
+                response_model=List[SpectrumModel])
     async def get_spectrum(self, sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
                            product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
+                           ext: Annotated[str, Query(description='For multi-extension spectra, e.g. mwmStar, the name of the spectral extension', example='BOSS/APO')] = None,
                            ):
-        return get_a_spectrum(sdss_id, product, self.release)
+        return get_a_spectrum(sdss_id, product, self.release, ext=ext)
 
     @router.get('/catalogs/{sdss_id}', summary='Retrieve catalog information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],
@@ -193,16 +201,4 @@ class Target(Base):
                                                  description='Specify search on specific pipeline',
                                                  example='boss')] = 'all'):
 
-        boss = get_boss_target(sdss_id, self.release).dicts().first() or {}
-
-        if pipe == 'boss':
-            return {'boss': boss, 'files': {'boss': build_boss_path(boss, self.release)}}
-        if pipe == 'apogee':
-            return {'apogee': {}}
-        if pipe == 'astra':
-            return {'astra': {}}
-
-        return {'boss': boss,
-                'apogee': {},
-                'astra': {},
-                'files': {'boss': build_boss_path(boss, self.release)}}
+        return get_target_pipeline(sdss_id, self.release, pipe)
