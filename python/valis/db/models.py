@@ -7,7 +7,7 @@
 import datetime
 from typing import Optional
 from pydantic import ConfigDict, BaseModel, Field
-
+from enum import Enum
 
 # for how to specify required, optional, default, etc, see
 # https://docs.pydantic.dev/latest/migration/#required-optional-and-nullable-fields
@@ -143,3 +143,10 @@ class DbMetadata(PeeweeBase):
     description: str = Field(..., description='a description of the database column')
     unit: Optional[str] = Field(None, description='the unit if any for the database column')
     sql_type: Optional[str] = Field(None, description='the data type of the column')
+
+
+class MapperName(str, Enum):
+    """Mapper names"""
+    MWM: str = 'MWM'
+    BHM: str = 'BHM'
+    LVM: str = 'LVM'

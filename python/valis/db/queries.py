@@ -16,6 +16,7 @@ from sdssdb.peewee.sdss5db import targetdb, vizdb
 from sdssdb.peewee.sdss5db import catalogdb as cat
 
 
+from valis.db.models import MapperName
 from valis.io.spectra import extract_data
 from valis.utils.paths import build_boss_path
 from valis.utils.versions import get_software_tag
@@ -499,7 +500,7 @@ def get_db_metadata(schema: str = None) -> peewee.ModelSelect:
         query = query.where(vizdb.DbMetadata.schema == schema)
     return query
 
-def get_paged_target_list_by_mapper(mapper: Union[str, int] = "MWM", page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
+def get_paged_target_list_by_mapper(mapper: MapperName = MapperName.MWM, page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
     """ Return a paged list of target rows, based on the mapper.
 
     Return paginated and ordered target rows (of a particular mapper)
@@ -510,8 +511,8 @@ def get_paged_target_list_by_mapper(mapper: Union[str, int] = "MWM", page_number
 
     Parameters
     ----------
-    mapper : Union[str, int]
-        label or integer id (pk) of the mapper from targetdb.Mapper table.
+    mapper : MapperName
+        Enum denoting the mapper name.
     page_number : int
         Page number of the returned target rows.
     items_per_page : int
@@ -522,37 +523,16 @@ def get_paged_target_list_by_mapper(mapper: Union[str, int] = "MWM", page_number
     peewee.ModelSelect
         the ORM query
     """
-
-    where_condition = targetdb.Mapper.pk == mapper if type(mapper) == int else targetdb.Mapper.label == mapper
+    
+    if mapper is MapperName.MWM:
+        where_condition = vizdb.SDSSidToPipes.in_apogee == True
+    elif mapper is MapperName.BHM:
+        where_condition = vizdb.SDSSidToPipes.in_boss == True
+    else:
+        where_condition = False
 
     return vizdb.SDSSidStacked.select()\
-                .where(\
-                    vizdb.SDSSidStacked.sdss_id.in_(\
-                    vizdb.SDSSidFlat.select(vizdb.SDSSidFlat.sdss_id)\
-                                    .join(targetdb.Target, \
-                                          on=(vizdb.SDSSidFlat.catalogid == targetdb.Target.catalogid))\
-                                    .join(targetdb.CartonToTarget, \
-                                          on=(targetdb.Target.pk == targetdb.CartonToTarget.target))\
-                                    .join(targetdb.Carton, \
-                                          on=(targetdb.Carton.pk == targetdb.CartonToTarget.carton))\
-                                    .join(targetdb.Mapper,
-                                          on=(targetdb.Mapper.pk == targetdb.Carton.mapper))\
-                                    .where(where_condition)\
-                                    .order_by(vizdb.SDSSidFlat.sdss_id)\
-                                    .paginate(page_number, items_per_page)\
-                                )\
-                )\
-                .order_by(vizdb.SDSSidStacked.sdss_id)
-
-def get_mappers() -> peewee.ModelSelect:
-    """Return the list of all mapper names.
-
-    Return the list of all mapper name labels and their asscociated IDs,
-    using the peewee ORM. We return the peewee ModelSelect.
-
-    Returns
-    -------
-    peewee.ModelSelect
-        the ORM query
-    """
-    return targetdb.Mapper.select().order_by(targetdb.Mapper.pk)
+                .join(vizdb.SDSSidToPipes, on = (vizdb.SDSSidStacked.sdss_id == vizdb.SDSSidToPipes.sdss_id))\
+                .where(where_condition)\
+                .order_by(vizdb.SDSSidStacked.sdss_id)\
+                .paginate(page_number, items_per_page)
