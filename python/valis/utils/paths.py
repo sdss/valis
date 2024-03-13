@@ -8,7 +8,8 @@ from sdss_access.path import Path
 from valis.utils.versions import get_tags
 
 
-def build_file_path(values: dict, product: str, release: str, remap: dict = None) -> str:
+def build_file_path(values: dict, product: str, release: str, remap: dict = None,
+                    defaults: dict = None, ignore_existence: bool = False) -> str:
     """ Build a filepath to an SDSS data product
 
     Constructs the SAS filepath on disk for an SDSS data product for a
@@ -22,6 +23,9 @@ def build_file_path(values: dict, product: str, release: str, remap: dict = None
     ``field`` in the specLite path template.  These can be remapped with
     ``{"fieldid": "field"}``.
 
+    To supply a default value for a path keyword use the ``defaults`` mapping. For
+    example, the mwmStar path keyword ``component``.
+
     Parameters
     ----------
     values : dict
@@ -32,6 +36,10 @@ def build_file_path(values: dict, product: str, release: str, remap: dict = None
         the data release
     remap : dict, optional
         a mapping between input keys and path template keys, by default None
+    defaults : dict, optional
+        a mapping of default values for path keywords
+    ignore_existence : bool, optional
+        flag to ignore file existence and return path, by default False
 
     Returns
     -------
@@ -63,22 +71,32 @@ def build_file_path(values: dict, product: str, release: str, remap: dict = None
 
     # build the path keyword dictionary
     # look for keyword values in order of:
-    #   model fields, remapped model fields, or software tag
+    #   model fields, remapped model fields, software tag or defaults
     new = {}
     remap = remap or {}
+    defaults = defaults or {}
     for kwarg in kwargs:
-        new[kwarg] = values.get(kwarg) or values.get(remap.get(kwarg)) or tags.get(kwarg)
+        new[kwarg] = (values.get(kwarg) or values.get(remap.get(kwarg))
+                      or tags.get(kwarg) or defaults.get(kwarg))
 
-    # check final kwargs
-    if not all(new.values()):
+    # check final kwargs that none are None ; empty string values are allowed
+    if any((i is None for i in new.values())):
         raise ValueError('Not all path keywords found in model fields or tags: '
                          f"{[k for k, v in new.items() if not v]}.  Can't build filepath.")
 
     # build the filepath
-    return path.full(product, **new)
+    filepath = path.full(product, **new)
+
+    # return nothing if the filepath doesn't exist
+    if not path.exists('', full=filepath) and not ignore_existence:
+        print(f'Filepath {filepath} does not exist on disk. Returning null string.')
+        return ''
+    else:
+        return filepath
 
 
-def build_boss_path(values: dict, release: str, lite: bool = True) -> str:
+def build_boss_path(values: dict, release: str, lite: bool = True,
+                    ignore_existence: bool = False) -> str:
     """ Build a BOSS or BHWM file path
 
     Builds a BOSS or BHM file path to the specLite or specFull files.
@@ -95,6 +113,8 @@ def build_boss_path(values: dict, release: str, lite: bool = True) -> str:
         the data release
     lite : bool, optional
         Flag to indicate the specLite file, by default True
+    ignore_existence : bool, optional
+        flag to ignore file existence and return path, by default False
 
     Returns
     -------
@@ -106,4 +126,54 @@ def build_boss_path(values: dict, release: str, lite: bool = True) -> str:
     else:
         name = 'spec-lite' if lite else 'spec'
 
-    return build_file_path(values, name, release, remap={'fieldid': 'field'})
+    return build_file_path(values, name, release, remap={'fieldid': 'field'},
+                           ignore_existence=ignore_existence)
+
+
+def build_apogee_path(values: dict, release: str, ignore_existence: bool = False) -> str:
+    """ Build an Apogee apStar file path
+
+    Builds an Apogee file path to the apStar file.  It remaps the
+    database ``apogee_id`` to path template ``obj``.
+
+    Parameters
+    ----------
+    values : dict
+        the input data values to give to the path template
+    release : str
+        the data release
+    ignore_existence : bool, optional
+        flag to ignore file existence and return path, by default False
+
+    Returns
+    -------
+    str
+        the output file path
+    """
+    return build_file_path(values, 'apStar', release,
+                           remap={'obj': 'apogee_id', 'apred': 'apred_vers'},
+                           ignore_existence=ignore_existence)
+
+
+def build_astra_path(values: dict, release: str, ignore_existence: bool = False) -> str:
+    """ Build an Astra mwmStar file path
+
+    Builds an Astra file path to the mwmStar file.  It sets a default
+    keyword value for ``component`` to an empty string.
+
+    Parameters
+    ----------
+    values : dict
+        the input data values to give to the path template
+    release : str
+        the data release
+    ignore_existence : bool, optional
+        flag to ignore file existence and return path, by default False
+
+    Returns
+    -------
+    str
+        the output file path
+    """
+    return build_file_path(values, 'mwmStar', release, defaults={'component': ''},
+                           ignore_existence=ignore_existence)

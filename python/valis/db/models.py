@@ -5,9 +5,20 @@
 # all resuable Pydantic models of the ORMs go here
 
 import datetime
-from typing import Optional
-from pydantic import ConfigDict, BaseModel, Field
+import math
+from typing import Optional, Annotated, Any, TypeVar
+from pydantic import ConfigDict, BaseModel, Field, BeforeValidator
 from enum import Enum
+
+
+def coerce_nan_to_none(x: Any) -> Any:
+    if x and math.isnan(x):
+        return None
+    return x
+
+T = TypeVar('T')
+
+FloatNaN = Annotated[Optional[T], BeforeValidator(coerce_nan_to_none)]
 
 # for how to specify required, optional, default, etc, see
 # https://docs.pydantic.dev/latest/migration/#required-optional-and-nullable-fields
@@ -85,6 +96,81 @@ class BossSpectrum(PeeweeBase):
     objtype: str = None
     specobjid: int = None
 
+class AstraSource(PeeweeBase):
+    """ Pydantic response model for the MWM Astra source metadata """
+    sdss_id: int = None
+    sdss4_apogee_id: Optional[int] = None
+    gaia_dr2_source_id: Optional[int] = None
+    gaia_dr3_source_id: Optional[int] = None
+    tic_v8_id: Optional[int] = None
+    healpix: int = None
+    n_associated: int = None
+    n_neighborhood: int = None
+    sdss4_apogee_target1_flags: int = None
+    sdss4_apogee_target2_flags: int = None
+    sdss4_apogee2_target1_flags: int = None
+    sdss4_apogee2_target2_flags: int = None
+    sdss4_apogee2_target3_flags: int = None
+    sdss4_apogee_member_flags: int = None
+    sdss4_apogee_extra_target_flags: int = None
+    ra: float = None
+    dec: float = None
+    n_boss_visits: int = None
+    n_apogee_visits: int = None
+    l: float = None
+    b: float = None
+    ebv: float = None
+    e_ebv: float = None
+    gaia_v_rad: FloatNaN[float] = None
+    gaia_e_v_rad: FloatNaN[float] = None
+    g_mag: FloatNaN[float] = None
+    bp_mag: FloatNaN[float] = None
+    rp_mag: FloatNaN[float] = None
+    j_mag: FloatNaN[float] = None
+    e_j_mag: FloatNaN[float] = None
+    h_mag: FloatNaN[float] = None
+    e_h_mag: FloatNaN[float] = None
+    k_mag: FloatNaN[float] = None
+    e_k_mag: FloatNaN[float] = None
+
+class ApogeeStar(PeeweeBase):
+    """ Pydantic response model for the MWM Apogee DRP pipeline star metadata """
+    apogee_id: str = None
+    file: str = None
+    uri: str = None
+    starver: int = None
+    mjdbeg: int = None
+    mjdend: int = None
+    telescope: str = None
+    apred_vers: str = None
+    healpix: int = None
+    snr: float = None
+    ra: float = None
+    dec: float = None
+    glon: float = None
+    glat: float = None
+    jmag: float = None
+    jerr: float = None
+    hmag: float = None
+    herr: float = None
+    kmag: float = None
+    kerr: float = None
+    src_h: str = None
+    apogee_target1: int = None
+    apogee_target2: int = None
+    apogee2_target1: int = None
+    apogee2_target2: int = None
+    apogee2_target3: int = None
+    apogee2_target4: int = None
+    catalogid: int = None
+    gaiadr2_sourceid: int = None
+    firstcarton: str = None
+    targflags: str = None
+    nvisits: int = None
+    ngoodvisits: int = None
+    ngoodrvs: int = None
+    starflag: int = None
+    starflags: str = None
 
 class CatalogModel(PeeweeBase):
     """ Pydantic model for source catalog information """
@@ -129,8 +215,8 @@ class PipeFiles(BaseModel):
 class PipesModel(PeeweeBase):
     """ Pydantic model for pipeline metadata """
     boss: Optional[BossSpectrum] = None
-    apogee: Optional[dict] = None
-    astra: Optional[dict] = None
+    apogee: Optional[ApogeeStar] = None
+    astra: Optional[AstraSource] = None
     files: Optional[PipeFiles] = None
 
 

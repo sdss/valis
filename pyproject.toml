@@ -29,7 +29,7 @@ build = "build.py"
 valis = "valis.cli:main"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 sdss-tree = "^4.0.0"
 sdss-access = "^3.0.0"
 sdsstools = "^1.0.0"
@@ -46,7 +46,8 @@ httpx = "^0.24.0"
 astroquery = "^0.4.6"
 pandas = "^1.5.3"
 SQLAlchemy = "^1.4.35"
-sdssdb = "^0.8.0"
+sdssdb = "^0.9.0"
+sdss-solara = {git = "https://github.com/sdss/sdss_solara.git"}
 
 
 [tool.poetry.dev-dependencies]

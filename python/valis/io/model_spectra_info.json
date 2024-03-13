@@ -2,11 +2,38 @@
     {
         "product": "specLite",
         "aliases": ["specFull", "spec-lite", "spec"],
+        "pipeline": "boss",
+        "multi_spectra": false,
         "parameters": {
             "flux": {"extension": 1, "type": "table", "column": "FLUX", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
             "wavelength": {"extension": 1, "type": "table", "column": "LOGLAM", "units": "Angstrom"},
             "error": {"extension": 1, "type": "table", "column": "IVAR"},
             "mask": {"extension": 1, "type": "table", "column": "OR_MASK"}
+        }
+    },
+    {
+        "product": "apStar",
+        "aliases": ["apstar"],
+        "pipeline": "apogee",
+        "multi_spectra": false,
+        "parameters": {
+            "flux": {"extension": 1, "type": "image", "column": "FLUX", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
+            "wavelength": {"extension": 0, "type": "wcs", "column": "LOGLAM", "nwave": 8575, "units": "Angstrom"},
+            "error": {"extension": 2, "type": "image", "column": "ERROR", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
+            "mask": {"extension": 3, "type": "image", "column": "MASK"}
+        }
+    },
+    {
+        "product": "mwmStar",
+        "aliases": ["mwmstar"],
+        "pipeline": "astra",
+        "multi_spectra": true,
+        "spectral_extensions": ["BOSS/APO", "BOSS/LCO", "APOGEE/APO", "APOGEE/LCO"],
+        "parameters": {
+            "flux": {"extension": 1, "type": "table", "column": "flux", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
+            "wavelength": {"extension": 1, "type": "table", "column": "wavelength", "units": "Angstrom"},
+            "error": {"extension": 1, "type": "table", "column": "ivar"},
+            "mask": {"extension": 1, "type": "table", "column": "pixel_flags"}
         }
     }
 ]
