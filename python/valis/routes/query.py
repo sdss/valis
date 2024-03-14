@@ -195,9 +195,9 @@ class QueryRoutes(Base):
     @router.get('/mapper', summary='Perform a search for SDSS targets based on the mapper',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def get_target_list_by_mapper(self, 
-                                        mapper: MapperName = Query(default=MapperName.MWM, description='Mapper name', example=MapperName.MWM),
-                                        page_number: int = Query(description='Page number of the returned items', gt=0, example=1),
-                                        items_per_page: int = Query(description='Number of items displayed in a page', gt=0, example=10)):
+                                        mapper: Annotated[MapperName, Query(description='Mapper name', example=MapperName.MWM)] = MapperName.MWM,
+                                        page_number: Annotated[int, Query(description='Page number of the returned items', gt=0, example=1)] = 1,
+                                        items_per_page: Annotated[int, Query(description='Number of items displayed in a page', gt=0, example=10)] = 10):
         """ Return an ordered and paged list of targets based on the mapper."""
         targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
         return list(targets)
