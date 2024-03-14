@@ -18,6 +18,7 @@ from sdssdb.peewee.sdss5db import catalogdb as cat
 from sdssdb.peewee.sdss5db import astradb as astra
 
 
+from valis.db.models import MapperName
 from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
 from valis.utils.versions import get_software_tag
@@ -717,6 +718,44 @@ def get_db_metadata(schema: str = None) -> peewee.ModelSelect:
     if schema:
         query = query.where(vizdb.DbMetadata.schema == schema)
     return query
+
+
+def get_paged_target_list_by_mapper(mapper: MapperName = MapperName.MWM, page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
+    """ Return a paged list of target rows, based on the mapper.
+
+    Return paginated and ordered target rows (of a particular mapper)
+    from the vizdb.SDSSidStacked table,
+    using the peewee ORM. We return the peewee ModelSelect
+    directly here so it can be easily combined with other queries,
+    if needed.
+
+    Parameters
+    ----------
+    mapper : MapperName
+        Enum denoting the mapper name.
+    page_number : int
+        Page number of the returned target rows.
+    items_per_page : int
+        Number of target rows displayed in the page.
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    
+    if mapper is MapperName.MWM:
+        where_condition = vizdb.SDSSidToPipes.in_apogee == True
+    elif mapper is MapperName.BHM:
+        where_condition = vizdb.SDSSidToPipes.in_boss == True
+    else:
+        where_condition = False
+
+    return vizdb.SDSSidStacked.select()\
+                .join(vizdb.SDSSidToPipes, on = (vizdb.SDSSidStacked.sdss_id == vizdb.SDSSidToPipes.sdss_id))\
+                .where(where_condition)\
+                .order_by(vizdb.SDSSidStacked.sdss_id)\
+                .paginate(page_number, items_per_page)
 
 
 def starfields(model: peewee.ModelSelect) -> peewee.NodeList:
