@@ -758,6 +758,46 @@ def get_paged_target_list_by_mapper(mapper: MapperName = MapperName.MWM, page_nu
                 .paginate(page_number, items_per_page)
 
 
+def get_paged_sdss_id_list(search_integer: int, page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
+    """ Return a paged list of sdss_id values.
+    Return paginated and ordered sdss_id column values (based on an input search value)
+    from the vizdb.SDSSidStacked table using the peewee ORM.
+    We return the peewee ModelSelect
+    directly here so it can be easily combined with other queries, 
+    if needed. 
+    Parameters
+    ----------
+    search_integer : int
+        Integer that matches the starting digits of the returned sdss_id values.
+    page_number : int
+        Page number of the returned sdss_id values.
+    items_per_page : int
+        Number of sdss_id values displayed in the page.
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    max_sdss_id = vizdb.SDSSidStacked.select(peewee.fn.MAX(vizdb.SDSSidStacked.sdss_id)).scalar()
+
+    max_num_digits = len(str(max_sdss_id))
+    num_search_digits = len(str(search_integer))
+    max_i =  max_num_digits - num_search_digits + 1
+
+    where_condition = (False)
+    for i in range(0, max_i):
+        min_id = int(search_integer * 10**(i))
+        max_id = int((search_integer + 1) * 10**(i))
+        where = ((vizdb.SDSSidStacked.sdss_id >=  min_id) & (vizdb.SDSSidStacked.sdss_id < max_id))
+        where_condition = where_condition | where
+
+    return vizdb.SDSSidStacked.select(vizdb.SDSSidStacked.sdss_id)\
+                              .where(where_condition)\
+                              .order_by(vizdb.SDSSidStacked.sdss_id)\
+                              .paginate(page_number, items_per_page)
+        
+
 def starfields(model: peewee.ModelSelect) -> peewee.NodeList:
     """ Return the peewee star fields
 
