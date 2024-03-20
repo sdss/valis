@@ -10,11 +10,11 @@ from pydantic import BaseModel, Field, BeforeValidator
 
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase, SDSSidPipesBase
+from valis.db.models import SDSSidStackedBase, SDSSidPipesBase, MapperName
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id,
-                              get_targets_obs)
+                              get_targets_obs, get_paged_target_list_by_mapper)
 from sdssdb.peewee.sdss5db import database
 
 # convert string floats to proper floats
@@ -191,3 +191,13 @@ class QueryRoutes(Base):
         """ Perform a search on carton or program """
 
         return list(get_targets_obs(release, obs, spectrograph))
+
+    @router.get('/mapper', summary='Perform a search for SDSS targets based on the mapper',
+                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+    async def get_target_list_by_mapper(self, 
+                                        mapper: Annotated[MapperName, Query(description='Mapper name', example=MapperName.MWM)] = MapperName.MWM,
+                                        page_number: Annotated[int, Query(description='Page number of the returned items', gt=0, example=1)] = 1,
+                                        items_per_page: Annotated[int, Query(description='Number of items displayed in a page', gt=0, example=10)] = 10):
+        """ Return an ordered and paged list of targets based on the mapper."""
+        targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
+        return list(targets)

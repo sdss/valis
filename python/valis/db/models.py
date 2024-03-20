@@ -8,6 +8,7 @@ import datetime
 import math
 from typing import Optional, Annotated, Any, TypeVar
 from pydantic import ConfigDict, BaseModel, Field, BeforeValidator
+from enum import Enum
 
 
 def coerce_nan_to_none(x: Any) -> Any:
@@ -228,3 +229,10 @@ class DbMetadata(PeeweeBase):
     description: str = Field(..., description='a description of the database column')
     unit: Optional[str] = Field(None, description='the unit if any for the database column')
     sql_type: Optional[str] = Field(None, description='the data type of the column')
+
+
+class MapperName(str, Enum):
+    """Mapper names"""
+    MWM: str = 'MWM'
+    BHM: str = 'BHM'
+    LVM: str = 'LVM'
