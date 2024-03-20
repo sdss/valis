@@ -9,6 +9,7 @@ import packaging
 from typing import Union, Generator
 
 import astropy.units as u
+import deepmerge
 import peewee
 from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import apogee_drpdb as apo
@@ -156,7 +157,7 @@ def get_targets_by_sdss_id(sdss_id: Union[int, list[int]] = []) -> peewee.ModelS
 
     Perform a search for SDSS targets using the peewee ORM in the
     vizdb.SDSSidStacked table, based on single or multiple sdss_ids values.
-    We return the peewee ModelSelect directly here so it can be easily combined 
+    We return the peewee ModelSelect directly here so it can be easily combined
     with other queries, if needed.
 
     In the route endpoint itself, remember to return wrap this in a list.
@@ -517,15 +518,15 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
     elif pipeline == 'all':
         # get boss
         if pipes['in_boss'] and (res := get_pipe_meta(sdss_id, release, 'boss')):
-            data.update(res)
+            deepmerge.always_merger.merge(data, res)
 
         # get apogee
         if pipes['in_apogee'] and (res := get_pipe_meta(sdss_id, release, 'apogee')):
-            data.update(res)
+            deepmerge.always_merger.merge(data, res)
 
         # get astra
         if pipes['in_astra'] and  (res := get_pipe_meta(sdss_id, release, 'astra')):
-            data.update(res)
+            deepmerge.always_merger.merge(data, res)
 
     return data
 

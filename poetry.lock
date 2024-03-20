@@ -1201,6 +1201,17 @@ files = [
 ]
 
 [[package]]
+name = "deepmerge"
+version = "1.1.1"
+description = "a toolset to deeply merge python dictionaries."
+optional = false
+python-versions = "*"
+files = [
+    {file = "deepmerge-1.1.1-py3-none-any.whl", hash = "sha256:7219dad9763f15be9dcd4bcb53e00f48e4eed6f5ed8f15824223eb934bb35977"},
+    {file = "deepmerge-1.1.1.tar.gz", hash = "sha256:53a489dc9449636e480a784359ae2aab3191748c920649551c8e378622f0eca4"},
+]
+
+[[package]]
 name = "defusedxml"
 version = "0.7.1"
 description = "XML bomb protection for Python stdlib modules"
@@ -7000,4 +7011,4 @@ docs = ["Sphinx"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "fc69fa1a558584b4d40dd0b5581b3d658a589924008d7a75609e2554cb010419"
+content-hash = "69651e9c793824bfd6f64485c6a3d5205ded2f2b255431f97cc76c6301f26689"
