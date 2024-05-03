@@ -40,6 +40,7 @@ FROM dev-stage as build-stage
 
 # Set a label
 LABEL org.opencontainers.image.source https://github.com/sdss/valis
+LABEL org.opencontainers.image.description "valis development image"
 
 # Expose port 8000
 EXPOSE 8000

@@ -41,6 +41,10 @@ ENV VALIS_DB_REMOTE=True
 # Stage 3: Build stage (inherits from dev-stage)
 FROM dev-stage as build-stage
 
+# Set a label
+LABEL org.opencontainers.image.source https://github.com/sdss/valis
+LABEL org.opencontainers.image.description "valis production image"
+
 # Expose the port
 EXPOSE 8000
 
