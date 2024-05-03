@@ -24,9 +24,9 @@ import os
 
 socket_dir = os.getenv("VALIS_SOCKET_DIR", '/tmp/valis')
 bind = [f"unix:{socket_dir}/valis.sock", "0.0.0.0:8000"]
-workers = 4
+workers = os.getenv("VALIS_WORKERS", 4)
 worker_class = "uvicorn.workers.UvicornWorker"
 daemon = False
-errorlog = os.path.join(os.getenv("VALIS_LOGS_DIR", '/var/www/valis/logs'), 'valis_app_error.log')
-accesslog = os.path.join(os.getenv("VALIS_LOGS_DIR", '/var/www/valis/logs'), 'valis_app_access.log')
+errorlog = os.path.join(os.getenv("VALIS_LOGS_DIR", '/tmp/valis'), 'valis_app_error.log')
+accesslog = os.path.join(os.getenv("VALIS_LOGS_DIR", '/tmp/valis'), 'valis_app_access.log')
 root_path = '/valis'
