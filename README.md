@@ -81,23 +81,59 @@ db_user: {unid}
 
 
 ## Deployment
-### Deploying at Utah in api.sdss.org docker
-- Login to `lore` or `manga` machines
-- Login to the api.sdss.org docker with `ssh -p 2209 [unid]@api.sdss.org`
-- If needed, load valis module with `ml load valis`
-- cd to `$VALIS_DIR`
-- run `run_valis` alias or `poetry run gunicorn -c python/valis/wsgi_conf.py valis.wsgi:app`
+
+This section describes a variety of deployment methods.  Valis uses gunicorn as its
+wsgi http server. It binds the app both to port 8000, and a unix socket.  The defaut mode
+is to start valis with an awsgi uvicorn server, with 4 workers.
+
+### Deploying Zora + Valis together
+See the SDSS [Zora+Valis Docker](https://github.com/sdss/zora_valis_dockers) repo page.
+
+### Deploying at Utah in dataviz-dm
+TBD
 
 ### Running manually via gunicorn + nginx
  - Setup a local nginx server with a /valis location
  - export VALIS_SOCKET_DIR=/tmp/valis
  - run `gunicorn -c python/valis/wsgi_conf.py valis.wsgi:app`
-### Running Docker Compose
-This builds and sets up the valis docker running with nginx, mapped to a unix socket at `unix:/tmp/valis/valis.sock`.  It binds the internal nginx port 8080 to localhost port 5000.
 
-- Navigate to `docker` folder
-- Run `docker-compose -f docker-compose.yml build` to build the docker images
-- Run `docker-compose -f docker-compose.yml up -d` to start the containers in detached mode
-- Navigate to `http://localhost:5000/valis`
-- To stop the service and remove containers, run `docker-compose -f docker-compose.yml down`
+This also exposes valis to port 8000, and should be available at `http://localhost:8000`.
 
+### Running the Docker
+
+There are two dockerfiles, one for running in development mode and one for production.  To connect valis to the `sdss5db` database, you'll need to set several **VALIS_DB_XXX** environment variables during the `docker run` command.
+
+- VALIS_DB_REMOTE: Set this to True
+- VALIS_DB_HOST: the database host machine
+- VALIS_DB_USER: the database user
+- VALIS_DB_PASS: the database password
+- VALIS_DB_PORT: the database port
+
+The following examples show how to connect the valis docker to a database running on the same machine, following the database setup instructions above.
+
+**Development**
+
+To build the docker image, run
+
+`docker build -t valis-dev -f Dockerfile.dev .`
+
+To start a container, run
+```bash
+docker run -p 8000:8000 -e VALIS_DB_REMOTE=True -e VALIS_DB_HOST=host.docker.internal -e VALIS_DB_USER=[user] -e VALIS_DB_PASS=[password] -e VALIS_DB_PORT=6000 valis-dev
+```
+
+**Production**
+
+To build the docker image, run
+
+`docker build -t valis -f Dockerfile .`
+
+To start a container, run
+```bash
+docker run -p 8000:8000 -e VALIS_DB_REMOTE=True -e VALIS_DB_HOST=host.docker.internal -e VALIS_DB_USER=[user] -e VALIS_DB_PASS=[password] -e VALIS_DB_PORT=6000 valis
+```
+Note:  If your docker vm has only a small resource allocation, the production container may crash on start, due to the number of workers allocated. You can adjust the number of workers with the `VALIS_WORKERS` envvar.  For example, add `-e VALIS_WORKERS=2` to scale the number of workers down to 2.
+
+### Podman
+
+All dockerfiles work with `podman`, and the syntax is the same as above.  Simply replace `docker` with `podman`.
