@@ -109,6 +109,8 @@ There are two dockerfiles, one for running in development mode and one for produ
 - VALIS_DB_PASS: the database password
 - VALIS_DB_PORT: the database port
 
+You will also need to volume mount the SDSS SAS to `/root/sas`, e.g. `-v $SAS_BASE_DIR:/root/sas`.  You can also mount individual SAS directories, but you will need to explicitly set the `SAS_BASE_DIR` environment variable to point the root location, e.g. `-v local/sas/dr17:/data/sas/dr17 -e SAS_BASE_DIR=/data/sas`.
+
 The following examples show how to connect the valis docker to a database running on the same machine, following the database setup instructions above.
 
 **Development**
@@ -119,7 +121,7 @@ To build the docker image, run
 
 To start a container, run
 ```bash
-docker run -p 8000:8000 -e VALIS_DB_REMOTE=True -e VALIS_DB_HOST=host.docker.internal -e VALIS_DB_USER=[user] -e VALIS_DB_PASS=[password] -e VALIS_DB_PORT=6000 valis-dev
+docker run -p 8000:8000 -e VALIS_DB_REMOTE=True -e VALIS_DB_HOST=host.docker.internal -e VALIS_DB_USER=[user] -e VALIS_DB_PASS=[password] -e VALIS_DB_PORT=6000 -v $SAS_BASE_DIR:/root/sas valis-dev
 ```
 
 **Production**
@@ -130,7 +132,7 @@ To build the docker image, run
 
 To start a container, run
 ```bash
-docker run -p 8000:8000 -e VALIS_DB_REMOTE=True -e VALIS_DB_HOST=host.docker.internal -e VALIS_DB_USER=[user] -e VALIS_DB_PASS=[password] -e VALIS_DB_PORT=6000 valis
+docker run -p 8000:8000 -e VALIS_DB_REMOTE=True -e VALIS_DB_HOST=host.docker.internal -e VALIS_DB_USER=[user] -e VALIS_DB_PASS=[password] -e VALIS_DB_PORT=6000 -v $SAS_BASE_DIR:/root/sas valis
 ```
 Note:  If your docker vm has only a small resource allocation, the production container may crash on start, due to the number of workers allocated. You can adjust the number of workers with the `VALIS_WORKERS` envvar.  For example, add `-e VALIS_WORKERS=2` to scale the number of workers down to 2.
 
