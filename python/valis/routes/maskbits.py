@@ -6,6 +6,7 @@ import numpy as np
 from typing import List, Union, Dict
 
 from astropy.table import Table
+from astropy.utils.data import download_file
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field
@@ -36,6 +37,7 @@ def get_file() -> pathlib.Path:
     """
     git_mask = pathlib.Path(os.path.expandvars('$SDSS_GIT_ROOT')) / 'idlutils/master/data/sdss/sdssMaskbits.par'
     svn_mask = pathlib.Path(os.path.expandvars('$SDSS_SVN_ROOT')) / 'repo/sdss/idlutils/trunk/data/sdss/sdssMaskbits.par'
+    raw_url = 'https://raw.githubusercontent.com/sdss/idlutils/master/data/sdss/sdssMaskbits.par'
 
     if git_mask.exists() and svn_mask.exists():
         # return file with the most recent modification time
@@ -45,7 +47,11 @@ def get_file() -> pathlib.Path:
     elif svn_mask.exists() and not git_mask.exists():
         return svn_mask
     else:
-        raise HTTPException(status_code=404, detail='Could not find a valid sdssMaskbits.par file. Check proper file paths.')
+        try:
+            # try downloading the file from the github repo
+            return download_file(raw_url, cache=True)
+        except Exception:
+            raise HTTPException(status_code=404, detail='Could not find a valid sdssMaskbits.par file. Check proper file paths.')
 
 
 def read_maskbits(path: pathlib.Path = Depends(get_file)) -> np.recarray:
