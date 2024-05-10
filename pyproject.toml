@@ -49,6 +49,7 @@ SQLAlchemy = "^1.4.35"
 sdssdb = "^0.9.0"
 sdss-solara = {git = "https://github.com/sdss/sdss_solara.git"}
 deepmerge = "^1.1.1"
+fuzzy-types = "^0.1.3"
 
 
 [tool.poetry.dev-dependencies]
