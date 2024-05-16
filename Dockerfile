@@ -7,18 +7,52 @@ WORKDIR /tmp
 # Copy project files over
 COPY ./pyproject.toml ./poetry.lock ./
 
-# Install build-essential package
+# Install system prereq packages
 RUN apt-get update && \
     apt-get install -y \
         build-essential \
+        git \
+        # these are for h5py in sdss_explorer
+        curl libhdf5-dev pkg-config \
+        # these are for vaex
+        libpcre3 libpcre3-dev gcc g++ libboost-all-dev \
+        libffi-dev python3-dev libxml2-dev libxslt-dev \
+        libpq-dev zlib1g-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Rust for sdss_explorer
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && . /root/.cargo/env
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Add a command to check if cargo is available
+RUN cargo --version
+
+# setup correct wheels for vaex
+# normal build hangs/fails like https://github.com/vaexio/vaex/issues/2382
+# temp solution, see https://github.com/vaexio/vaex/pull/2331
+ENV PIP_FIND_LINKS=https://github.com/ddelange/vaex/releases/expanded_assets/core-v4.17.1.post4
+RUN pip install --force-reinstall vaex
+ENV PIP_FIND_LINKS=
+
+# need github creds for install of private sdss_explorer
+# Arguments to pass credentials
+ARG GITHUB_TOKEN
+ARG GITHUB_USER
+
+# Configure git to use the token
+RUN git config --global credential.helper 'store --file=/root/.git-credentials' && \
+    echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /root/.git-credentials
 
 # Install poetry and project dependencies
 RUN pip install poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-root && \
     rm -rf ~/.cache
+
+# Remove credentials after use
+RUN rm /root/.git-credentials && \
+    git config --global --unset credential.helper
 
 # Stage 2: Development stage for the project
 FROM dep-stage as dev-stage
