@@ -31,7 +31,7 @@ from valis.settings import Settings, read_valis_config
 
 # set up the solara server
 try:
-    os.environ['SOLARA_ROOT_PATH'] = '/solara'
+    os.environ['SOLARA_ROOT_PATH'] = os.getenv("SOLARA_ROOT", '/solara')
     os.environ['SOLARA_APP'] = 'sdss_solara.pages.home'
     os.environ['SOLARA_THEME_VARIANT'] = 'dark'
     os.environ['EXPLORER_DATAPATH'] = os.getenv('EXPLORER_DATAPATH', os.path.expanduser('~'))
