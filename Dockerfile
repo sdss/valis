@@ -69,7 +69,7 @@ RUN mkdir -p /tmp/webapp
 ENV MODULE_NAME="valis.wsgi"
 ENV VALIS_SOCKET_DIR='/tmp/webapp'
 ENV VALIS_LOGS_DIR='/tmp/webapp'
-ENV VALIS_ALLOW_ORIGIN="http://localhost:8080"
+ENV VALIS_ALLOW_ORIGIN="https://data.sdss5.org/zora/"
 ENV VALIS_DB_REMOTE=True
 
 # Stage 3: Build stage (inherits from dev-stage)
