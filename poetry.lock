@@ -5716,7 +5716,7 @@ name = "sdss-explorer"
 version = "0.0.2"
 description = ""
 optional = false
-python-versions = "==3.10.*"
+python-versions = ">=3.10"
 files = []
 develop = false
 
@@ -5730,20 +5730,19 @@ vaex = ">=4.17.0"
 type = "git"
 url = "https://github.com/sdss/explorer.git"
 reference = "HEAD"
-resolved_reference = "31acba2531d96e41ed62ba57b665818022006d5a"
+resolved_reference = "ec3f8ba36a02f079303845e2de1fca9d305098f1"
 
 [[package]]
 name = "sdss_solara"
 version = "0.1.0.dev0"
 description = "Solara pages for SDSS"
 optional = false
-python-versions = ">=3.10"
+python-versions = ">=3.9"
 files = []
 develop = false
 
 [package.dependencies]
 jdaviz = ">3.8"
-photutils = "1.11"
 python-dotenv = ">1.0"
 sdss-access = ">3.0.2"
 sdss_explorer = {git = "https://github.com/sdss/explorer.git"}
