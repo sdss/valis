@@ -2,13 +2,16 @@ from __future__ import print_function, division, absolute_import
 
 import math
 import re
+import os
 import httpx
 import orjson
 from typing import Tuple, List, Union, Optional, Annotated
 from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
 from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
+import numpy as np
 import astropy.units as u
+from astropy.io import fits
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 
@@ -204,8 +207,8 @@ class Target(Base):
         return get_target_pipeline(sdss_id, self.release, pipe)
 
 
-@router.get('/spectrum_lvm_fiber/{tile_id}/{mjd}/{exposure}/{fiberid}',
-            summary='Experimental endpoint to extract LVM fiber spectrum')
+    @router.get('/spectrum_lvm_fiber/{tile_id}/{mjd}/{exposure}/{fiberid}',
+                summary='Experimental endpoint to extract LVM fiber spectrum')
     async def get_spectrum_lvm_fiber(self,
                                tile_id: Annotated[int, Path(description="The tile_id of the LVM dither", example=1028790)],
                                mjd: Annotated[int, Path(desciption='The MJD of the observations', example=60314)],
@@ -223,10 +226,6 @@ class Target(Base):
 
         LVM_ROOT = f"/root/sas/sdsswork/lvm/spectro/redux/master/"
         file = LVM_ROOT + filename
-        
-        import os
-        from astropy.io import fits
-        import numpy as np
         
         # Check that file exists and return exception if not
         if not os.path.exists(file):
@@ -248,7 +247,6 @@ class Target(Base):
             sky = hdul['SKY'].data[fiberid_in_stack, :]
 
         return dict(filename=filename,
-                    header=dict(hdr),
                     wave=wave.tolist(),
                     flux=flux.tolist(),
                     error=error.tolist(),
