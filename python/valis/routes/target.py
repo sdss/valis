@@ -202,3 +202,54 @@ class Target(Base):
                                                  example='boss')] = 'all'):
 
         return get_target_pipeline(sdss_id, self.release, pipe)
+
+
+@router.get('/spectrum_lvm_fiber/{tile_id}/{mjd}/{exposure}/{fiberid}',
+            summary='Experimental endpoint to extract LVM fiber spectrum')
+    async def get_spectrum_lvm_fiber(self,
+                               tile_id: Annotated[int, Path(description="The tile_id of the LVM dither", example=1028790)],
+                               mjd: Annotated[int, Path(desciption='The MJD of the observations', example=60314)],
+                               exposure: Annotated[int, Path(desciption='The exposure number', example=10328)],
+                               fiberid: Annotated[int, Path(desciption='Sequential ID of science fiber within Dither (1 to 1801)', example=777)],):
+        
+        # construct file path for lvmCFrame-*.fits file
+        suffix = str(exposure).zfill(8)
+        if tile_id == -999:
+            filename = f"0011XX/11111/{mjd}/lvmCFrame-{suffix}.fits"
+        elif tile_id == 999:
+            filename = f"0000XX/{tile_id}/{mjd}/lvmCFrame-{suffix}.fits"
+        else:
+            filename = f"{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmCFrame-{suffix}.fits"
+
+        LVM_ROOT = f"/root/sas/sdsswork/lvm/spectro/redux/master/"
+        file = LVM_ROOT + filename
+        
+        import os
+        from astropy.io import fits
+        import numpy as np
+        
+        # Check that file exists and return exception if not
+        if not os.path.exists(file):
+            raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
+        
+        # Check that file exists and return exception if not
+        if fiberid < 1 or fiberid > 1801:
+            raise HTTPException(status_code=400, detail=f"`fiberid` ({fiberid}) must be between 1 and 1801.")
+
+        # Open file and read data
+        with fits.open(file) as hdul:
+            wave = hdul['WAVE'].data
+            targettype = hdul['SLITMAP'].data['targettype']
+            fiberid_in_stack = np.argwhere(targettype == 'science')[fiberid - 1][0]
+            
+            hdr = hdul['PRIMARY'].header
+            flux = hdul['FLUX'].data[fiberid_in_stack, :]
+            error = hdul['ERROR'].data[fiberid_in_stack, :]
+            sky = hdul['SKY'].data[fiberid_in_stack, :]
+
+        return dict(filename=filename,
+                    header=dict(hdr),
+                    wave=wave.tolist(),
+                    flux=flux.tolist(),
+                    error=error.tolist(),
+                    sky=sky.tolist())
