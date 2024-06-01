@@ -241,13 +241,14 @@ class Target(Base):
             targettype = hdul['SLITMAP'].data['targettype']
             fiberid_in_stack = np.argwhere(targettype == 'science')[fiberid - 1][0]
             
-            hdr = hdul['PRIMARY'].header
+            # hdr = hdul['PRIMARY'].header
             flux = hdul['FLUX'].data[fiberid_in_stack, :]
-            error = hdul['ERROR'].data[fiberid_in_stack, :]
-            sky = hdul['SKY'].data[fiberid_in_stack, :]
+            # error = hdul['ERROR'].data[fiberid_in_stack, :]
+            # sky = hdul['SKY'].data[fiberid_in_stack, :]
 
         return dict(filename=filename,
                     wave=wave.tolist(),
                     flux=flux.tolist(),
-                    error=error.tolist(),
-                    sky=sky.tolist())
+                    # error=error.tolist(),
+                    # sky=sky.tolist()
+                    )
