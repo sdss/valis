@@ -227,10 +227,8 @@ class Target(Base):
         
         # construct file path for lvmSFrame-*.fits file
         suffix = str(exposure).zfill(8)
-        if tile_id == -999:
+        if tile_id == 11111:
             filename = f"0011XX/11111/{mjd}/lvmSFrame-{suffix}.fits"
-        elif tile_id == 999:
-            filename = f"0000XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
         else:
             filename = f"{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
 
