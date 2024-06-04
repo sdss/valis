@@ -27,6 +27,16 @@ Simbad.add_votable_fields('distance_result')
 Simbad.add_votable_fields('ra(d)', 'dec(d)')
 
 
+def arr2list(nparr, badmask=None):
+    """
+    Function to convert numpy array to list masking non-number values.
+    Which is needed for serilization.
+    """
+    if badmask is None:
+        badmask = ~np.isfinite(nparr)
+    return np.where(badmask, None, nparr).tolist()
+
+
 class CoordModel(BaseModel):
     """ Pydantic model for a SkyCoord object """
     value: Tuple[float, float] = Field(..., description='The coordinate value', example=(230.50745896, 43.53232817))
@@ -215,18 +225,18 @@ class Target(Base):
                                exposure: Annotated[int, Path(desciption='The exposure number', example=10328)],
                                fiberid: Annotated[int, Path(desciption='Sequential ID of science fiber within Dither (1 to 1801)', example=777)],):
         
-        # construct file path for lvmCFrame-*.fits file
+        # construct file path for lvmSFrame-*.fits file
         suffix = str(exposure).zfill(8)
         if tile_id == -999:
-            filename = f"0011XX/11111/{mjd}/lvmCFrame-{suffix}.fits"
+            filename = f"0011XX/11111/{mjd}/lvmSFrame-{suffix}.fits"
         elif tile_id == 999:
-            filename = f"0000XX/{tile_id}/{mjd}/lvmCFrame-{suffix}.fits"
+            filename = f"0000XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
         else:
-            filename = f"{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmCFrame-{suffix}.fits"
+            filename = f"{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
 
-        LVM_ROOT = f"/root/sas/sdsswork/lvm/spectro/redux/master/"
+        LVM_ROOT = f"/root/sas/sdsswork/lvm/spectro/redux/1.0.3/"
         file = LVM_ROOT + filename
-        
+                
         # Check that file exists and return exception if not
         if not os.path.exists(file):
             raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
@@ -241,14 +251,8 @@ class Target(Base):
             targettype = hdul['SLITMAP'].data['targettype']
             fiberid_in_stack = np.argwhere(targettype == 'science')[fiberid - 1][0]
             
-            # hdr = hdul['PRIMARY'].header
-            flux = hdul['FLUX'].data[fiberid_in_stack, :]
-            # error = hdul['ERROR'].data[fiberid_in_stack, :]
-            # sky = hdul['SKY'].data[fiberid_in_stack, :]
+            flux = hdul['FLUX'].data[fiberid_in_stack, :] * 1e17
 
         return dict(filename=filename,
-                    wave=wave.tolist(),
-                    flux=flux.tolist(),
-                    # error=error.tolist(),
-                    # sky=sky.tolist()
-                    )
+                    wave=arr2list(wave),
+                    flux=arr2list(flux),)
