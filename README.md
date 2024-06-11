@@ -17,6 +17,13 @@ cd valis
 poetry install
 ```
 
+### Solara Dependencies
+
+The default install does not install any of the Solara dependencies for Jdaviz and the SDSS DataView Explorer.  To install these dependencies, run
+```
+poetry install -E solara
+```
+
 ### Updating Dependencies with Poetry
 To update poetry itself, run
 ```
