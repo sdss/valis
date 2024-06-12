@@ -243,7 +243,9 @@ def carton_program_map(key: str = 'program') -> dict:
     return mapping
 
 
-def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
+def carton_program_search(name: str,
+                          name_type: str,
+                          query: peewee.ModelSelect | None = None) -> peewee.ModelSelect:
     """ Perform a search on either carton or program
 
     Parameters
@@ -252,22 +254,29 @@ def carton_program_search(name: str, name_type: str) -> peewee.ModelSelect:
         Either the carton name or the program name
     name_type: str
         Which type you are searching on, either 'carton' or 'program'
+    query : ModelSelect
+        An initial query to extend. If ``None``, a new query with all the unique
+        ``sdss_id``s is created (note: this is probably a bad idea).
 
     Returns
     -------
     peewee.ModelSelect
         the ORM query
     """
-    model = vizdb.SDSSidFlat.select(peewee.fn.DISTINCT(vizdb.SDSSidFlat.sdss_id))\
-                            .join(targetdb.Target,
-                                  on=(targetdb.Target.catalogid == vizdb.SDSSidFlat.catalogid))\
-                            .join(targetdb.CartonToTarget)\
-                            .join(targetdb.Carton)\
-                            .where(getattr(targetdb.Carton, name_type) == name)
-    return vizdb.SDSSidStacked.select().join(
-        model, on=(model.c.sdss_id == vizdb.SDSSidStacked.sdss_id)
-    )
 
+    if query is None:
+        query = vizdb.SDSSidFlat.select(peewee.fn.DISTINCT(vizdb.SDSSidFlat.sdss_id))
+
+    query = (query.join(
+                vizdb.SDSSidFlat,
+                on=(vizdb.SDSSidFlat.sdss_id == vizdb.SDSSidStacked.sdss_id))
+             .join(targetdb.Target,
+                   on=(targetdb.Target.catalogid == vizdb.SDSSidFlat.catalogid))
+             .join(targetdb.CartonToTarget)
+             .join(targetdb.Carton)
+             .where(getattr(targetdb.Carton, name_type) == name))
+
+    return query
 
 def get_targets_obs(release: str, obs: str, spectrograph: str) -> peewee.ModelSelect:
     """ Return all targets with spectra from a given observatory
