@@ -256,7 +256,7 @@ def carton_program_search(name: str,
         Which type you are searching on, either 'carton' or 'program'
     query : ModelSelect
         An initial query to extend. If ``None``, a new query with all the unique
-        ``sdss_id``s is created (note: this is probably a bad idea).
+        ``sdss_id``s is created.
 
     Returns
     -------
