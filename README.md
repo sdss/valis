@@ -86,6 +86,7 @@ db_port: 6000
 db_user: {unid}
 ```
 
+Additionally, you can set the environment variable `DB_RESET=false` or add `db_reset: false` to `valis.yaml`. This will prevent the DB connection to be closed after a query completes and should speed up new queries. This setting should not be used in production.
 
 ## Deployment
 
