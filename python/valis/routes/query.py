@@ -92,9 +92,10 @@ class QueryRoutes(Base):
             query = get_targets_by_sdss_id(body.id)
 
         # build the program/carton query
-        elif body.program or body.carton:
-            query = carton_program_search(body.program or body.carton, 'program' if body.program else 'carton')
-
+        if body.program or body.carton:
+            query = carton_program_search(body.program or body.carton,
+                                          'program' if body.program else 'carton',
+                                          query=query)
         # append query to pipes
         query = append_pipes(query)
 
