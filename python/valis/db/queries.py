@@ -265,7 +265,7 @@ def carton_program_search(name: str,
     """
 
     if query is None:
-        query = vizdb.SDSSidFlat.select(peewee.fn.DISTINCT(vizdb.SDSSidFlat.sdss_id))
+        query = vizdb.SDSSidStacked.select(peewee.fn.DISTINCT(vizdb.SDSSidStacked.sdss_id))
 
     query = (query.join(
                 vizdb.SDSSidFlat,
@@ -753,7 +753,7 @@ def get_paged_target_list_by_mapper(mapper: MapperName = MapperName.MWM, page_nu
     peewee.ModelSelect
         the ORM query
     """
-    
+
     if mapper is MapperName.MWM:
         where_condition = vizdb.SDSSidToPipes.in_apogee == True
     elif mapper is MapperName.BHM:
