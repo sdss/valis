@@ -56,6 +56,9 @@ async def get_ext(filename: str = Depends(get_filepath), ext: Ext = 0):
     """ Dependency to get a FITS data, header """
     with fits.open(filename) as hdu:
         data = hdu[ext].data
+        # orjson 3.10.1 raises on non-native endianness; need to manually deal with it
+        if ext not in (0, 'PRIMARY') and data.dtype.byteorder in ('>', '<'):
+            data.dtype = data.dtype.newbyteorder('=')
         # convert binary table data into a dictionary
         if not hdu[ext].is_image:
             data = dict(zip(hdu[ext].data.columns.names, zip(*hdu[ext].data)))
@@ -69,6 +72,8 @@ def stream_bytes(data):
 
 # image hdu
 def stream_image_json(data):
+    if data.dtype.byteorder in ('>', '<'):
+        data.dtype = data.dtype.newbyteorder('=')
     yield orjson.dumps(data, option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
 
 
@@ -249,6 +254,7 @@ class Files(Base):
         """ Return file data content to the client """
         # extract the FITS data
         data, hdr = fitsext
+        print(data, type(data))
         # return a response
         results = {'header': dict(hdr.items()) if header else None, 'data': data}
         return ORJSONResponseCustom(content=results, option=orjson.OPT_SERIALIZE_NUMPY, default=npdefault)
@@ -283,4 +289,3 @@ class HeaderModel(BaseModel):
 
 # class BinTableHDU(BaseModel):
 #     pass
-

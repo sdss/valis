@@ -11,6 +11,7 @@ Change Log
 * Adds endpoints for target search by sdss_id and catalogid
 * Adds endpoints for listing cartons and programs
 * Adds endpoints for target search by carton and program
+* Adds ``db_reset`` option to avoid closing and resetting the database connection
 
 0.1.0 (10-24-2023)
 ------------------
@@ -25,4 +26,3 @@ Change Log
 * Adds endpoint for downloading or streaming FITS file data
 * Adds endpoint for accessing ``tree`` and ``sdss_access`` environment and path info
 * Sets up main FastAPI architecture
-

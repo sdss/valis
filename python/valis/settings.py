@@ -33,12 +33,13 @@ class EnvEnum(str, Enum):
 class Settings(BaseSettings):
     valis_env: EnvEnum = EnvEnum.dev
     allow_origin: Union[str, List[AnyHttpUrl]] = Field([])
-    db_server: str = 'pipelines'
+    db_server: str | None = 'pipelines'
     db_remote: bool = False
     db_port: int = 5432
     db_user: Optional[str] = None
     db_host: Optional[str] = 'localhost'
     db_pass: Optional[str] = None
+    db_reset: bool = True
     model_config = SettingsConfigDict(env_prefix="valis_")
 
     @field_validator('allow_origin')
@@ -52,4 +53,3 @@ class Settings(BaseSettings):
     @classmethod
     def strip_slash(cls, v):
         return [i.rstrip('/') for i in v]
-
