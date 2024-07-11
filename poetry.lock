@@ -1225,6 +1225,17 @@ graph = ["objgraph (>=1.7.2)"]
 profile = ["gprof2dot (>=2022.7.29)"]
 
 [[package]]
+name = "diskcache"
+version = "5.6.3"
+description = "Disk Cache -- Disk and file backed persistent cache."
+optional = true
+python-versions = ">=3"
+files = [
+    {file = "diskcache-5.6.3-py3-none-any.whl", hash = "sha256:5e31b2d5fbad117cc363ebaf6b689474db18a1f6438bc82358b024abd4c2ca19"},
+    {file = "diskcache-5.6.3.tar.gz", hash = "sha256:2c3a3fa2743d8535d832ec61c2054a1641f41775aa7c556758a109941e33e4fc"},
+]
+
+[[package]]
 name = "dnspython"
 version = "2.6.1"
 description = "DNS toolkit"
@@ -5682,6 +5693,7 @@ files = []
 develop = false
 
 [package.dependencies]
+diskcache = ">=5.6.3"
 numpy = "*"
 plotly = "*"
 solara = "1.30.0"
@@ -5691,7 +5703,7 @@ vaex = ">=4.17.0"
 type = "git"
 url = "https://github.com/sdss/explorer.git"
 reference = "HEAD"
-resolved_reference = "e28c033804b1263147e639b96430dea139a633e9"
+resolved_reference = "c5573e90c5bb45b83fb1ca9d83c8cc7e537c14bd"
 
 [[package]]
 name = "sdss_solara"
