@@ -2,6 +2,11 @@
 
 from sdsstools import get_config, get_logger, get_package_version
 
+import sdssdb
+
+sdssdb.autoconnect = False
+
+
 # pip package name
 NAME = 'sdss-valis'
 

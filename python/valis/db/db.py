@@ -5,9 +5,10 @@
 from contextvars import ContextVar
 
 import peewee
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from sdssdb.peewee.sdss5db import database as pdb
 from sdssdb.sqlalchemy.sdss5db import database as sdb
+
 
 # To make Peewee async-compatible, we need to hack the peewee connection state
 # See FastAPI/Peewee docs at https://fastapi.tiangolo.com/how-to/sql-databases-peewee/
@@ -17,7 +18,7 @@ db_state_default = {"closed": None, "conn": None, "ctx": None, "transactions": N
 db_state = ContextVar("db_state", default=db_state_default.copy())
 
 
-async def reset_db_state():
+def reset_db_state():
     """ Sub-depdency for get_db that resets the context connection state """
     pdb._state._state.set(db_state_default.copy())
     pdb._state.reset()
@@ -44,7 +45,11 @@ def connect_db(db, orm: str = 'peewee'):
     """ Connect to the peewee sdss5db database """
 
     from valis.main import settings
-    profset = db.set_profile(settings.db_server)
+
+    if db.connected:
+        return db
+
+    profset = db.set_profile(settings.db_server) if settings.db_server else None
     if settings.db_remote and not profset:
         port = settings.db_port
         user = settings.db_user
@@ -59,23 +64,27 @@ def connect_db(db, orm: str = 'peewee'):
 
     return db
 
-# local local dev
-# pdb.connect_from_parameters(dbname='sdss5db', host='localhost', port=6000, user='u0857802')
-
-def get_pw_db(db_state=Depends(reset_db_state)):
+def get_pw_db():
     """ Dependency to connect a database with peewee """
+
+    from valis.main import settings
+
+    if settings.db_reset:
+        reset_db_state()
 
     # connect to the db, yield None since we don't need the db in peewee
     db = connect_db(pdb, orm='peewee')
     try:
         yield db
     finally:
-        if db:
+        if db and settings.db_reset:
             db.close()
 
 
 def get_sqla_db():
     """ Dependency to connect to a database with sqlalchemy """
+
+    from valis.main import settings
 
     # connect to the db, yield the db Session object for sql queries
     db = connect_db(sdb, orm='sqla')
@@ -83,5 +92,5 @@ def get_sqla_db():
     try:
         yield db
     finally:
-        if db:
+        if db and settings.db_reset:
             db.close()
