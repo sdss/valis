@@ -232,7 +232,7 @@ class Target(Base):
         else:
             filename = f"{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
 
-        LVM_ROOT = f"/root/sas/sdsswork/lvm/spectro/redux/1.0.3/"
+        LVM_ROOT = f"/data/sdss/sas/sdsswork/lvm/spectro/redux/1.0.3/"
         file = LVM_ROOT + filename
                 
         # Check that file exists and return exception if not
