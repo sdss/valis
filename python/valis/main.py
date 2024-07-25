@@ -105,7 +105,7 @@ settings = get_settings()
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__,
               openapi_tags=tags_metadata, dependencies=[])
 # submount app to allow for production /valis location
-app.mount("/valis-lvmvis", app)
+app.mount("/valis-lvmvis-api", app)
 
 # add CORS for cross-domain, for any sdss.org or sdss.utah.edu domain
 app.add_middleware(CORSMiddleware, allow_origin_regex="^https?://.*\.sdss5?\.(org|utah\.edu)(/zora/)?$",
