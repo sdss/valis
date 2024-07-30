@@ -47,7 +47,7 @@ RUN git config --global credential.helper 'store --file=/root/.git-credentials' 
 # Install poetry and project dependencies
 RUN pip install poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --no-root && \
+    poetry install -E solara --no-root && \
     rm -rf ~/.cache
 
 # Remove credentials after use
