@@ -5,7 +5,7 @@
 from contextvars import ContextVar
 
 import peewee
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from sdssdb.peewee.sdss5db import database as pdb
 from sdssdb.sqlalchemy.sdss5db import database as sdb
 
@@ -19,9 +19,13 @@ db_state = ContextVar("db_state", default=db_state_default.copy())
 
 
 def reset_db_state():
-    """ Sub-depdency for get_db that resets the context connection state """
-    pdb._state._state.set(db_state_default.copy())
-    pdb._state.reset()
+    """ Sub-dependency for get_db that resets the context connection state """
+
+    from valis.main import settings
+
+    if settings.db_reset:
+        pdb._state._state.set(db_state_default.copy())
+        pdb._state.reset()
 
 
 class PeeweeConnectionState(peewee._ConnectionState):
@@ -64,20 +68,19 @@ def connect_db(db, orm: str = 'peewee'):
 
     return db
 
-def get_pw_db():
+def get_pw_db(db_state=Depends(reset_db_state)):
     """ Dependency to connect a database with peewee """
 
     from valis.main import settings
 
-    if settings.db_reset:
-        reset_db_state()
-
     # connect to the db, yield None since we don't need the db in peewee
     db = connect_db(pdb, orm='peewee')
+    print(db, db.connection, db.connect_params)
     try:
         yield db
     finally:
         if db and settings.db_reset:
+            print('closing')
             db.close()
 
 
