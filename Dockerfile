@@ -59,7 +59,7 @@ FROM dep-stage as dev-stage
 
 # Copy the main project files over and install
 COPY ./ ./
-RUN poetry install --only main
+RUN poetry install -E solara --only main
 
 # Create dir for socket and logs
 RUN mkdir -p /tmp/webapp
