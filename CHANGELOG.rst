@@ -12,7 +12,7 @@ Change Log
 * Adds endpoints for listing cartons and programs
 * Adds endpoints for target search by carton and program
 * Adds ``db_reset`` option to avoid closing and resetting the database connection
-* Updates main and cone search to use new ``has_been_observed`` column; default is True.
+* Updates main, cone, and carton/program search to use new ``has_been_observed`` column; default is True.
 * Updates the ``append_pipes`` query to return the new ``has_been_observed`` column
 
 0.1.0 (10-24-2023)
