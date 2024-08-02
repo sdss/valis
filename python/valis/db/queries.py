@@ -25,7 +25,8 @@ from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_pa
 from valis.utils.versions import get_software_tag
 
 
-def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.ModelSelect:
+def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
+                 observed: bool = True) -> peewee.ModelSelect:
     """ Joins a query to the SDSSidToPipes table
 
     Joines an existing query to the SDSSidToPipes table and returns
@@ -40,6 +41,8 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.Mo
         the input query to join to
     table : str, optional
         the type of sdss_id table joining to, by default 'stacked'
+    observed : bool, optional
+        Flag to filter on observed targets, by default True
 
     Returns
     -------
@@ -55,11 +58,17 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked') -> peewee.Mo
         raise ValueError('table must be either "stacked" or "flat"')
 
     model = vizdb.SDSSidStacked if table == 'stacked' else vizdb.SDSSidFlat
-    return query.select_extend(vizdb.SDSSidToPipes.in_boss,
+    qq = query.select_extend(vizdb.SDSSidToPipes.in_boss,
                                vizdb.SDSSidToPipes.in_apogee,
-                               vizdb.SDSSidToPipes.in_astra).\
+                               vizdb.SDSSidToPipes.in_astra,
+                               vizdb.SDSSidToPipes.has_been_observed).\
         join(vizdb.SDSSidToPipes, on=(model.sdss_id == vizdb.SDSSidToPipes.sdss_id),
              attr='pipes').distinct(vizdb.SDSSidToPipes.sdss_id)
+
+    if observed:
+        qq = qq.where(vizdb.SDSSidToPipes.has_been_observed == observed)
+
+    return qq
 
 
 def get_pipes(sdss_id: int) -> peewee.ModelSelect:
@@ -173,10 +182,11 @@ def get_targets_by_sdss_id(sdss_id: Union[int, list[int]] = []) -> peewee.ModelS
     peewee.ModelSelect
         the ORM query
     """
-    if type(sdss_id) == int:
+    if type(sdss_id) is int:
         sdss_id = [sdss_id]
 
     return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id.in_(sdss_id))
+
 
 def get_targets_by_catalog_id(catalog_id: int) -> peewee.ModelSelect:
     """ Perform a search for SDSS targets on vizdb.SDSSidStacked based on the catalog_id.
