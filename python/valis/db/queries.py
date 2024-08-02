@@ -275,7 +275,7 @@ def carton_program_search(name: str,
     """
 
     if query is None:
-        query = vizdb.SDSSidStacked.select(peewee.fn.DISTINCT(vizdb.SDSSidStacked.sdss_id))
+        query = vizdb.SDSSidStacked.select(vizdb.SDSSidStacked).distinct()
 
     query = (query.join(
                 vizdb.SDSSidFlat,

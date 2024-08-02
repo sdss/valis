@@ -30,8 +30,8 @@ class SearchCoordUnits(str, Enum):
 
 class SearchModel(BaseModel):
     """ Input main query body model """
-    ra: Optional[Union[float, str]] = Field(None, description='Right Ascension in degrees or hmsdms', example=315.78)
-    dec: Optional[Union[float, str]] = Field(None, description='Declination in degrees or hmsdms', example=-3.2)
+    ra: Optional[Union[float, str]] = Field(None, description='Right Ascension in degrees or hmsdms', example=150.385)
+    dec: Optional[Union[float, str]] = Field(None, description='Declination in degrees or hmsdms', example=1.02)
     radius: Optional[Float] = Field(None, description='Search radius in specified units', example=0.02)
     units: Optional[SearchCoordUnits] = Field('degree', description='Units of search radius', example='degree')
     id: Optional[Union[int, str]] = Field(None, description='The SDSS identifier', example=23326)
@@ -168,17 +168,20 @@ class QueryRoutes(Base):
         return carton_program_map()
 
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
     async def carton_program(self,
                              name: Annotated[str, Query(description='Carton or program name', example='manual_mwm_tess_ob')],
                              name_type: Annotated[str,
                                                   Query(enum=['carton', 'program'],
                                                         description='Specify search on carton or program',
-                                                        example='carton')] = 'carton'):
+                                                        example='carton')] = 'carton',
+                             observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True):
         """ Perform a search on carton or program """
         with database.atomic():
             database.execute_sql('SET LOCAL enable_seqscan=false;')
-            return list(carton_program_search(name, name_type))
+            query = carton_program_search(name, name_type)
+            query = append_pipes(query, observed=observed)
+            return query.dicts().iterator()
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
