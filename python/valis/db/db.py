@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 
+import asyncio
 from contextvars import ContextVar
 
 import peewee
@@ -18,7 +19,7 @@ db_state_default = {"closed": None, "conn": None, "ctx": None, "transactions": N
 db_state = ContextVar("db_state", default=db_state_default.copy())
 
 
-def reset_db_state():
+async def reset_db_state():
     """ Sub-dependency for get_db that resets the context connection state """
 
     from valis.main import settings
@@ -68,19 +69,22 @@ def connect_db(db, orm: str = 'peewee'):
 
     return db
 
-def get_pw_db(db_state=Depends(reset_db_state)):
+async def get_pw_db(db_state=Depends(reset_db_state)):
     """ Dependency to connect a database with peewee """
 
     from valis.main import settings
 
     # connect to the db, yield None since we don't need the db in peewee
-    db = connect_db(pdb, orm='peewee')
-    print(db, db.connection, db.connect_params)
+    if settings.db_reset:
+        db = connect_db(pdb, orm='peewee')
+    else:
+        async with asyncio.Lock():
+            db = connect_db(pdb, orm='peewee')
+
     try:
         yield db
     finally:
         if db and settings.db_reset:
-            print('closing')
             db.close()
 
 
