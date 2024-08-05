@@ -7,7 +7,7 @@
 import datetime
 import math
 from typing import Optional, Annotated, Any, TypeVar
-from pydantic import ConfigDict, BaseModel, Field, BeforeValidator
+from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, field_validator, FieldValidationInfo
 from enum import Enum
 
 
@@ -76,7 +76,15 @@ class SDSSidPipesBase(PeeweeBase):
     in_boss: bool = Field(..., description='Flag if target is in the BHM reductions', examples=[False])
     in_apogee: bool = Field(..., description='Flag if target is in the MWM reductions', examples=[False])
     in_astra: bool = Field(..., description='Flag if the target is in the Astra reductions', examples=[False])
+    has_been_observed: Optional[bool] = Field(False, validate_default=True, description='Flag if target has been observed or not', examples=[False])
 
+    @field_validator('has_been_observed')
+    @classmethod
+    def is_observed(cls, v: str, info: FieldValidationInfo) -> str:
+        """ validator for when has_been_observed was not available in table """
+        if not v:
+            return info.data['in_boss'] or info.data['in_apogee'] or info.data['in_astra']
+        return v
 
 class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
     """ Main Pydantic response for SDSS id plus Pipes flags """
