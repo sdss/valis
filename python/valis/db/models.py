@@ -194,7 +194,8 @@ class CatalogModel(PeeweeBase):
 
 class CatalogResponse(CatalogModel, SDSSidFlatBase):
     """ Response model for source catalog and sdss_id information """
-    pass
+
+    parent_catalogs: dict[str, Any] = Field(..., description='The parent catalog associations for a given catalogid')
 
 
 class CartonModel(PeeweeBase):

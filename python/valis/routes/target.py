@@ -4,7 +4,7 @@ import math
 import re
 import httpx
 import orjson
-from typing import Tuple, List, Union, Optional, Annotated
+from typing import Any, Tuple, List, Union, Optional, Annotated
 from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
 from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
@@ -14,7 +14,8 @@ from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_target_cartons, get_target_pipeline)
+                              get_parent_catalogs, get_target_cartons,
+                              get_target_pipeline)
 from valis.db.db import get_pw_db
 from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
 
@@ -181,7 +182,18 @@ class Target(Base):
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return catalog information for a given sdss_id """
-        return get_catalog_sources(sdss_id).dicts().iterator()
+        sdss_id_data = get_catalog_sources(sdss_id).dicts()
+
+        parent_catalogs: list[dict[str, Any]] = []
+        for i in sdss_id_data:
+            cat_data = get_parent_catalogs(i['catalogid'])
+            if cat_data.count() > 0:
+                parent_catalogs.append(cat_data.dicts()[0])
+            else:
+                parent_catalogs.append({})
+
+        return [CatalogResponse(**s_data, parent_catalogs=parent_catalogs[idx])
+                for idx, s_data in enumerate(sdss_id_data)]
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],

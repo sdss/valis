@@ -694,6 +694,32 @@ def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
         join(s, on=(s.c.catalogid == cat.Catalog.catalogid)).order_by(cat.Catalog.version.desc())
 
 
+def get_parent_catalogs(catalogid: int) -> peewee.ModelSelect:
+    """ Get the parent catalog info for a target catalogid
+
+    Retrieve the parent catalog info from catalogdb.Catalog table
+    for a given catalogid.
+
+    Parameters
+    ----------
+    catalogid : int
+        the input catalogid
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
+
+    catalog_fields = [field.alias(col_name.split('__')[0])
+                      for col_name, field in cat.SDSS_ID_To_Catalog._meta.fields.items()
+                      if '__' in col_name]
+    catalog_fields = sorted(catalog_fields, key=lambda x: x.name)
+
+    return cat.SDSS_ID_To_Catalog.select(*catalog_fields).\
+        where(cat.SDSS_ID_To_Catalog.catalogid == catalogid)
+
+
 def get_target_cartons(sdss_id: int) -> peewee.ModelSelect:
     """ Get the carton info for a target sdss_id
 
