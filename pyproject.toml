@@ -23,7 +23,6 @@ packages = [
     { include = "valis", from = "python" }
 ]
 include = ["python/valis/etc/*", "cextern/**/*", "LICENSE.md"]
-build = "build.py"
 
 [tool.poetry.scripts]
 valis = "valis.cli:main"
