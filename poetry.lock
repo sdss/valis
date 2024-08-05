@@ -5754,13 +5754,13 @@ docs = ["Sphinx (>=7.2.0)", "importlib-metadata (>=1.6.0)", "jinja2 (<3.1)", "re
 
 [[package]]
 name = "sdssdb"
-version = "0.12.2"
+version = "0.12.3"
 description = "SDSS product for database management"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "sdssdb-0.12.2-py3-none-any.whl", hash = "sha256:28fb749cceb8c38c647b2f7efba47b18c17f52537e68e007e6fcbfe9f8f560f4"},
-    {file = "sdssdb-0.12.2.tar.gz", hash = "sha256:fb91f9419393a4e4ab1e0c3fe9d606b48e9201ab19ad2cf1acee7cf6575f0677"},
+    {file = "sdssdb-0.12.3-py3-none-any.whl", hash = "sha256:67102b0075cbe79a399a791d3e7e018440429d5a7c3d4734b9bdc002a0e70998"},
+    {file = "sdssdb-0.12.3.tar.gz", hash = "sha256:743e9fdf81da22b700323417f235eb3d0145e4336e65c78b96cb0f9e6168c1b7"},
 ]
 
 [package.dependencies]
@@ -7528,4 +7528,4 @@ solara = ["sdss-solara"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "552fb1c7aaf214d9364f9cb2e172f35396169900235082d7b0c6a23a96156c15"
+content-hash = "5a6c6add56086dab357ab8112c067e2c46e1a000c0b96a075e738ea24e932159"
