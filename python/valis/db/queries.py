@@ -113,8 +113,8 @@ def convert_coords(ra: Union[str, float], dec: Union[str, float]) -> tuple:
     """
     is_hms = set('hms: ') & set(str(ra))
     if is_hms:
-        ra = str(ra).replace(' ', ':')
-        dec = str(dec).replace(' ', ':')
+        ra = str(ra).strip().replace(' ', ':')
+        dec = str(dec).strip().replace(' ', ':')
         unit = ('hourangle', 'degree') if is_hms else ('degree', 'degree')
         coord = SkyCoord(f'{ra} {dec}', unit=unit)
         ra = round(coord.ra.value, 5)
@@ -182,7 +182,7 @@ def get_targets_by_sdss_id(sdss_id: Union[int, list[int]] = []) -> peewee.ModelS
     peewee.ModelSelect
         the ORM query
     """
-    if type(sdss_id) is int:
+    if type(sdss_id) in (int, str):
         sdss_id = [sdss_id]
 
     return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id.in_(sdss_id))

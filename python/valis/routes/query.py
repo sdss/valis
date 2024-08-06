@@ -82,6 +82,7 @@ class QueryRoutes(Base):
         """ Main query for UI and for combining queries together """
 
         print('form data', body)
+        query = None
 
         # build the coordinate query
         if body.ra and body.dec:
@@ -97,9 +98,13 @@ class QueryRoutes(Base):
                                           'program' if body.program else 'carton',
                                           query=query)
         # append query to pipes
-        query = append_pipes(query, observed=body.observed)
+        if query:
+            query = append_pipes(query, observed=body.observed)
 
-        return {'status': 'success', 'data': query.dicts().iterator(), 'msg': 'data successfully retrieved'}
+        # query iterator
+        res = query.dicts().iterator() if query else []
+
+        return {'status': 'success', 'data': res, 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
