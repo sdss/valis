@@ -14,6 +14,7 @@ Change Log
 * Adds ``db_reset`` option to avoid closing and resetting the database connection
 * Updates main, cone, and carton/program search to use new ``has_been_observed`` column; default is True.
 * Updates the ``append_pipes`` query to return the new ``has_been_observed`` column
+* Adds endpoint to get parent catalog data for a given target (#38).
 
 0.1.0 (10-24-2023)
 ------------------
