@@ -184,11 +184,17 @@ class Target(Base):
         """ Return catalog information for a given sdss_id """
 
         sdss_id_data = get_catalog_sources(sdss_id).dicts()
-        cat_data = get_parent_catalogs([i['catalogid'] for i in sdss_id_data]).dicts()
 
-        response = ({**s_data, 'parent_catalogs': cat_data[idx]}
-                    for idx, s_data in enumerate(sdss_id_data))
-        return response
+        # The response has the parent catalogs at the same level as the other
+        # columns. For the response we want to nest them under a parent_catalogs key.
+        # This takes advantage that all the parent catalog columns have '__' in the name.
+        response_data: list[dict[str, Any]] = []
+        for row in sdss_id_data:
+            s_data = {k: v for k, v in row.items() if '__' not in k}
+            cat_data = {k.split('__')[0]: v for k, v in row.items() if '__' in k}
+            response_data.append({**s_data, 'parent_catalogs': cat_data})
+
+        return response_data
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],
