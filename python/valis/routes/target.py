@@ -14,9 +14,10 @@ from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_target_cartons, get_target_pipeline)
+                              get_parent_catalog_data, get_target_cartons,
+                              get_target_pipeline)
 from valis.db.db import get_pw_db
-from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
+from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel
 
 router = APIRouter()
 
@@ -182,6 +183,26 @@ class Target(Base):
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return catalog information for a given sdss_id """
         return get_catalog_sources(sdss_id).dicts().iterator()
+
+    @router.get('/parents/{parent_catalog}/{sdss_id}',
+                dependencies=[Depends(get_pw_db)],
+                response_model=ParentCatalogModel,
+                summary='Retrieve parent catalog information for a taget by sdss_id')
+    async def get_parents(self,
+                          parent_catalog: str = Path(title='The parent catalog to search',
+                                                     example='gaia_dr3_source'),
+                          sdss_id = Path(title='The sdss_id of the target to get',
+                                         example=129055990)):
+        """Return parent catalog information for a given sdss_id """
+
+        try:
+            result = get_parent_catalog_data(sdss_id, parent_catalog).dicts()
+            if len(result) == 0:
+                raise ValueError(f'No parent catalog data found for sdss_id {sdss_id}')
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f'Error: {e}')
+
+        return result[0]
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],

@@ -192,6 +192,16 @@ class CatalogModel(PeeweeBase):
     parallax: Optional[float] = None
 
 
+class ParentCatalogModel(PeeweeBase):
+    """Pydantic model for parent catalog information """
+
+    sdss_id: int
+    catalogid: int
+    catalog: str
+    field_name: str
+    parent_catalog_id: int | str
+
+
 class CatalogResponse(CatalogModel, SDSSidFlatBase):
     """ Response model for source catalog and sdss_id information """
     pass
