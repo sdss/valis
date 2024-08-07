@@ -198,10 +198,12 @@ class CatalogResponse(CatalogModel, SDSSidFlatBase):
     parent_catalogs: dict[str, Any] = Field(..., description='The parent catalog associations for a given catalogid')
 
     @field_serializer('parent_catalogs')
-    def serialize_parent_catalogs(v: dict[str, Any]) -> dict[str, Any]:
+    def serialize_parent_catalogs(v: dict[str, Any], info: FieldSerializationInfo) -> dict[str, Any]:
         """ Serialize the parent catalogs, excluding None values."""
-
-        return {k: v for k, v in v.items() if v is not None}
+        if info.exclude_none:
+            return {k: v for k, v in v.items() if v is not None}
+        else:
+            return v
 
 
 class CartonModel(PeeweeBase):
