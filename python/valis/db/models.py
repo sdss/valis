@@ -7,7 +7,7 @@
 import datetime
 import math
 from typing import Optional, Annotated, Any, TypeVar
-from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, field_serializer, field_validator, FieldValidationInfo
+from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer, field_validator, FieldValidationInfo
 from enum import Enum
 
 
