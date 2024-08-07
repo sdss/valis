@@ -199,9 +199,10 @@ class CatalogResponse(CatalogModel, SDSSidFlatBase):
 
     @field_serializer('parent_catalogs')
     def serialize_parent_catalogs(v: dict[str, Any], info: FieldSerializationInfo) -> dict[str, Any]:
-        """ Serialize the parent catalogs, excluding None values."""
+        """ Serialize the parent catalogs, excluding None values and trimming strings."""
+
         if info.exclude_none:
-            return {k: v for k, v in v.items() if v is not None}
+            return {k: v.strip() if isinstance(v, str) else v for k, v in v.items() if v is not None}
         else:
             return v
 
