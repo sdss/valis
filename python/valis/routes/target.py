@@ -182,18 +182,13 @@ class Target(Base):
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return catalog information for a given sdss_id """
+
         sdss_id_data = get_catalog_sources(sdss_id).dicts()
+        cat_data = get_parent_catalogs([i['catalogid'] for i in sdss_id_data]).dicts()
 
-        parent_catalogs: list[dict[str, Any]] = []
-        for i in sdss_id_data:
-            cat_data = get_parent_catalogs(i['catalogid'])
-            if cat_data.count() > 0:
-                parent_catalogs.append(cat_data.dicts()[0])
-            else:
-                parent_catalogs.append({})
-
-        return [CatalogResponse(**s_data, parent_catalogs=parent_catalogs[idx])
-                for idx, s_data in enumerate(sdss_id_data)]
+        response = ({**s_data, 'parent_catalogs': cat_data[idx]}
+                    for idx, s_data in enumerate(sdss_id_data))
+        return response
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],

@@ -6,7 +6,7 @@
 
 import itertools
 import packaging
-from typing import Union, Generator
+from typing import Sequence, Union, Generator
 
 import astropy.units as u
 import deepmerge
@@ -694,7 +694,7 @@ def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
         join(s, on=(s.c.catalogid == cat.Catalog.catalogid)).order_by(cat.Catalog.version.desc())
 
 
-def get_parent_catalogs(catalogid: int) -> peewee.ModelSelect:
+def get_parent_catalogs(catalogid: int | Sequence[int]) -> peewee.ModelSelect:
     """ Get the parent catalog info for a target catalogid
 
     Retrieve the parent catalog info from catalogdb.Catalog table
@@ -716,8 +716,11 @@ def get_parent_catalogs(catalogid: int) -> peewee.ModelSelect:
                       if '__' in col_name]
     catalog_fields = sorted(catalog_fields, key=lambda x: x.name)
 
+    if isinstance(catalogid, int):
+        catalogid = [catalogid]
+
     return cat.SDSS_ID_To_Catalog.select(*catalog_fields).\
-        where(cat.SDSS_ID_To_Catalog.catalogid == catalogid)
+        where(cat.SDSS_ID_To_Catalog.catalogid.in_(catalogid))
 
 
 def get_target_cartons(sdss_id: int) -> peewee.ModelSelect:
