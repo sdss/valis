@@ -199,6 +199,7 @@ class Target(Base):
     @router.get('/parents/{catalog}/{sdss_id}',
                 dependencies=[Depends(get_pw_db)],
                 response_model=ParentCatalogModel,
+                responses={400: {'description': 'Invalid input sdss_id or catalog'}},
                 summary='Retrieve parent catalog information for a taget by sdss_id')
     async def get_parents(self,
                           catalog: Annotated[str, Path(description='The parent catalog to search',
@@ -212,7 +213,7 @@ class Target(Base):
             if len(result) == 0:
                 raise ValueError(f'No parent catalog data found for sdss_id {sdss_id}')
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f'Error: {e}')
+            raise HTTPException(status_code=400, detail=f'Error: {e}')
 
         return result[0]
 
