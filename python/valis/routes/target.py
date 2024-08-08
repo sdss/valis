@@ -196,19 +196,19 @@ class Target(Base):
 
         return response_data
 
-    @router.get('/parents/{parent_catalog}/{sdss_id}',
+    @router.get('/parents/{catalog}/{sdss_id}',
                 dependencies=[Depends(get_pw_db)],
                 response_model=ParentCatalogModel,
                 summary='Retrieve parent catalog information for a taget by sdss_id')
     async def get_parents(self,
-                          parent_catalog: str = Path(title='The parent catalog to search',
-                                                     example='gaia_dr3_source'),
-                          sdss_id = Path(title='The sdss_id of the target to get',
-                                         example=129055990)):
+                          catalog: Annotated[str, Path(description='The parent catalog to search',
+                                                       example='gaia_dr3_source')],
+                          sdss_id: Annotated[int, Path(description='The sdss_id of the target to get',
+                                                       example=129055990)]):
         """Return parent catalog information for a given sdss_id """
 
         try:
-            result = get_parent_catalog_data(sdss_id, parent_catalog).dicts()
+            result = get_parent_catalog_data(sdss_id, catalog).dicts()
             if len(result) == 0:
                 raise ValueError(f'No parent catalog data found for sdss_id {sdss_id}')
         except Exception as e:
