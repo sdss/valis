@@ -14,8 +14,7 @@ from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_parent_catalogs, get_target_cartons,
-                              get_target_pipeline)
+                              get_target_cartons, get_target_pipeline)
 from valis.db.db import get_pw_db
 from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
 
