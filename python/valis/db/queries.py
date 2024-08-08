@@ -696,6 +696,23 @@ def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
         order_by(cat.Catalog.version.desc())
 
 
+def get_parent_catalog_data(sdss_id: int, catalog: str) -> peewee.ModelSelect:
+    """Returns parent catalog data for a given target."""
+
+    SID = cat.SDSS_ID_To_Catalog
+
+    fqtn = f'catalogdb.{catalog}'
+    if fqtn not in cat.database.models:
+        raise ValueError(f'Catalog {catalog} not found in catalogdb.')
+
+    ParentModel = cat.database.models[fqtn]
+
+    return (SID.select(SID.sdss_id, SID.catalogid, ParentModel)
+               .join(ParentModel)
+               .where(SID.sdss_id == sdss_id)
+               .order_by(SID.catalogid))
+
+
 def get_target_cartons(sdss_id: int) -> peewee.ModelSelect:
     """ Get the carton info for a target sdss_id
 

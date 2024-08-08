@@ -14,9 +14,10 @@ from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_target_cartons, get_target_pipeline)
+                              get_parent_catalog_data, get_target_cartons,
+                              get_target_pipeline)
 from valis.db.db import get_pw_db
-from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
+from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel
 
 router = APIRouter()
 
@@ -194,6 +195,27 @@ class Target(Base):
             response_data.append({**s_data, 'parent_catalogs': cat_data})
 
         return response_data
+
+    @router.get('/parents/{catalog}/{sdss_id}',
+                dependencies=[Depends(get_pw_db)],
+                response_model=ParentCatalogModel,
+                responses={400: {'description': 'Invalid input sdss_id or catalog'}},
+                summary='Retrieve parent catalog information for a taget by sdss_id')
+    async def get_parents(self,
+                          catalog: Annotated[str, Path(description='The parent catalog to search',
+                                                       example='gaia_dr3_source')],
+                          sdss_id: Annotated[int, Path(description='The sdss_id of the target to get',
+                                                       example=129055990)]):
+        """Return parent catalog information for a given sdss_id """
+
+        try:
+            result = get_parent_catalog_data(sdss_id, catalog).dicts()
+            if len(result) == 0:
+                raise ValueError(f'No parent catalog data found for sdss_id {sdss_id}')
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f'Error: {e}')
+
+        return result[0]
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],
