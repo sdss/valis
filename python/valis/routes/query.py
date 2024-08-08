@@ -178,6 +178,9 @@ class QueryRoutes(Base):
         """Return a list of available parent catalog tables."""
 
         columns = catalogdb.SDSS_ID_To_Catalog._meta.fields.keys()
+
+        # In sdss_id_to_catalog table, the parent catalog columns are named
+        # as 'parent_catalog__parent_catalog_pk_column'.
         catalogs = [col.split('__')[0] for col in columns if '__' in col]
 
         return sorted(catalogs)
