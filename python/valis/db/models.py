@@ -195,8 +195,8 @@ class CatalogModel(PeeweeBase):
 class ParentCatalogModel(PeeweeBase):
     """Pydantic model for parent catalog information """
 
-    sdss_id: int
-    catalogid: int
+    sdss_id: Annotated[int, Field(description='The sdss_id associated with the parent catalogue data')]
+    catalogid: Annotated[int, Field(description='The catalogid associated with the parent catalogue data')]
 
     # This model is usually instantiated with a dictionary of all the parent
     # catalogue columns so we allow extra fields.
