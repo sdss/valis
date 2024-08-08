@@ -6,7 +6,7 @@
 
 import itertools
 import packaging
-from typing import Union, Generator
+from typing import Sequence, Union, Generator
 
 import astropy.units as u
 import deepmerge
@@ -690,8 +690,10 @@ def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
     """
 
     s = vizdb.SDSSidFlat.select(vizdb.SDSSidFlat).where(vizdb.SDSSidFlat.sdss_id == sdss_id).alias('s')
-    return cat.Catalog.select(cat.Catalog, starfields(s)).\
-        join(s, on=(s.c.catalogid == cat.Catalog.catalogid)).order_by(cat.Catalog.version.desc())
+    return cat.Catalog.select(cat.Catalog, cat.SDSS_ID_To_Catalog, starfields(s)).\
+        join(s, on=(s.c.catalogid == cat.Catalog.catalogid)).\
+        join(cat.SDSS_ID_To_Catalog, on=(s.c.catalogid == cat.SDSS_ID_To_Catalog.catalogid)).\
+        order_by(cat.Catalog.version.desc())
 
 
 def get_target_cartons(sdss_id: int) -> peewee.ModelSelect:

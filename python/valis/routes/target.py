@@ -4,7 +4,7 @@ import math
 import re
 import httpx
 import orjson
-from typing import Tuple, List, Union, Optional, Annotated
+from typing import Any, Tuple, List, Union, Optional, Annotated
 from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
 from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
@@ -181,7 +181,19 @@ class Target(Base):
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return catalog information for a given sdss_id """
-        return get_catalog_sources(sdss_id).dicts().iterator()
+
+        sdss_id_data = get_catalog_sources(sdss_id).dicts()
+
+        # The response has the parent catalogs at the same level as the other
+        # columns. For the response we want to nest them under a parent_catalogs key.
+        # This takes advantage that all the parent catalog columns have '__' in the name.
+        response_data: list[dict[str, Any]] = []
+        for row in sdss_id_data:
+            s_data = {k: v for k, v in row.items() if '__' not in k}
+            cat_data = {k.split('__')[0]: v for k, v in row.items() if '__' in k}
+            response_data.append({**s_data, 'parent_catalogs': cat_data})
+
+        return response_data
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],

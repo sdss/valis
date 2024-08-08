@@ -7,7 +7,7 @@
 import datetime
 import math
 from typing import Optional, Annotated, Any, TypeVar
-from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, field_validator, FieldValidationInfo
+from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer, field_validator, FieldValidationInfo
 from enum import Enum
 
 
@@ -194,7 +194,17 @@ class CatalogModel(PeeweeBase):
 
 class CatalogResponse(CatalogModel, SDSSidFlatBase):
     """ Response model for source catalog and sdss_id information """
-    pass
+
+    parent_catalogs: dict[str, Any] = Field(..., description='The parent catalog associations for a given catalogid')
+
+    @field_serializer('parent_catalogs')
+    def serialize_parent_catalogs(v: dict[str, Any], info: FieldSerializationInfo) -> dict[str, Any]:
+        """ Serialize the parent catalogs, excluding None values and trimming strings."""
+
+        if info.exclude_none:
+            return {k: v.strip() if isinstance(v, str) else v for k, v in v.items() if v is not None}
+        else:
+            return v
 
 
 class CartonModel(PeeweeBase):
