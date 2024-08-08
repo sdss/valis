@@ -197,9 +197,10 @@ class ParentCatalogModel(PeeweeBase):
 
     sdss_id: int
     catalogid: int
-    catalog: str
-    field_name: str
-    parent_catalog_id: int | str
+
+    # This model is usually instantiated with a dictionary of all the parent
+    # catalogue columns so we allow extra fields.
+    model_config = ConfigDict(extra='allow')
 
 
 class CatalogResponse(CatalogModel, SDSSidFlatBase):

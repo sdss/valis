@@ -701,24 +701,16 @@ def get_parent_catalog_data(sdss_id: int, catalog: str) -> peewee.ModelSelect:
 
     SID = cat.SDSS_ID_To_Catalog
 
-    cat_field: peewee.Field | None = None
-    cat_pk_name: str | None = None
-    for field in SID._meta.fields.values():
-        if '__' not in field.name:
-            continue
-        if field.name.split('__')[0] == catalog:
-            cat_field = field
-            cat_pk_name = field.name.split('__')[1]
-            break
+    fqtn = f'catalogdb.{catalog}'
+    if fqtn not in cat.database.models:
+        raise ValueError(f'Catalog {catalog} not found in catalogdb.')
 
-    if cat_field is None or cat_pk_name is None:
-        raise ValueError(f'Catalog {catalog} not found in SDSS_ID_To_Catalog table.')
+    ParentModel = cat.database.models[fqtn]
 
     return (SID.select(SID.sdss_id,
                        SID.catalogid,
-                       peewee.Value(catalog).alias('catalog'),
-                       peewee.Value(cat_pk_name).alias('field_name'),
-                       field.alias('parent_catalog_id'))
+                       ParentModel)
+               .join(ParentModel)
                .where(SID.sdss_id == sdss_id)
                .order_by(SID.catalogid))
 
