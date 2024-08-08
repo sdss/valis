@@ -707,9 +707,7 @@ def get_parent_catalog_data(sdss_id: int, catalog: str) -> peewee.ModelSelect:
 
     ParentModel = cat.database.models[fqtn]
 
-    return (SID.select(SID.sdss_id,
-                       SID.catalogid,
-                       ParentModel)
+    return (SID.select(SID.sdss_id, SID.catalogid, ParentModel)
                .join(ParentModel)
                .where(SID.sdss_id == sdss_id)
                .order_by(SID.catalogid))
