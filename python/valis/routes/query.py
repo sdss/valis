@@ -15,7 +15,7 @@ from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id,
                               get_targets_obs, get_paged_target_list_by_mapper)
-from sdssdb.peewee.sdss5db import database
+from sdssdb.peewee.sdss5db import database, catalogdb
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -171,6 +171,16 @@ class QueryRoutes(Base):
         """ Return a mapping of cartons in all programs """
 
         return carton_program_map()
+
+    @router.get('/list/parents', summary='Return a list of available parent catalog tables',
+                response_model=List[str])
+    async def parent_catalogs(self):
+        """Return a list of available parent catalog tables."""
+
+        columns = catalogdb.SDSS_ID_To_Catalog._meta.fields.keys()
+        catalogs = [col.split('__')[0] for col in columns if '__' in col]
+
+        return sorted(catalogs)
 
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
                 response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
