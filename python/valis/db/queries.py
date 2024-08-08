@@ -6,7 +6,7 @@
 
 import itertools
 import packaging
-from typing import Union, Generator
+from typing import Sequence, Union, Generator
 
 import astropy.units as u
 import deepmerge
@@ -113,8 +113,8 @@ def convert_coords(ra: Union[str, float], dec: Union[str, float]) -> tuple:
     """
     is_hms = set('hms: ') & set(str(ra))
     if is_hms:
-        ra = str(ra).replace(' ', ':')
-        dec = str(dec).replace(' ', ':')
+        ra = str(ra).strip().replace(' ', ':')
+        dec = str(dec).strip().replace(' ', ':')
         unit = ('hourangle', 'degree') if is_hms else ('degree', 'degree')
         coord = SkyCoord(f'{ra} {dec}', unit=unit)
         ra = round(coord.ra.value, 5)
@@ -182,7 +182,7 @@ def get_targets_by_sdss_id(sdss_id: Union[int, list[int]] = []) -> peewee.ModelS
     peewee.ModelSelect
         the ORM query
     """
-    if type(sdss_id) is int:
+    if type(sdss_id) in (int, str):
         sdss_id = [sdss_id]
 
     return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id.in_(sdss_id))
@@ -690,8 +690,10 @@ def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
     """
 
     s = vizdb.SDSSidFlat.select(vizdb.SDSSidFlat).where(vizdb.SDSSidFlat.sdss_id == sdss_id).alias('s')
-    return cat.Catalog.select(cat.Catalog, starfields(s)).\
-        join(s, on=(s.c.catalogid == cat.Catalog.catalogid)).order_by(cat.Catalog.version.desc())
+    return cat.Catalog.select(cat.Catalog, cat.SDSS_ID_To_Catalog, starfields(s)).\
+        join(s, on=(s.c.catalogid == cat.Catalog.catalogid)).\
+        join(cat.SDSS_ID_To_Catalog, on=(s.c.catalogid == cat.SDSS_ID_To_Catalog.catalogid)).\
+        order_by(cat.Catalog.version.desc())
 
 
 def get_parent_catalog_data(sdss_id: int, catalog: str) -> peewee.ModelSelect:
