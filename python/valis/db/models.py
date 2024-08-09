@@ -102,7 +102,7 @@ class BossSpectrum(PeeweeBase):
     survey: str = None
     firstcarton: str = None
     objtype: str = None
-    specobjid: int = None
+    specobjid: Optional[int] = None
 
 class AstraSource(PeeweeBase):
     """ Pydantic response model for the MWM Astra source metadata """
