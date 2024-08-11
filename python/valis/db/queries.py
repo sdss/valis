@@ -459,7 +459,7 @@ def get_target_meta(sdss_id: int, release: str) -> dict:
     """
     # get the id and pipeline flags
     query = get_targets_by_sdss_id(sdss_id)
-    pipes = append_pipes(query)
+    pipes = append_pipes(query, observed=False)
     return pipes.dicts().first()
 
 
