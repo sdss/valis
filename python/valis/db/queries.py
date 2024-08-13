@@ -696,7 +696,7 @@ def get_catalog_sources(sdss_id: int) -> peewee.ModelSelect:
         order_by(cat.Catalog.version.desc())
 
 
-def get_parent_catalog_data(sdss_id: int, catalog: str) -> peewee.ModelSelect:
+def get_parent_catalog_data(sdss_id: int, catalog: str, catalogid: int | None = None) -> peewee.ModelSelect:
     """Returns parent catalog data for a given target."""
 
     SID = cat.SDSS_ID_To_Catalog
@@ -707,9 +707,13 @@ def get_parent_catalog_data(sdss_id: int, catalog: str) -> peewee.ModelSelect:
 
     ParentModel = cat.database.models[fqtn]
 
+    cid_condition = (SID.catalogid == catalogid) if catalogid is not None else True
+
     return (SID.select(SID.sdss_id, SID.catalogid, ParentModel)
+               .distinct(SID.sdss_id, SID.catalogid)
                .join(ParentModel)
                .where(SID.sdss_id == sdss_id)
+               .where(cid_condition)
                .order_by(SID.catalogid))
 
 
