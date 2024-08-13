@@ -108,7 +108,7 @@ class AstraSource(PeeweeBase):
     """ Pydantic response model for the MWM Astra source metadata """
     sdss_id: int = None
     catalogid: int = None
-    sdss4_apogee_id: Optional[int] = None
+    sdss4_apogee_id: Optional[str] = None
     gaia_dr2_source_id: Optional[int] = None
     gaia_dr3_source_id: Optional[int] = None
     tic_v8_id: Optional[int] = None
