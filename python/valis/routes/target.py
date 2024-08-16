@@ -10,6 +10,7 @@ from pydantic import field_validator, model_validator, BaseModel, Field, model_s
 from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
 import numpy as np
+import pandas as pd
 import astropy.units as u
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
@@ -254,3 +255,52 @@ class Target(Base):
         return dict(filename=filename,
                     wave=arr2list(wave),
                     flux=arr2list(flux),)
+
+
+    @router.get('/dap_lines/{tile_id}/{mjd}/{exposure}',
+                summary='Experimental endpoint to extract LVM DAP emission line fluxes')
+    async def get_dap_fluxes(self,
+                             tile_id: Annotated[int, Path(description="The tile_id of the LVM pointing", example=1028790)],
+                             mjd: Annotated[int, Path(desciption='The MJD of the observations', example=60314)],
+                             exposure: Annotated[int, Path(desciption='The exposure number', example=10328)],
+                             wl = Query('6562.85,4861.36', description='List of emission lines to be retrieved', example='6562.85,4861.36'),
+                             ):
+
+
+        # construct file path for lvmSFrame-*.fits file
+        suffix = str(exposure).zfill(8)
+        if tile_id == 11111:
+            filename = f"0011XX/11111/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
+        else:
+            filename = f"{str(tile_id)[:4]}XX/{tile_id}/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
+
+        DAP_ROOT = f"/data/sdss/sas/sdsswork/lvm/spectro/analysis/1.0.3/"
+        file = DAP_ROOT + filename
+
+        # Check that file exists and return exception if not
+        if not os.path.exists(file):
+            raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
+
+        # Read parametric emission line
+        dap_pm = fits.getdata(file, 'PM_ELINES')
+
+        # # Create DataFrames
+        df_pm = pd.DataFrame({'id': np.array(dap_pm['id']).byteswap().newbyteorder(),
+                            'wl': np.array(dap_pm['wl']).byteswap().newbyteorder(),
+                            'flux': np.array(dap_pm['flux']).byteswap().newbyteorder()})
+
+        # # extract from id column fiberid part
+        df_pm['fiberid'] = df_pm['id'].str.split('.').str[1].astype(int)
+
+        wlist = [float(w) for w in wl.split(',')]
+
+        masked_lines = df_pm['wl'].isin(wlist)
+        df_pm_sub = df_pm[masked_lines]
+
+        df_pm_pivot = df_pm_sub.pivot(index='fiberid', columns='wl', values='flux').reset_index()
+
+        output = dict(fiberid=df_pm_pivot['fiberid'].tolist())
+        for wl in wlist:
+            output[f"{wl}"] = df_pm_pivot[wl].tolist()
+
+        return output
