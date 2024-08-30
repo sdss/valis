@@ -124,8 +124,8 @@ class AstraSource(PeeweeBase):
     sdss4_apogee_extra_target_flags: int = None
     ra: float = None
     dec: float = None
-    n_boss_visits: int = None
-    n_apogee_visits: int = None
+    n_boss_visits: Optional[int] = None
+    n_apogee_visits: Optional[int] = None
     l: float = None
     b: float = None
     ebv: float = None
