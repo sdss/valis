@@ -3269,13 +3269,13 @@ files = [
 
 [[package]]
 name = "markdown"
-version = "3.6"
+version = "3.7"
 description = "Python implementation of John Gruber's Markdown."
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Markdown-3.6-py3-none-any.whl", hash = "sha256:48f276f4d8cfb8ce6527c8f79e2ee29708508bf4d40aa410fbc3b4ee832c850f"},
-    {file = "Markdown-3.6.tar.gz", hash = "sha256:ed4f41f6daecbeeb96e576ce414c41d2d876daa9a16cb35fa8ed8c2ddfad0224"},
+    {file = "Markdown-3.7-py3-none-any.whl", hash = "sha256:7eb6df5690b81a1d7942992c97fad2938e956e79df20cbc6186e9c3a77b1c803"},
+    {file = "markdown-3.7.tar.gz", hash = "sha256:2ae2471477cfd02dbbf038d5d9bc226d40def84b4fe2986e49b59b6b472bbed2"},
 ]
 
 [package.extras]
@@ -3994,38 +3994,34 @@ files = [
 
 [[package]]
 name = "photutils"
-version = "1.11.0"
+version = "1.13.0"
 description = "An Astropy package for source detection and photometry"
 optional = true
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 files = [
-    {file = "photutils-1.11.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:0d4f089f65fe9aeb3095ccf40e4784ea47a1a26e48888f1e11b1b87191b13d90"},
-    {file = "photutils-1.11.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:5d907ecc5511aa56108c2c8deece625628effcb8224676f4874b03d5e673bbee"},
-    {file = "photutils-1.11.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8fa60fc13976e8d4983ee8a8f071ec6703ef492a2761bff2b37e5e0549c5881a"},
-    {file = "photutils-1.11.0-cp310-cp310-win_amd64.whl", hash = "sha256:8c1fe7906f3bfe6d870efdf659b4f7e8c34aca959122805f0102a735df948002"},
-    {file = "photutils-1.11.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:a59bc830fbe083651b2a0709a6b2069bb8ef70a9e6025c9cf64cfe47b2abfa11"},
-    {file = "photutils-1.11.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:6419525f3c2a9dbe7c71a6e1e2e3dfec17ccb2a8cb3ed6f93b52dec25a6d5fe8"},
-    {file = "photutils-1.11.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0a4f93bfdb12b32cad475f2bee4cb3e2187ac13f83ce0b06f12f17569f4da2b9"},
-    {file = "photutils-1.11.0-cp311-cp311-win_amd64.whl", hash = "sha256:3cd5bb00eab472193d467f6d0385842117948e7f842d9e254563ff06935ccdad"},
-    {file = "photutils-1.11.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:3699d65f1e9697da84a413a4cfbd00a91730b44ef79664ae0423016fdf38ece0"},
-    {file = "photutils-1.11.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:43fa6b850a42700621f1083b639cb7c1e55abccf16db76274dc33ba1a877c64d"},
-    {file = "photutils-1.11.0-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a130a515794156897e74859e255dd3f880c12233495a1cd34295295da2c34e35"},
-    {file = "photutils-1.11.0-cp312-cp312-win_amd64.whl", hash = "sha256:2514f2a6a1da90f30e0a3a2cd538bfcc281dbddb60e6ec5a3b665e761d8835d9"},
-    {file = "photutils-1.11.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:53b251ebd5ffab83035d04f79bc65e18c64479b36d1fe0ef8817a4606b3c595b"},
-    {file = "photutils-1.11.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:e18b24319bd16f096b1dfd821b3e5e672bce7dbbf18bc32c2e51c53f7b43660b"},
-    {file = "photutils-1.11.0-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8530421f849a0aa158aed02aa3cd7cd8c18843402eefd38ebd34565f7b985e18"},
-    {file = "photutils-1.11.0-cp39-cp39-win_amd64.whl", hash = "sha256:f2680ea011d5955384c9b1b5e2730018bd45ebaafc462ed2893666ba6313f886"},
-    {file = "photutils-1.11.0.tar.gz", hash = "sha256:ee709d090bac2bc8b8b317078c87f9c4b6855f6f94c2f7f2a93ab5b8f8375597"},
+    {file = "photutils-1.13.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:dced29b5c7af803aeafbbaa726d3afffc8955f4f28b86e187b6a6c5a08300caf"},
+    {file = "photutils-1.13.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:51ef897a3188ee2ac9cff26b446ff65015f732816adbd05ef419d38f3122ba93"},
+    {file = "photutils-1.13.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:debf8e2b945822e7a0fd39a3f21e298d014fcf3c251014c1daaf4edfc14079af"},
+    {file = "photutils-1.13.0-cp310-cp310-win_amd64.whl", hash = "sha256:122c15d264ca065b23b906819f1fc89984d459aeda840d49e0d699bac8e5db16"},
+    {file = "photutils-1.13.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:f0168a1c9b8a73663febf95046e30dc136a403881502b39642187ce8a4ad9a47"},
+    {file = "photutils-1.13.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:6381d16b691b6718b7a99e1044300967f606cd47f05abd56a7b2139264016d86"},
+    {file = "photutils-1.13.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:24d6510cb557ec8cc432b479132028ba995660178554603d83d56dca70bd8d1f"},
+    {file = "photutils-1.13.0-cp311-cp311-win_amd64.whl", hash = "sha256:609b5e2afe525f5c652d235ce485089109954806f03d03f88b7555e80dff47e5"},
+    {file = "photutils-1.13.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:c1fd66336953e45634926711ade21a764880dff4a011d83ced8dd5b864d48e66"},
+    {file = "photutils-1.13.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8c8906b6d01a834a78277c7bccd10b5a8cc730fcdbbee5571d7e33e46ec11bd4"},
+    {file = "photutils-1.13.0-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b847523d5593a700b70b8287cfc2721bbff54e16dedb5e5ad2421bec59f90749"},
+    {file = "photutils-1.13.0-cp312-cp312-win_amd64.whl", hash = "sha256:cc2c0bfbcccc1f6a7c6ba0b4ecb50999d32d2017624fbd8586f5ffe06cf36dda"},
+    {file = "photutils-1.13.0.tar.gz", hash = "sha256:da3621d0f9e54f22a54ac4cac429a68ddfef45380db7962bfd763625606717d2"},
 ]
 
 [package.dependencies]
 astropy = ">=5.1"
-numpy = ">=1.22"
+numpy = ">=1.23"
 
 [package.extras]
-all = ["bottleneck", "gwcs (>=0.18)", "matplotlib (>=3.5)", "rasterio", "scikit-image (>=0.19)", "scikit-learn (>=1.0)", "scipy (>=1.7.2)", "shapely", "tqdm"]
-docs = ["photutils[all]", "sphinx", "sphinx-astropy (>=1.6)", "tomli"]
-test = ["pytest-astropy (>=0.10)"]
+all = ["bottleneck", "gwcs (>=0.18)", "matplotlib (>=3.5)", "rasterio", "scikit-image (>=0.20)", "scipy (>=1.8)", "shapely", "tqdm"]
+docs = ["photutils[all]", "sphinx", "sphinx-astropy (>=1.9)", "tomli"]
+test = ["pytest-astropy (>=0.11)"]
 
 [[package]]
 name = "pillow"
@@ -5745,7 +5741,7 @@ test = ["pytest", "pytest-doctestplus"]
 type = "git"
 url = "https://github.com/sdss/sdss_solara.git"
 reference = "main"
-resolved_reference = "ed881105ae683960ce52bff431ebd0fb3d17a91e"
+resolved_reference = "26dbaa67b2154aa541a643eb8e62fef65953ad50"
 
 [[package]]
 name = "sdss-tree"
@@ -5984,35 +5980,35 @@ files = [
 
 [[package]]
 name = "solara"
-version = "1.37.2"
+version = "1.39.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "solara-1.37.2-py2.py3-none-any.whl", hash = "sha256:3d77408b94ea6b0497b6e7cd08b3714c3aeb2efa0d016774b896c4e9ef7f10bd"},
-    {file = "solara-1.37.2.tar.gz", hash = "sha256:f84550979ab20e90ad5287d5b9d7291deb8f63249ff8058561b9d235852ab3a4"},
+    {file = "solara-1.39.0-py2.py3-none-any.whl", hash = "sha256:c9b016b28055d7fdaf2cf0c0231b93b1eec0eb59473d5b29473d472e6cfa4505"},
+    {file = "solara-1.39.0.tar.gz", hash = "sha256:77a930cad4decea4cb24f519b43b0d39be633d95ea593d497a80483aebeb8bb2"},
 ]
 
 [package.dependencies]
-solara-server = {version = "1.37.2", extras = ["dev", "starlette"]}
-solara-ui = {version = "1.37.2", extras = ["all"]}
+solara-server = {version = "1.39.0", extras = ["dev", "starlette"]}
+solara-ui = {version = "1.39.0", extras = ["all"]}
 
 [package.extras]
 all = ["solara[assets]", "solara[dev]", "solara[documentation]", "solara[pytest]"]
-assets = ["solara-assets (==1.37.2)"]
+assets = ["solara-assets (==1.39.0)"]
 dev = ["bqplot", "bqplot-image-gl", "bump2version", "codespell", "dask[dataframe]", "ipyreact", "mdit-py-plugins", "mypy", "numpy (<2)", "playwright", "plotly", "polars", "pre-commit", "pytest", "pytest-cov", "pytest-mock", "pytest-playwright", "pytest-timeout", "python-dotenv", "ruff", "types-markdown", "types-pyyaml", "types-requests", "vaex-core", "vaex-hdf5", "vaex-jupyter"]
 documentation = ["altair", "bqplot", "folium", "ipycanvas", "ipyleaflet", "matplotlib", "numpy (<2)", "openai", "plotly", "tiktoken", "vaex-core", "vaex-hdf5", "vega-datasets"]
-pytest = ["pytest-ipywidgets[all] (==1.37.2)"]
+pytest = ["pytest-ipywidgets[all] (==1.39.0)"]
 
 [[package]]
 name = "solara-server"
-version = "1.37.2"
+version = "1.39.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "solara_server-1.37.2-py2.py3-none-any.whl", hash = "sha256:ffa59a3d032722da61e1325ae6761785c4d6a133be48845036e5f2292bcf7e14"},
-    {file = "solara_server-1.37.2.tar.gz", hash = "sha256:6c4420f22e17a4439570b2db21c1299706d81a6052083b81c7b3c2c724f63248"},
+    {file = "solara_server-1.39.0-py2.py3-none-any.whl", hash = "sha256:a16160cc423d39a70bab42ca2b3a51a305596464c5233e2c84d7988ee15c9e3b"},
+    {file = "solara_server-1.39.0.tar.gz", hash = "sha256:af4e273da9fd9e1497cc4b77e424071b2b424ae92b61c457f7adc5e0b1528232"},
 ]
 
 [package.dependencies]
@@ -6038,13 +6034,13 @@ starlette = ["starlette", "uvicorn", "websockets"]
 
 [[package]]
 name = "solara-ui"
-version = "1.37.2"
+version = "1.39.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "solara_ui-1.37.2-py2.py3-none-any.whl", hash = "sha256:9bc6ff74e6d25c3f54259eaf96f1c3ea9fa267838c364d7b4ebb4caeb3840d4b"},
-    {file = "solara_ui-1.37.2.tar.gz", hash = "sha256:3aca32ce281da60cf12f180d3f3f46dd7d9d2c74c0fc6b3a4c6571fafd934edc"},
+    {file = "solara_ui-1.39.0-py2.py3-none-any.whl", hash = "sha256:87fd10fd08573af1e1237160b4a043f84073afdf89e73f337fb44526238d26b6"},
+    {file = "solara_ui-1.39.0.tar.gz", hash = "sha256:586a8d10ac23526ad62ab819bcbba4de1432738eaef96e371ce2a076f3fdcd6c"},
 ]
 
 [package.dependencies]
@@ -7585,4 +7581,4 @@ solara = ["sdss-solara"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "392b8427145afc9c48e6c3ee2bf315d3699aaf00d7ab207d1d3f19bf938b1ba9"
+content-hash = "9a16bfa5f5c433e7e4286f22829972f472a0ca88ef7f97789862dd236472c0f9"
