@@ -99,6 +99,17 @@ def testfile(setup_sas):
     return path
 
 
+def mocfits():
+    """ create a test moc fits """
+    # create the FITS HDUList
+    header = fits.Header([('MOCTOOL', 'CDSjavaAPI-4.1', 'Name of the MOC generator'),
+                          ('MOCORDER', 29, 'MOC resolution (best order)')])
+    primary = fits.PrimaryHDU()
+    cols = [fits.Column(name='NPIX', format='K', array=np.arange(5))]
+    bindata = fits.BinTableHDU.from_columns(cols, name='MOC', header=header)
+    return fits.HDUList([primary, bindata])
+
+
 @pytest.fixture()
 def testmoc(setup_sas):
     moc = os.getenv("SDSS_HIPS", "")
@@ -106,9 +117,14 @@ def testmoc(setup_sas):
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
 
+    # create fake json
     with open(path, 'w') as f:
         f.write("#MOCORDER 10\n")
         f.write("""{"9":[224407,224413,664253,664290,664292]}\n""")
+
+    # create fake fits
+    moc = mocfits()
+    moc.writeto(path.with_suffix('.fits'), overwrite=True)
 
 
 class MockTree(Tree):
