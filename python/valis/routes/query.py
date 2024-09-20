@@ -77,7 +77,8 @@ class QueryRoutes(Base):
 
     @router.post('/main', summary='Main query for the UI or combining queries',
                  dependencies=[Depends(get_pw_db)],
-                 response_model=MainSearchResponse)
+                 response_model=MainSearchResponse, response_model_exclude_unset=True,
+                 response_model_exclude_none=True)
     async def main_search(self, body: SearchModel):
         """ Main query for UI and for combining queries together """
 
@@ -118,7 +119,9 @@ class QueryRoutes(Base):
 
         res = cone_search(ra, dec, radius, units=units)
         r = append_pipes(res, observed=observed)
-        return r.dicts().iterator()
+        # return sorted by distance
+        # doing this here due to the append_pipes distinct
+        return sorted(r.dicts().iterator(), key=lambda x: x['distance'])
 
     @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
                 response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
