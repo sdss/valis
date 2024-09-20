@@ -5741,7 +5741,7 @@ test = ["pytest", "pytest-doctestplus"]
 type = "git"
 url = "https://github.com/sdss/sdss_solara.git"
 reference = "main"
-resolved_reference = "26dbaa67b2154aa541a643eb8e62fef65953ad50"
+resolved_reference = "22d46277cdd42a9426b984bbea4cca8f5a243c6e"
 
 [[package]]
 name = "sdss-tree"
