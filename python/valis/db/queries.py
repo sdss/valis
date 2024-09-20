@@ -156,7 +156,12 @@ def cone_search(ra: Union[str, float], dec: Union[str, float],
     radius *= u.Unit(units)
     radius = radius.to(u.degree).value
 
-    return vizdb.SDSSidStacked.select().\
+    # compute the separation in degrees
+    sep = peewee.fn.q3c_dist(ra, dec,
+                             vizdb.SDSSidStacked.ra_sdss_id,
+                             vizdb.SDSSidStacked.dec_sdss_id).alias('distance')
+
+    return vizdb.SDSSidStacked.select(vizdb.SDSSidStacked, sep).\
         where(vizdb.SDSSidStacked.cone_search(ra, dec, radius,
                                               ra_col='ra_sdss_id',
                                               dec_col='dec_sdss_id'))
