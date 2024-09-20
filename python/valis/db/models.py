@@ -88,7 +88,7 @@ class SDSSidPipesBase(PeeweeBase):
 
 class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
     """ Main Pydantic response for SDSS id plus Pipes flags """
-    pass
+    distance: Optional[float] = Field(None, description='Separation distance between input target and cone search results, in degrees')
 
 
 class BossSpectrum(PeeweeBase):
@@ -266,3 +266,32 @@ class MapperName(str, Enum):
     MWM: str = 'MWM'
     BHM: str = 'BHM'
     LVM: str = 'LVM'
+
+
+def gen_misc_models():
+    """ Generate metadata info for miscellaneous return columns
+
+    This is a hack to handle cases where we return columns in search
+    results that are not part of the original pipelines database ORM
+    but we want to have the same metadata like "display_name" and
+    "description".  For example, the "distance" column returned by cone
+    searches, as part of the SDSSModel response.  This fakes the metadata
+    framework so the front-end can use the same code. See usage for the
+    info/database endpoint in "convert_metadata".
+
+    Fakes a "misc" database schema and "misctab" table to hold these
+    pseudo-columns.
+
+    """
+    params = [{'SDSSModel.distance': {'display_name': 'Distance [deg]',
+                                      'unit': 'degree', 'sql_type': 'float'}}]
+
+    for param in params:
+        name, data = param.popitem()
+        model, column = name.split('.')
+        col = globals()[model].model_fields[column]
+
+        yield {"pk": 0, "schema": "miscdb", "table_name": "misctab",
+               "column_name": column, "display_name": data["display_name"],
+               "description": col.description,
+               "unit": data["unit"], "sql_type": data["sql_type"]}

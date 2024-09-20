@@ -5,6 +5,7 @@
 from __future__ import print_function, division, absolute_import
 
 from collections import defaultdict
+import itertools
 from typing import List, Union, Dict, Annotated
 from fastapi import APIRouter, HTTPException, Depends, Query, Path
 from fastapi_restful.cbv import cbv
@@ -24,7 +25,7 @@ except ImportError:
     Phases = Surveys = Releases = Tags = ProductModel = SchemaModel = None
 
 from valis.db.db import get_pw_db
-from valis.db.models import DbMetadata
+from valis.db.models import DbMetadata, gen_misc_models
 from valis.db.queries import get_db_metadata
 from valis.routes.base import Base, release
 from valis.routes.auth import set_auth
@@ -44,9 +45,13 @@ def get_products(release: str = Depends(release), dm: SDSSDataModel = Depends(ge
 
 
 def convert_metadata(data) -> dict:
-    """ Convert db metadata output to a dict of dicts """
+    """ Convert db metadata output to a dict of dicts
+
+    Iterate over both db metadata output and any miscellanous
+    model parameters
+    """
     mm = defaultdict(dict)
-    for i in data:
+    for i in itertools.chain(data, gen_misc_models()):
         mm[i['schema']].update({i['column_name']: i})
     return mm
 
