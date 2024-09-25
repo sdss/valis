@@ -91,5 +91,9 @@ class Mocs(Base):
     async def list_mocs(self) -> list[str]:
         """ List the available MOCs """
         Path(release='sdsswork')
-        mocs = sorted(set([':'.join(i.parent.parts[-2:]) for i in pathlib.Path(os.getenv("SDSS_HIPS")).rglob('Moc.fits')]))
+        # switching from rglob to glob. takes ~10 seconds for 61 files
+        # possibly cache this function but it'd be nice for it update without a restart
+        # this is a hack to avoid the lvm content, many directories
+        # when lvm is ready to be included, we will need to update this
+        mocs = sorted(set([':'.join(i.parent.parts[-2:]) for i in pathlib.Path(os.getenv("SDSS_HIPS")).glob('*/*/Moc.fits')]))
         return mocs
