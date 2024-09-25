@@ -5714,7 +5714,7 @@ vaex = ">=4.17.0"
 type = "git"
 url = "https://github.com/sdss/explorer.git"
 reference = "HEAD"
-resolved_reference = "d094aa7062677190119a38f2e78c76b0c1468a1b"
+resolved_reference = "dc7a8f14bdb87354e2e60a0d836a5b25ffa12111"
 
 [[package]]
 name = "sdss_solara"
