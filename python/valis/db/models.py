@@ -54,6 +54,11 @@ class SDSSidStackedBase(PeeweeBase):
     catalogid21: Optional[int] = Field(None, description='the version 21 catalog id')
     catalogid25: Optional[int] = Field(None, description='the version 25 catalog id')
     catalogid31: Optional[int] = Field(None, description='the version 31 catalog id')
+    last_updated: datetime.date = Field(None, description='the date the sdss_id row was last updated', exclude=True)
+
+    @field_serializer('last_updated')
+    def serialize_dt(self, date: datetime.date) -> str:
+        return date.isoformat()
 
 
 class SDSSidFlatBase(PeeweeBase):
@@ -67,7 +72,7 @@ class SDSSidFlatBase(PeeweeBase):
     n_associated: int = Field(..., description='The total number of sdss_ids associated with that catalogid.')
     ra_catalogid: Optional[float] = Field(None, description='Right Ascension, in degrees, specific to the catalogid')
     dec_catalogid: Optional[float] = Field(None, description='Declination, in degrees, specific to the catalogid')
-
+    rank: int = Field(..., description='Ranking when catalogid paired to multiple sdss_id, with rank 1 as priority.')
 
 class SDSSidPipesBase(PeeweeBase):
     """ Pydantic response model for the Peewee vizdb.SDSSidToPipes ORM """
@@ -75,8 +80,12 @@ class SDSSidPipesBase(PeeweeBase):
     sdss_id: int = Field(..., description='the SDSS identifier')
     in_boss: bool = Field(..., description='Flag if target is in the BHM reductions', examples=[False])
     in_apogee: bool = Field(..., description='Flag if target is in the MWM reductions', examples=[False])
+    in_bvs: bool = Field(..., description='Flag if target is in the boss component of the Astra reductions', examples=[False], exclude=True)
     in_astra: bool = Field(..., description='Flag if the target is in the Astra reductions', examples=[False])
     has_been_observed: Optional[bool] = Field(False, validate_default=True, description='Flag if target has been observed or not', examples=[False])
+    release: Optional[str] = Field(None, description='the Astra release field, either sdss5 or dr17')
+    obs: Optional[str] = Field(None, description='the observatory the observation is from')
+    mjd: Optional[int] = Field(None, description='the MJD of the data reduction')
 
     @field_validator('has_been_observed')
     @classmethod

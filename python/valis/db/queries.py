@@ -60,8 +60,12 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
     model = vizdb.SDSSidStacked if table == 'stacked' else vizdb.SDSSidFlat
     qq = query.select_extend(vizdb.SDSSidToPipes.in_boss,
                                vizdb.SDSSidToPipes.in_apogee,
+                               vizdb.SDSSidToPipes.in_bvs,
                                vizdb.SDSSidToPipes.in_astra,
-                               vizdb.SDSSidToPipes.has_been_observed).\
+                               vizdb.SDSSidToPipes.has_been_observed,
+                               vizdb.SDSSidToPipes.release,
+                               vizdb.SDSSidToPipes.obs,
+                               vizdb.SDSSidToPipes.mjd).\
         join(vizdb.SDSSidToPipes, on=(model.sdss_id == vizdb.SDSSidToPipes.sdss_id),
              attr='pipes').distinct(vizdb.SDSSidToPipes.sdss_id)
 
@@ -356,7 +360,7 @@ def get_targets_obs(release: str, obs: str, spectrograph: str) -> peewee.ModelSe
 # 10 - all false
 # 57651832 - my file on disk
 # 57832526 - all true, in both astra snow_white, apogee_net (source_pk=912174,star_pk=2954029)
-
+# 61731453 - in astra, false all else; dr17 release
 
 def get_boss_target(sdss_id: int, release: str, fields: list = None,
                     primary: bool = True) -> peewee.ModelSelect:
@@ -408,24 +412,30 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None):
     # get the relevant software tag
     apred = get_software_tag(release, 'apred_vers')
 
+    # create apogee version conditions
     if isinstance(apred, list):
         vercond = apo.Star.apred_vers.in_(apred)
+        avsver = astra.ApogeeVisitSpectrum.apred.in_(apred)
     else:
         vercond = apo.Star.apred_vers == apred
+        avsver = astra.ApogeeVisitSpectrum.apred == apred
 
     # check fields
     fields = fields or [apo.Star]
     if fields and isinstance(fields[0], str):
         fields = (getattr(apo.Star, i) for i in fields)
 
+    # get the astra source for the sdss_id
     s = get_astra_target(sdss_id, release)
     if not s:
         return
 
-    a = s.first().apogee_visit_spectrum.first()
+    # get the astra apogee visit spectrum
+    a = s.first().apogee_visit_spectrum.where(avsver).first()
     if not a:
         return
 
+    # get the apogee star data
     return apo.Star.select(*fields).where(apo.Star.pk == a.star_pk, vercond)
 
 
@@ -433,8 +443,8 @@ def get_astra_target(sdss_id: int, release: str, fields: list = None):
     """ temporary placeholder for astra """
 
     vastra = get_software_tag(release, 'v_astra')
-    if not vastra or vastra != "0.5.0":
-        print('astra only supports DR19 / IPL3 = version 0.5.0')
+    if not vastra or vastra not in ("0.5.0", "0.6.0"):
+        print('astra only supports DR19 / IPL3 = version 0.5.0, 0.6.0')
         return None
 
     # check fields
@@ -469,7 +479,7 @@ def get_target_meta(sdss_id: int, release: str) -> dict:
 
 
 def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
-    """ Get the pipeline metadata for a pipeline
+    """ Get the pipeline reduction data for a pipeline
 
     Parameters
     ----------
@@ -552,6 +562,12 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
         # get astra
         if pipes['in_astra'] and  (res := get_pipe_meta(sdss_id, release, 'astra')):
             deepmerge.always_merger.merge(data, res)
+
+            if pipes['release'] == 'dr17':
+                s = get_astra_target(sdss_id, release)
+                v = s.first().apogee_visit_spectrum.where(astra.ApogeeVisitSpectrum.apred == 'dr17').dicts().first()
+                path = build_apogee_path(v, 'DR17')
+                deepmerge.always_merger.merge(data, {'files': {'apogee': path}})
 
     return data
 

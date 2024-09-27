@@ -152,6 +152,7 @@ def build_apogee_path(values: dict, release: str, ignore_existence: bool = False
     """
     return build_file_path(values, 'apStar', release,
                            remap={'obj': 'apogee_id', 'apred': 'apred_vers'},
+                           defaults={'apstar': 'stars'},
                            ignore_existence=ignore_existence)
 
 
