@@ -52,7 +52,7 @@ def convert_metadata(data) -> dict:
     """
     mm = defaultdict(dict)
     for i in itertools.chain(data, gen_misc_models()):
-        mm[i['schema']].update({i['column_name']: i})
+        mm[i['schema']].update({f"{i['table_name']}.{i['column_name']}": i})
     return mm
 
 
