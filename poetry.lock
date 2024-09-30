@@ -1953,7 +1953,7 @@ files = [
 name = "h5py"
 version = "3.11.0"
 description = "Read and write HDF5 files from Python"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "h5py-3.11.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1625fd24ad6cfc9c1ccd44a66dac2396e7ee74940776792772819fc69f3a3731"},
@@ -3959,12 +3959,12 @@ files = [
 
 [[package]]
 name = "peewee"
-version = "3.17.5"
+version = "3.17.6"
 description = "a little orm"
 optional = false
 python-versions = "*"
 files = [
-    {file = "peewee-3.17.5.tar.gz", hash = "sha256:e1b6a64192207fd3ddb4e1188054820f42aef0aadfa749e3981af3c119a76420"},
+    {file = "peewee-3.17.6.tar.gz", hash = "sha256:cea5592c6f4da1592b7cff8eaf655be6648a1f5857469e30037bf920c03fb8fb"},
 ]
 
 [[package]]
@@ -5741,7 +5741,7 @@ test = ["pytest", "pytest-doctestplus"]
 type = "git"
 url = "https://github.com/sdss/sdss_solara.git"
 reference = "main"
-resolved_reference = "22d46277cdd42a9426b984bbea4cca8f5a243c6e"
+resolved_reference = "2223f2496221fdfa6d44baa3dc9839c7781c6422"
 
 [[package]]
 name = "sdss-tree"
@@ -5765,30 +5765,26 @@ docs = ["Sphinx (>=7.2.0)", "importlib-metadata (>=1.6.0)", "jinja2 (<3.1)", "re
 
 [[package]]
 name = "sdssdb"
-version = "0.12.4"
+version = "0.13.1"
 description = "SDSS product for database management"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "sdssdb-0.12.4-py3-none-any.whl", hash = "sha256:cba5393621d6a7a455954c8a0ca695f91846e109043435669545b01804b6bd11"},
-    {file = "sdssdb-0.12.4.tar.gz", hash = "sha256:ac4c1e021cc3454c1fed319cf6e646041af7378d322b0bb89f852366e6471e1a"},
+    {file = "sdssdb-0.13.1-py3-none-any.whl", hash = "sha256:d37df0af9b8966c3507625e6f9bbce438cc1fd3f10d3be37911312b334adfc1c"},
+    {file = "sdssdb-0.13.1.tar.gz", hash = "sha256:76512a7a5b8eead5603d7e08616cd4a3b701f489f5cbeb2aba28663cd0ea03c3"},
 ]
 
 [package.dependencies]
-h5py = ">=3.8.0"
 numpy = ">=1.18.2"
-peewee = ">=3.17.3"
+peewee = ">=3.17.6"
 pgpasslib = ">=1.1.0"
 psycopg2-binary = ">=2.7.7"
-pygments = "*"
-pyyaml = ">=5.1"
 sdsstools = {version = ">=1.7.0", markers = "python_version >= \"3.8\""}
-six = ">=1.12.0"
-sqlalchemy = ">=1.3.6"
+sqlalchemy = ">=1.3.6,<2"
 
 [package.extras]
-all = ["astropy (>=4.0.0)", "inflect (>=4.1.0)", "pandas (>=1.0.0)", "progressbar2 (>=3.46.1)", "pydot (>=1.4.1)"]
-dev = ["astropy (>=4.0.0)", "factory-boy (>=2.12.0)", "ipdb (>=0.13.2)", "ipython (>=7.13.0)", "pydot (>=1.4.2)", "pytest (>=5.2)", "pytest-cov (>=2.4.0)", "pytest-factoryboy (>=2.0.3)", "pytest-postgresql (>=2.2.1)", "pytest-sugar (>=0.8.0)"]
+all = ["astropy (>=4.0.0)", "h5py (>=3.8.0)", "inflect (>=4.1.0)", "pandas (>=1.0.0)", "progressbar2 (>=3.46.1)", "psycopg[binary]", "pydot (>=1.4.1)", "sdssdb[dev]", "sdssdb[docs]"]
+dev = ["astropy (>=4.0.0)", "factory-boy (>=2.12.0)", "flake8 (>=7.1.1)", "flake8-pyproject (>=1.2.3)", "ipdb (>=0.13.2)", "ipython (>=7.13.0)", "pydot (>=1.4.2)", "pytest (>=5.2)", "pytest-cov (>=2.4.0)", "pytest-factoryboy (>=2.0.3)", "pytest-postgresql (>=2.2.1,<6)", "pytest-sugar (>=0.8.0)", "pyyaml (>=5.1)", "ruff (>=0.6.3)"]
 docs = ["Sphinx (>=7.0.0)", "releases (>=2.0.0)", "sphinx-bootstrap-theme (>=0.4.12)"]
 
 [[package]]
@@ -7581,4 +7577,4 @@ solara = ["sdss-solara"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "9a16bfa5f5c433e7e4286f22829972f472a0ca88ef7f97789862dd236472c0f9"
+content-hash = "5a2ad6f3768c18f548cd59796a0e6d049bb02c54cfa5bff02fc6210a9bcea88a"
