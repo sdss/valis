@@ -4,9 +4,11 @@
 
 from enum import Enum
 from typing import List, Union, Dict, Annotated, Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, UploadFile, File
 from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field, BeforeValidator
+import csv
+import io
 
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
@@ -229,3 +231,50 @@ class QueryRoutes(Base):
         """ Return an ordered and paged list of targets based on the mapper."""
         targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
         return list(targets)
+
+    def validate_file_content(self, content: str):
+        reader = csv.reader(io.StringIO(content))
+        target_ids = []
+        invalid_ids = []
+        coordinates = []
+
+        for row in reader:
+            try:
+                if len(row) == 1:
+                    target_id = int(row[0])
+                    target_ids.append(target_id)
+                elif len(row) == 2:
+                    ra, dec = float(row[0]), float(row[1])
+                    coordinates.append((ra, dec))
+                else:
+                    invalid_ids.append(row)
+            except ValueError:
+                invalid_ids.append(row)
+
+        if invalid_ids:
+            raise HTTPException(status_code=400, detail=f'Invalid target IDs or coordinates: {", ".join(map(str, invalid_ids))}')
+
+        return target_ids, coordinates
+
+    @router.post('/upload', summary='Upload a file with a list of target IDs or coordinates',
+                 dependencies=[Depends(get_pw_db)],
+                 response_model=MainSearchResponse)
+    async def upload_file(self, file: UploadFile = File(...)):
+        """ Upload a file with a list of target IDs or coordinates """
+
+        if file.content_type not in ['text/csv', 'text/plain']:
+            raise HTTPException(status_code=400, detail='Unsupported file format. Please upload a CSV or TXT file.')
+
+        content = await file.read()
+        content = content.decode('utf-8')
+
+        target_ids, coordinates = self.validate_file_content(content)
+
+        results = []
+        if target_ids:
+            results.extend(list(get_targets_by_sdss_id(target_ids)))
+        if coordinates:
+            for ra, dec in coordinates:
+                results.extend(list(cone_search(ra, dec, 0.02, units='degree')))
+
+        return {'status': 'success', 'data': results, 'msg': 'File processed successfully'}
