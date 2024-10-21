@@ -831,3 +831,103 @@ def starfields(model: peewee.ModelSelect) -> peewee.NodeList:
     pw_ver = peewee.__version__
     oldver = packaging.version.parse(pw_ver) < packaging.version.parse('3.17.1')
     return model.star if oldver else model.__star__
+
+
+def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect:
+    """ Get an sdss_id by an alternative id
+
+    This query attempts to identify a target sdss_id from an
+    alternative id, which can be a string or integer.  It tries
+    to distinguish between the following formats:
+
+     - a (e)BOSS plate-mjd-fiberid, e.g. "10235-58127-0020"
+     - a BOSS field-mjd-catalogid, e.g. "101077-59845-27021603187129892"
+     - an SDSS-IV APOGEE ID, e.g "2M23595980+1528407"
+     - an SDSS-V catalogid, e.g. 2702160318712989
+     - a GAIA DR3 ID, e.g. 4110508934728363520
+
+     It queries either the boss_drp.boss_spectrum or astra.source
+     tables for the sdss_id.
+
+    Parameters
+    ----------
+    id : str | int
+        the input alternative id
+    idtype : str, optional
+        the type of integer id, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    # cast to str
+    if isinstance(id, int):
+        id = str(id)
+
+    # temp for now; maybe we make a single "altid" db column somewhere
+    ndash = id.count('-')
+    final = id.rsplit('-', 1)[-1]
+    if ndash == 2 and len(final) <= 4 and final.isdigit() and int(final) <= 1000:
+        # boss/eboss plate-mjd-fiberid e.g '10235-58127-0020'
+        return
+    elif ndash == 2 and len(final) > 5:
+        # field-mjd-catalogid, e.g. '101077-59845-27021603187129892'
+        field, mjd, catalogid = id.split('-')
+        targ = boss.BossSpectrum.select(boss.BossSpectrum.sdss_id).\
+            where(boss.BossSpectrum.catalogid == catalogid,
+            boss.BossSpectrum.mjd == mjd, boss.BossSpectrum.field == field)
+    elif ndash == 1:
+        # apogee south, e.g. '2M17282323-2415476'
+        targ = astra.Source.select(astra.Source.sdss_id).\
+            where(astra.Source.sdss4_apogee_id.in_([id]))
+    elif ndash == 0 and not id.isdigit():
+        # apogee obj id
+        targ = astra.Source.select(astra.Source.sdss_id).\
+            where(astra.Source.sdss4_apogee_id.in_([id]))
+    elif ndash == 0 and id.isdigit():
+        # single integer id
+        if idtype == 'catalogid':
+            # catalogid , e.g. 27021603187129892
+            field = 'catalogid'
+        elif idtype == 'gaiaid':
+            # gaia dr3 id , e.g. 4110508934728363520
+            field = 'gaia_dr3_source_id'
+        else:
+            field = 'catalogid'
+
+        targ = astra.Source.select(astra.Source.sdss_id).\
+            where(getattr(astra.Source, field).in_([id]))
+
+    return targ
+
+
+def get_target_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect:
+    """ Get a target by an alternative id
+
+    This retrieves the target info from vizdb.sdss_id_stacked,
+    given an alternative id.  It first tries to identify the proper
+    sdss_id for the given altid, then it retrieves the basic target
+    info. See ``get_sdssid_by_altid`` for details on the altid formats.
+
+    Parameters
+    ----------
+    id : str | int
+        the input alternative id
+    idtype : str, optional
+        the type of integer id, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    # get the sdss_id
+    targ = get_sdssid_by_altid(id, idtype=idtype)
+    res = targ.get_or_none() if targ else None
+    if not res:
+        return
+
+    # get the sdss_id metadata info
+    return get_targets_by_sdss_id(res.sdss_id)
