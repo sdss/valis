@@ -958,4 +958,6 @@ def create_temporary_table(query: peewee.ModelSelect, indices: list[str] | None 
         for index in indices:
             vizdb.database.execute_sql(f'CREATE INDEX ON "{table_name}" ({index})')
 
+    vizdb.database.execute_sql(f'ANALYZE "{table_name}"')
+
     return table
