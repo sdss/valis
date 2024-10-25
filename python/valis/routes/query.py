@@ -203,12 +203,17 @@ class QueryRoutes(Base):
                                                   Query(enum=['carton', 'program'],
                                                         description='Specify search on carton or program',
                                                         example='carton')] = 'carton',
-                             observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True):
+                             observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True,
+                             limit: Annotated[int | None, Query(description='Limit the number of returned targets', example=100)] = None):
         """ Perform a search on carton or program """
         with database.atomic():
-            database.execute_sql('SET LOCAL enable_seqscan=false;')
-            query = carton_program_search(name, name_type)
+            if limit is False:
+                # This tweak seems to do more harm than good when limit is passed.
+                database.execute_sql('SET LOCAL enable_seqscan=false;')
+
+            query = carton_program_search(name, name_type, limit=limit)
             query = append_pipes(query, observed=observed)
+
             return query.dicts().iterator()
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',
