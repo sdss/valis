@@ -1953,7 +1953,7 @@ files = [
 name = "h5py"
 version = "3.11.0"
 description = "Read and write HDF5 files from Python"
-optional = false
+optional = true
 python-versions = ">=3.8"
 files = [
     {file = "h5py-3.11.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1625fd24ad6cfc9c1ccd44a66dac2396e7ee74940776792772819fc69f3a3731"},
@@ -2341,22 +2341,23 @@ docs = ["myst-nb", "sphinx (>=1.5)", "sphinx-book-theme", "sphinx-copybutton", "
 
 [[package]]
 name = "ipypopout"
-version = "1.2.1"
+version = "1.4.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "ipypopout-1.2.1-py2.py3-none-any.whl", hash = "sha256:4bbc6cbf7b0eaccbf3bddcfbdf1b272b365c4539ba3f61f65ea8f921c91203fa"},
-    {file = "ipypopout-1.2.1.tar.gz", hash = "sha256:a1ccda4202ea370b0b167cd425df8b5ad7fa23ec4f517c934180a3faf0499ee5"},
+    {file = "ipypopout-1.4.0-py2.py3-none-any.whl", hash = "sha256:f727af69fe0ce580cdec5383c27d11669b80030625087476f66503e04a13d5ca"},
+    {file = "ipypopout-1.4.0.tar.gz", hash = "sha256:5bad4f3a65994747480b5710c52c64a576c26b0d0232da6092cd0755fce82c2c"},
 ]
 
 [package.dependencies]
 ipyvuetify = ">=1.7.0,<2"
 ipywidgets = ">=7.7"
-voila = ">=0.2.10"
 
 [package.extras]
+solara = ["solara (>=1.36)"]
 test = ["solara[pytest]"]
+voila = ["voila (>=0.2.10,<0.5)"]
 
 [[package]]
 name = "ipysplitpanes"
@@ -2610,13 +2611,13 @@ testing = ["jaraco.classes", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest
 
 [[package]]
 name = "jdaviz"
-version = "3.10.2"
+version = "3.10.3"
 description = "Astronomical data analysis development leveraging the Jupyter platform"
 optional = true
 python-versions = ">=3.10"
 files = [
-    {file = "jdaviz-3.10.2-py3-none-any.whl", hash = "sha256:8b30725fa884203c203fc883c3e49152b255e8d989f250884d5881039ca02c54"},
-    {file = "jdaviz-3.10.2.tar.gz", hash = "sha256:32b6f7cf9ff5759b5e294a1dde75e898efc21e440d7f9342ea7ccb88492a7cf9"},
+    {file = "jdaviz-3.10.3-py3-none-any.whl", hash = "sha256:dbcbbca5d744aedc03f0c97c38da51cb6a5cbb8d5c87c3638017e14962c937f3"},
+    {file = "jdaviz-3.10.3.tar.gz", hash = "sha256:78cb5f11c89a7cf68e406cb2596aef84445426dc2f23e79d9ca85cd9d5732841"},
 ]
 
 [package.dependencies]
@@ -3268,13 +3269,13 @@ files = [
 
 [[package]]
 name = "markdown"
-version = "3.6"
+version = "3.7"
 description = "Python implementation of John Gruber's Markdown."
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Markdown-3.6-py3-none-any.whl", hash = "sha256:48f276f4d8cfb8ce6527c8f79e2ee29708508bf4d40aa410fbc3b4ee832c850f"},
-    {file = "Markdown-3.6.tar.gz", hash = "sha256:ed4f41f6daecbeeb96e576ce414c41d2d876daa9a16cb35fa8ed8c2ddfad0224"},
+    {file = "Markdown-3.7-py3-none-any.whl", hash = "sha256:7eb6df5690b81a1d7942992c97fad2938e956e79df20cbc6186e9c3a77b1c803"},
+    {file = "markdown-3.7.tar.gz", hash = "sha256:2ae2471477cfd02dbbf038d5d9bc226d40def84b4fe2986e49b59b6b472bbed2"},
 ]
 
 [package.extras]
@@ -3958,12 +3959,12 @@ files = [
 
 [[package]]
 name = "peewee"
-version = "3.17.5"
+version = "3.17.6"
 description = "a little orm"
 optional = false
 python-versions = "*"
 files = [
-    {file = "peewee-3.17.5.tar.gz", hash = "sha256:e1b6a64192207fd3ddb4e1188054820f42aef0aadfa749e3981af3c119a76420"},
+    {file = "peewee-3.17.6.tar.gz", hash = "sha256:cea5592c6f4da1592b7cff8eaf655be6648a1f5857469e30037bf920c03fb8fb"},
 ]
 
 [[package]]
@@ -3993,38 +3994,34 @@ files = [
 
 [[package]]
 name = "photutils"
-version = "1.11.0"
+version = "1.13.0"
 description = "An Astropy package for source detection and photometry"
 optional = true
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 files = [
-    {file = "photutils-1.11.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:0d4f089f65fe9aeb3095ccf40e4784ea47a1a26e48888f1e11b1b87191b13d90"},
-    {file = "photutils-1.11.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:5d907ecc5511aa56108c2c8deece625628effcb8224676f4874b03d5e673bbee"},
-    {file = "photutils-1.11.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8fa60fc13976e8d4983ee8a8f071ec6703ef492a2761bff2b37e5e0549c5881a"},
-    {file = "photutils-1.11.0-cp310-cp310-win_amd64.whl", hash = "sha256:8c1fe7906f3bfe6d870efdf659b4f7e8c34aca959122805f0102a735df948002"},
-    {file = "photutils-1.11.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:a59bc830fbe083651b2a0709a6b2069bb8ef70a9e6025c9cf64cfe47b2abfa11"},
-    {file = "photutils-1.11.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:6419525f3c2a9dbe7c71a6e1e2e3dfec17ccb2a8cb3ed6f93b52dec25a6d5fe8"},
-    {file = "photutils-1.11.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0a4f93bfdb12b32cad475f2bee4cb3e2187ac13f83ce0b06f12f17569f4da2b9"},
-    {file = "photutils-1.11.0-cp311-cp311-win_amd64.whl", hash = "sha256:3cd5bb00eab472193d467f6d0385842117948e7f842d9e254563ff06935ccdad"},
-    {file = "photutils-1.11.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:3699d65f1e9697da84a413a4cfbd00a91730b44ef79664ae0423016fdf38ece0"},
-    {file = "photutils-1.11.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:43fa6b850a42700621f1083b639cb7c1e55abccf16db76274dc33ba1a877c64d"},
-    {file = "photutils-1.11.0-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a130a515794156897e74859e255dd3f880c12233495a1cd34295295da2c34e35"},
-    {file = "photutils-1.11.0-cp312-cp312-win_amd64.whl", hash = "sha256:2514f2a6a1da90f30e0a3a2cd538bfcc281dbddb60e6ec5a3b665e761d8835d9"},
-    {file = "photutils-1.11.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:53b251ebd5ffab83035d04f79bc65e18c64479b36d1fe0ef8817a4606b3c595b"},
-    {file = "photutils-1.11.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:e18b24319bd16f096b1dfd821b3e5e672bce7dbbf18bc32c2e51c53f7b43660b"},
-    {file = "photutils-1.11.0-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8530421f849a0aa158aed02aa3cd7cd8c18843402eefd38ebd34565f7b985e18"},
-    {file = "photutils-1.11.0-cp39-cp39-win_amd64.whl", hash = "sha256:f2680ea011d5955384c9b1b5e2730018bd45ebaafc462ed2893666ba6313f886"},
-    {file = "photutils-1.11.0.tar.gz", hash = "sha256:ee709d090bac2bc8b8b317078c87f9c4b6855f6f94c2f7f2a93ab5b8f8375597"},
+    {file = "photutils-1.13.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:dced29b5c7af803aeafbbaa726d3afffc8955f4f28b86e187b6a6c5a08300caf"},
+    {file = "photutils-1.13.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:51ef897a3188ee2ac9cff26b446ff65015f732816adbd05ef419d38f3122ba93"},
+    {file = "photutils-1.13.0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:debf8e2b945822e7a0fd39a3f21e298d014fcf3c251014c1daaf4edfc14079af"},
+    {file = "photutils-1.13.0-cp310-cp310-win_amd64.whl", hash = "sha256:122c15d264ca065b23b906819f1fc89984d459aeda840d49e0d699bac8e5db16"},
+    {file = "photutils-1.13.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:f0168a1c9b8a73663febf95046e30dc136a403881502b39642187ce8a4ad9a47"},
+    {file = "photutils-1.13.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:6381d16b691b6718b7a99e1044300967f606cd47f05abd56a7b2139264016d86"},
+    {file = "photutils-1.13.0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:24d6510cb557ec8cc432b479132028ba995660178554603d83d56dca70bd8d1f"},
+    {file = "photutils-1.13.0-cp311-cp311-win_amd64.whl", hash = "sha256:609b5e2afe525f5c652d235ce485089109954806f03d03f88b7555e80dff47e5"},
+    {file = "photutils-1.13.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:c1fd66336953e45634926711ade21a764880dff4a011d83ced8dd5b864d48e66"},
+    {file = "photutils-1.13.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8c8906b6d01a834a78277c7bccd10b5a8cc730fcdbbee5571d7e33e46ec11bd4"},
+    {file = "photutils-1.13.0-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b847523d5593a700b70b8287cfc2721bbff54e16dedb5e5ad2421bec59f90749"},
+    {file = "photutils-1.13.0-cp312-cp312-win_amd64.whl", hash = "sha256:cc2c0bfbcccc1f6a7c6ba0b4ecb50999d32d2017624fbd8586f5ffe06cf36dda"},
+    {file = "photutils-1.13.0.tar.gz", hash = "sha256:da3621d0f9e54f22a54ac4cac429a68ddfef45380db7962bfd763625606717d2"},
 ]
 
 [package.dependencies]
 astropy = ">=5.1"
-numpy = ">=1.22"
+numpy = ">=1.23"
 
 [package.extras]
-all = ["bottleneck", "gwcs (>=0.18)", "matplotlib (>=3.5)", "rasterio", "scikit-image (>=0.19)", "scikit-learn (>=1.0)", "scipy (>=1.7.2)", "shapely", "tqdm"]
-docs = ["photutils[all]", "sphinx", "sphinx-astropy (>=1.6)", "tomli"]
-test = ["pytest-astropy (>=0.10)"]
+all = ["bottleneck", "gwcs (>=0.18)", "matplotlib (>=3.5)", "rasterio", "scikit-image (>=0.20)", "scipy (>=1.8)", "shapely", "tqdm"]
+docs = ["photutils[all]", "sphinx", "sphinx-astropy (>=1.9)", "tomli"]
+test = ["pytest-astropy (>=0.11)"]
 
 [[package]]
 name = "pillow"
@@ -4265,6 +4262,7 @@ files = [
     {file = "psycopg2_binary-2.9.9-cp311-cp311-win32.whl", hash = "sha256:dc4926288b2a3e9fd7b50dc6a1909a13bbdadfc67d93f3374d984e56f885579d"},
     {file = "psycopg2_binary-2.9.9-cp311-cp311-win_amd64.whl", hash = "sha256:b76bedd166805480ab069612119ea636f5ab8f8771e640ae103e05a4aae3e417"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:8532fd6e6e2dc57bcb3bc90b079c60de896d2128c5d9d6f24a63875a95a088cf"},
+    {file = "psycopg2_binary-2.9.9-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b0605eaed3eb239e87df0d5e3c6489daae3f7388d455d0c0b4df899519c6a38d"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8f8544b092a29a6ddd72f3556a9fcf249ec412e10ad28be6a0c0d948924f2212"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:2d423c8d8a3c82d08fe8af900ad5b613ce3632a1249fd6a223941d0735fce493"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:2e5afae772c00980525f6d6ecf7cbca55676296b580c0e6abb407f15f3706996"},
@@ -4273,6 +4271,8 @@ files = [
     {file = "psycopg2_binary-2.9.9-cp312-cp312-musllinux_1_1_i686.whl", hash = "sha256:cb16c65dcb648d0a43a2521f2f0a2300f40639f6f8c1ecbc662141e4e3e1ee07"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-musllinux_1_1_ppc64le.whl", hash = "sha256:911dda9c487075abd54e644ccdf5e5c16773470a6a5d3826fda76699410066fb"},
     {file = "psycopg2_binary-2.9.9-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:57fede879f08d23c85140a360c6a77709113efd1c993923c59fde17aa27599fe"},
+    {file = "psycopg2_binary-2.9.9-cp312-cp312-win32.whl", hash = "sha256:64cf30263844fa208851ebb13b0732ce674d8ec6a0c86a4e160495d299ba3c93"},
+    {file = "psycopg2_binary-2.9.9-cp312-cp312-win_amd64.whl", hash = "sha256:81ff62668af011f9a48787564ab7eded4e9fb17a4a6a74af5ffa6a457400d2ab"},
     {file = "psycopg2_binary-2.9.9-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:2293b001e319ab0d869d660a704942c9e2cce19745262a8aba2115ef41a0a42a"},
     {file = "psycopg2_binary-2.9.9-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:03ef7df18daf2c4c07e2695e8cfd5ee7f748a1d54d802330985a78d2a5a6dca9"},
     {file = "psycopg2_binary-2.9.9-cp37-cp37m-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:0a602ea5aff39bb9fac6308e9c9d82b9a35c2bf288e184a816002c9fae930b77"},
@@ -5011,6 +5011,7 @@ files = [
     {file = "PyYAML-6.0.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:69b023b2b4daa7548bcfbd4aa3da05b3a74b772db9e23b982788168117739938"},
     {file = "PyYAML-6.0.1-cp310-cp310-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:81e0b275a9ecc9c0c0c07b4b90ba548307583c125f54d5b6946cfee6360c733d"},
     {file = "PyYAML-6.0.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ba336e390cd8e4d1739f42dfe9bb83a3cc2e80f567d8805e11b46f4a943f5515"},
+    {file = "PyYAML-6.0.1-cp310-cp310-musllinux_1_1_x86_64.whl", hash = "sha256:326c013efe8048858a6d312ddd31d56e468118ad4cdeda36c719bf5bb6192290"},
     {file = "PyYAML-6.0.1-cp310-cp310-win32.whl", hash = "sha256:bd4af7373a854424dabd882decdc5579653d7868b8fb26dc7d0e99f823aa5924"},
     {file = "PyYAML-6.0.1-cp310-cp310-win_amd64.whl", hash = "sha256:fd1592b3fdf65fff2ad0004b5e363300ef59ced41c2e6b3a99d4089fa8c5435d"},
     {file = "PyYAML-6.0.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:6965a7bc3cf88e5a1c3bd2e0b5c22f8d677dc88a455344035f03399034eb3007"},
@@ -5018,8 +5019,16 @@ files = [
     {file = "PyYAML-6.0.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:42f8152b8dbc4fe7d96729ec2b99c7097d656dc1213a3229ca5383f973a5ed6d"},
     {file = "PyYAML-6.0.1-cp311-cp311-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:062582fca9fabdd2c8b54a3ef1c978d786e0f6b3a1510e0ac93ef59e0ddae2bc"},
     {file = "PyYAML-6.0.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d2b04aac4d386b172d5b9692e2d2da8de7bfb6c387fa4f801fbf6fb2e6ba4673"},
+    {file = "PyYAML-6.0.1-cp311-cp311-musllinux_1_1_x86_64.whl", hash = "sha256:e7d73685e87afe9f3b36c799222440d6cf362062f78be1013661b00c5c6f678b"},
     {file = "PyYAML-6.0.1-cp311-cp311-win32.whl", hash = "sha256:1635fd110e8d85d55237ab316b5b011de701ea0f29d07611174a1b42f1444741"},
     {file = "PyYAML-6.0.1-cp311-cp311-win_amd64.whl", hash = "sha256:bf07ee2fef7014951eeb99f56f39c9bb4af143d8aa3c21b1677805985307da34"},
+    {file = "PyYAML-6.0.1-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:855fb52b0dc35af121542a76b9a84f8d1cd886ea97c84703eaa6d88e37a2ad28"},
+    {file = "PyYAML-6.0.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:40df9b996c2b73138957fe23a16a4f0ba614f4c0efce1e9406a184b6d07fa3a9"},
+    {file = "PyYAML-6.0.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a08c6f0fe150303c1c6b71ebcd7213c2858041a7e01975da3a99aed1e7a378ef"},
+    {file = "PyYAML-6.0.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6c22bec3fbe2524cde73d7ada88f6566758a8f7227bfbf93a408a9d86bcc12a0"},
+    {file = "PyYAML-6.0.1-cp312-cp312-musllinux_1_1_x86_64.whl", hash = "sha256:8d4e9c88387b0f5c7d5f281e55304de64cf7f9c0021a3525bd3b1c542da3b0e4"},
+    {file = "PyYAML-6.0.1-cp312-cp312-win32.whl", hash = "sha256:d483d2cdf104e7c9fa60c544d92981f12ad66a457afae824d146093b8c294c54"},
+    {file = "PyYAML-6.0.1-cp312-cp312-win_amd64.whl", hash = "sha256:0d3304d8c0adc42be59c5f8a4d9e3d7379e6955ad754aa9d6ab7a398b59dd1df"},
     {file = "PyYAML-6.0.1-cp36-cp36m-macosx_10_9_x86_64.whl", hash = "sha256:50550eb667afee136e9a77d6dc71ae76a44df8b3e51e41b77f6de2932bfe0f47"},
     {file = "PyYAML-6.0.1-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1fe35611261b29bd1de0070f0b2f47cb6ff71fa6595c077e42bd0c419fa27b98"},
     {file = "PyYAML-6.0.1-cp36-cp36m-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:704219a11b772aea0d8ecd7058d0082713c3562b4e271b849ad7dc4a5c90c13c"},
@@ -5036,6 +5045,7 @@ files = [
     {file = "PyYAML-6.0.1-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a0cd17c15d3bb3fa06978b4e8958dcdc6e0174ccea823003a106c7d4d7899ac5"},
     {file = "PyYAML-6.0.1-cp38-cp38-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:28c119d996beec18c05208a8bd78cbe4007878c6dd15091efb73a30e90539696"},
     {file = "PyYAML-6.0.1-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7e07cbde391ba96ab58e532ff4803f79c4129397514e1413a7dc761ccd755735"},
+    {file = "PyYAML-6.0.1-cp38-cp38-musllinux_1_1_x86_64.whl", hash = "sha256:49a183be227561de579b4a36efbb21b3eab9651dd81b1858589f796549873dd6"},
     {file = "PyYAML-6.0.1-cp38-cp38-win32.whl", hash = "sha256:184c5108a2aca3c5b3d3bf9395d50893a7ab82a38004c8f61c258d4428e80206"},
     {file = "PyYAML-6.0.1-cp38-cp38-win_amd64.whl", hash = "sha256:1e2722cc9fbb45d9b87631ac70924c11d3a401b2d7f410cc0e3bbf249f2dca62"},
     {file = "PyYAML-6.0.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:9eb6caa9a297fc2c2fb8862bc5370d0303ddba53ba97e71f08023b6cd73d16a8"},
@@ -5043,6 +5053,7 @@ files = [
     {file = "PyYAML-6.0.1-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5773183b6446b2c99bb77e77595dd486303b4faab2b086e7b17bc6bef28865f6"},
     {file = "PyYAML-6.0.1-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:b786eecbdf8499b9ca1d697215862083bd6d2a99965554781d0d8d1ad31e13a0"},
     {file = "PyYAML-6.0.1-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bc1bf2925a1ecd43da378f4db9e4f799775d6367bdb94671027b73b393a7c42c"},
+    {file = "PyYAML-6.0.1-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:04ac92ad1925b2cff1db0cfebffb6ffc43457495c9b3c39d3fcae417d7125dc5"},
     {file = "PyYAML-6.0.1-cp39-cp39-win32.whl", hash = "sha256:faca3bdcf85b2fc05d06ff3fbc1f83e1391b3e724afa3feba7d13eeab355484c"},
     {file = "PyYAML-6.0.1-cp39-cp39-win_amd64.whl", hash = "sha256:510c9deebc5c0225e8c96813043e62b680ba2f9c50a08d3724c7f28a747d1486"},
     {file = "PyYAML-6.0.1.tar.gz", hash = "sha256:bfdf460b1736c775f2ba9f6a92bca30bc2095067b8a9d77876d1fad6cc3b4a43"},
@@ -5696,27 +5707,26 @@ develop = false
 diskcache = ">=5.6.3"
 numpy = "*"
 plotly = "*"
-solara = "1.30.0"
+solara = ">=1.30.0"
 vaex = ">=4.17.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/sdss/explorer.git"
 reference = "HEAD"
-resolved_reference = "c5573e90c5bb45b83fb1ca9d83c8cc7e537c14bd"
+resolved_reference = "dc7a8f14bdb87354e2e60a0d836a5b25ffa12111"
 
 [[package]]
 name = "sdss_solara"
 version = "0.1.0.dev0"
 description = "Solara pages for SDSS"
 optional = true
-python-versions = ">=3.10"
+python-versions = ">=3.9"
 files = []
 develop = false
 
 [package.dependencies]
 jdaviz = ">3.8"
-photutils = "1.11"
 python-dotenv = ">1.0"
 sdss-access = ">3.0.2"
 sdss_explorer = {git = "https://github.com/sdss/explorer.git"}
@@ -5731,7 +5741,7 @@ test = ["pytest", "pytest-doctestplus"]
 type = "git"
 url = "https://github.com/sdss/sdss_solara.git"
 reference = "main"
-resolved_reference = "d94f90d9c3ecfefbdbd2c47281ed6b45ba7618af"
+resolved_reference = "2223f2496221fdfa6d44baa3dc9839c7781c6422"
 
 [[package]]
 name = "sdss-tree"
@@ -5755,30 +5765,26 @@ docs = ["Sphinx (>=7.2.0)", "importlib-metadata (>=1.6.0)", "jinja2 (<3.1)", "re
 
 [[package]]
 name = "sdssdb"
-version = "0.12.0"
+version = "0.13.1"
 description = "SDSS product for database management"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "sdssdb-0.12.0-py3-none-any.whl", hash = "sha256:ce9c1c85af5451f8c92df541444b9e49642d4f23004a727a77649a3c7157dd38"},
-    {file = "sdssdb-0.12.0.tar.gz", hash = "sha256:2fa4ce04e544580b2ec85daf0cac028ff24ad5d9bae2c7caf8ec01e59f4f485b"},
+    {file = "sdssdb-0.13.1-py3-none-any.whl", hash = "sha256:d37df0af9b8966c3507625e6f9bbce438cc1fd3f10d3be37911312b334adfc1c"},
+    {file = "sdssdb-0.13.1.tar.gz", hash = "sha256:76512a7a5b8eead5603d7e08616cd4a3b701f489f5cbeb2aba28663cd0ea03c3"},
 ]
 
 [package.dependencies]
-h5py = ">=3.8.0"
 numpy = ">=1.18.2"
-peewee = ">=3.17.3"
+peewee = ">=3.17.6"
 pgpasslib = ">=1.1.0"
 psycopg2-binary = ">=2.7.7"
-pygments = "*"
-pyyaml = ">=5.1"
 sdsstools = {version = ">=1.7.0", markers = "python_version >= \"3.8\""}
-six = ">=1.12.0"
-sqlalchemy = ">=1.3.6"
+sqlalchemy = ">=1.3.6,<2"
 
 [package.extras]
-all = ["astropy (>=4.0.0)", "inflect (>=4.1.0)", "pandas (>=1.0.0)", "progressbar2 (>=3.46.1)", "pydot (>=1.4.1)"]
-dev = ["astropy (>=4.0.0)", "factory-boy (>=2.12.0)", "ipdb (>=0.13.2)", "ipython (>=7.13.0)", "pydot (>=1.4.2)", "pytest (>=5.2)", "pytest-cov (>=2.4.0)", "pytest-factoryboy (>=2.0.3)", "pytest-postgresql (>=2.2.1)", "pytest-sugar (>=0.8.0)"]
+all = ["astropy (>=4.0.0)", "h5py (>=3.8.0)", "inflect (>=4.1.0)", "pandas (>=1.0.0)", "progressbar2 (>=3.46.1)", "psycopg[binary]", "pydot (>=1.4.1)", "sdssdb[dev]", "sdssdb[docs]"]
+dev = ["astropy (>=4.0.0)", "factory-boy (>=2.12.0)", "flake8 (>=7.1.1)", "flake8-pyproject (>=1.2.3)", "ipdb (>=0.13.2)", "ipython (>=7.13.0)", "pydot (>=1.4.2)", "pytest (>=5.2)", "pytest-cov (>=2.4.0)", "pytest-factoryboy (>=2.0.3)", "pytest-postgresql (>=2.2.1,<6)", "pytest-sugar (>=0.8.0)", "pyyaml (>=5.1)", "ruff (>=0.6.3)"]
 docs = ["Sphinx (>=7.0.0)", "releases (>=2.0.0)", "sphinx-bootstrap-theme (>=0.4.12)"]
 
 [[package]]
@@ -5970,46 +5976,88 @@ files = [
 
 [[package]]
 name = "solara"
-version = "1.30.0"
+version = "1.39.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "solara-1.30.0-py2.py3-none-any.whl", hash = "sha256:ea7a996cac7def5b05fc2bfa6821e2cae0b7fe0d142c66b77cf2af4a66ad6b29"},
-    {file = "solara-1.30.0.tar.gz", hash = "sha256:718731c674628265c09560f2990794b6d308bdcfc0a07829bffae2f50c85f155"},
+    {file = "solara-1.39.0-py2.py3-none-any.whl", hash = "sha256:c9b016b28055d7fdaf2cf0c0231b93b1eec0eb59473d5b29473d472e6cfa4505"},
+    {file = "solara-1.39.0.tar.gz", hash = "sha256:77a930cad4decea4cb24f519b43b0d39be633d95ea593d497a80483aebeb8bb2"},
 ]
 
 [package.dependencies]
-cachetools = "*"
-click = ">=7.1.0"
-filelock = "*"
-humanize = "*"
-ipykernel = "*"
-ipyvue = ">=1.9.0"
-ipyvuetify = ">=1.8.10"
-ipywidgets = "*"
-jinja2 = "*"
-jupyter-client = ">=7.0.0"
-markdown = "*"
-markupsafe = "*"
-nbformat = "*"
-pymdown-extensions = "*"
-reacton = ">=1.7.1"
-requests = "*"
-rich-click = "*"
-starlette = "*"
-uvicorn = "*"
-watchdog = "*"
-watchfiles = {version = "*", markers = "python_version > \"3.6\""}
-websockets = "*"
+solara-server = {version = "1.39.0", extras = ["dev", "starlette"]}
+solara-ui = {version = "1.39.0", extras = ["all"]}
 
 [package.extras]
-assets = ["solara-assets (==1.30.0)"]
-dev = ["black", "bqplot", "bqplot-image-gl", "bump2version", "codespell", "dask[dataframe]", "flake8", "ipyreact", "mdit-py-plugins", "mypy", "playwright", "plotly", "polars", "pre-commit", "pytest", "pytest-cov", "pytest-mock", "pytest-playwright", "pytest-timeout", "python-dotenv", "types-markdown", "types-pyyaml", "types-requests", "vaex-core", "vaex-hdf5", "vaex-jupyter"]
-documentation = ["altair", "bqplot", "folium", "ipycanvas", "ipyleaflet", "matplotlib", "numpy", "openai", "plotly", "tiktoken", "vaex-core", "vaex-hdf5", "vega-datasets"]
-extra = ["numpy", "pillow", "pygments", "pygments (==2.10)"]
+all = ["solara[assets]", "solara[dev]", "solara[documentation]", "solara[pytest]"]
+assets = ["solara-assets (==1.39.0)"]
+dev = ["bqplot", "bqplot-image-gl", "bump2version", "codespell", "dask[dataframe]", "ipyreact", "mdit-py-plugins", "mypy", "numpy (<2)", "playwright", "plotly", "polars", "pre-commit", "pytest", "pytest-cov", "pytest-mock", "pytest-playwright", "pytest-timeout", "python-dotenv", "ruff", "types-markdown", "types-pyyaml", "types-requests", "vaex-core", "vaex-hdf5", "vaex-jupyter"]
+documentation = ["altair", "bqplot", "folium", "ipycanvas", "ipyleaflet", "matplotlib", "numpy (<2)", "openai", "plotly", "tiktoken", "vaex-core", "vaex-hdf5", "vega-datasets"]
+pytest = ["pytest-ipywidgets[all] (==1.39.0)"]
+
+[[package]]
+name = "solara-server"
+version = "1.39.0"
+description = ""
+optional = true
+python-versions = "*"
+files = [
+    {file = "solara_server-1.39.0-py2.py3-none-any.whl", hash = "sha256:a16160cc423d39a70bab42ca2b3a51a305596464c5233e2c84d7988ee15c9e3b"},
+    {file = "solara_server-1.39.0.tar.gz", hash = "sha256:af4e273da9fd9e1497cc4b77e424071b2b424ae92b61c457f7adc5e0b1528232"},
+]
+
+[package.dependencies]
+click = ">=7.1.0"
+filelock = "*"
+ipykernel = "*"
+jinja2 = "*"
+jupyter-client = ">=7.0.0"
+nbformat = "*"
+rich-click = "*"
+solara-ui = "*"
+starlette = {version = "*", optional = true, markers = "extra == \"starlette\""}
+uvicorn = {version = "*", optional = true, markers = "extra == \"starlette\""}
+watchdog = {version = "*", optional = true, markers = "extra == \"dev\""}
+watchfiles = {version = "*", optional = true, markers = "python_version > \"3.6\" and extra == \"dev\""}
+websockets = {version = "*", optional = true, markers = "extra == \"starlette\""}
+
+[package.extras]
+all = ["solara-server[dev]", "solara-server[flask]", "solara-server[starlette]"]
+dev = ["watchdog", "watchfiles"]
 flask = ["flask", "flask-sock"]
-pytest = ["jupyterlab", "pillow", "pixelmatch", "playwright", "pytest", "pytest-playwright", "voila"]
+starlette = ["starlette", "uvicorn", "websockets"]
+
+[[package]]
+name = "solara-ui"
+version = "1.39.0"
+description = ""
+optional = true
+python-versions = "*"
+files = [
+    {file = "solara_ui-1.39.0-py2.py3-none-any.whl", hash = "sha256:87fd10fd08573af1e1237160b4a043f84073afdf89e73f337fb44526238d26b6"},
+    {file = "solara_ui-1.39.0.tar.gz", hash = "sha256:586a8d10ac23526ad62ab819bcbba4de1432738eaef96e371ce2a076f3fdcd6c"},
+]
+
+[package.dependencies]
+cachetools = {version = "*", optional = true, markers = "extra == \"cache\""}
+humanize = "*"
+ipyvue = ">=1.9.0"
+ipyvuetify = ">=1.6.10"
+ipywidgets = ">=7.7"
+markdown = {version = "*", optional = true, markers = "extra == \"markdown\""}
+numpy = {version = "*", optional = true, markers = "extra == \"extra\""}
+pillow = {version = "*", optional = true, markers = "extra == \"extra\""}
+pygments = {version = "*", optional = true, markers = "extra == \"markdown\""}
+pymdown-extensions = {version = "*", optional = true, markers = "extra == \"markdown\""}
+reacton = ">=1.7.1"
+requests = "*"
+
+[package.extras]
+all = ["solara-ui[cache]", "solara-ui[extra]", "solara-ui[markdown]"]
+cache = ["cachetools"]
+extra = ["numpy", "pillow"]
+markdown = ["markdown", "pygments", "pygments (==2.10)", "pymdown-extensions"]
 
 [[package]]
 name = "soupsieve"
@@ -7529,4 +7577,4 @@ solara = ["sdss-solara"]
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.10"
-content-hash = "5b52daf9f19d7cac9bc7a7d5eb17c4aa0ab3f9910fa921940db2cbf65d165d0d"
+content-hash = "5a2ad6f3768c18f548cd59796a0e6d049bb02c54cfa5bff02fc6210a9bcea88a"

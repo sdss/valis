@@ -5,7 +5,7 @@ import re
 import os
 import httpx
 import orjson
-from typing import Tuple, List, Union, Optional, Annotated
+from typing import Any, Tuple, List, Union, Optional, Annotated
 from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
 from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
@@ -18,9 +18,10 @@ from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_target_cartons, get_target_pipeline)
+                              get_parent_catalog_data, get_target_cartons,
+                              get_target_pipeline, get_target_by_altid, append_pipes)
 from valis.db.db import get_pw_db
-from valis.db.models import CatalogResponse, CartonModel, PipesModel, SDSSModel
+from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel
 
 router = APIRouter()
 
@@ -180,6 +181,18 @@ class Target(Base):
         """ Return target metadata for a given sdss_id """
         return get_target_meta(sdss_id, self.release) or {}
 
+    @router.get('/sdssid/{id}', summary='Retrieve a target sdss_id from an alternative id',
+                dependencies=[Depends(get_pw_db)],
+                response_model=Union[SDSSModel, dict],
+                response_model_exclude_unset=True, response_model_exclude_none=True)
+    async def get_target_altid(self,
+        id: Annotated[int | str, Path(title="The alternative id of the target to get", example="2M23595980+1528407")],
+        idtype: Annotated[str, Query(enum=['catalogid', 'gaiaid'], description='For ambiguous integer ids, the type of id, e.g. "catalogid"', example=None)] = None
+        ):
+        """ Return target metadata for a given sdss_id """
+        query = append_pipes(get_target_by_altid(id, idtype=idtype), observed=False)
+        return query.dicts().first() or {}
+
     @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],
                 response_model=List[SpectrumModel])
@@ -195,7 +208,47 @@ class Target(Base):
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return catalog information for a given sdss_id """
-        return get_catalog_sources(sdss_id).dicts().iterator()
+
+        sdss_id_data = get_catalog_sources(sdss_id).dicts()
+
+        # The response has the parent catalogs at the same level as the other
+        # columns. For the response we want to nest them under a parent_catalogs key.
+        # This takes advantage that all the parent catalog columns have '__' in the name.
+        response_data: list[dict[str, Any]] = []
+        for row in sdss_id_data:
+            s_data = {k: v for k, v in row.items() if '__' not in k}
+            cat_data = {k.split('__')[0]: v for k, v in row.items() if '__' in k}
+            response_data.append({**s_data, 'parent_catalogs': cat_data})
+
+        return response_data
+
+    @router.get('/parents/{catalog}/{sdss_id}',
+                dependencies=[Depends(get_pw_db)],
+                response_model=list[ParentCatalogModel],
+                responses={400: {'description': 'Invalid input sdss_id or catalog'}},
+                summary='Retrieve parent catalog information for a taget by sdss_id')
+    async def get_parents(self,
+                          catalog: Annotated[str, Path(description='The parent catalog to search',
+                                                       example='gaia_dr3_source')],
+                          sdss_id: Annotated[int, Path(description='The sdss_id of the target to get',
+                                                       example=129047350)],
+                          catalogid: Annotated[int, Query(description='Restrict the list of returned entries to this catalogid',
+                                                          example=63050396587194280)]=None):
+        """Return parent catalog information for a given sdss_is.
+
+        Returns a list of mappings for each set of parent catalogs associated
+        with the catalogid and sdss_id.
+
+        """
+
+        try:
+            result = get_parent_catalog_data(sdss_id, catalog, catalogid=catalogid).dicts()
+            if len(result) == 0:
+                raise ValueError(f'No parent catalog data found for sdss_id {sdss_id}')
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f'Error: {e}')
+
+        return result
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],

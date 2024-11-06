@@ -10,12 +10,13 @@ from pydantic import BaseModel, Field, BeforeValidator
 
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase, SDSSidPipesBase, MapperName
+from valis.db.models import SDSSidStackedBase, SDSSidPipesBase, MapperName, SDSSModel
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id,
-                              get_targets_obs, get_paged_target_list_by_mapper)
-from sdssdb.peewee.sdss5db import database
+                              get_targets_obs, get_paged_target_list_by_mapper,
+                              get_target_by_altid)
+from sdssdb.peewee.sdss5db import database, catalogdb
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -30,16 +31,18 @@ class SearchCoordUnits(str, Enum):
 
 class SearchModel(BaseModel):
     """ Input main query body model """
-    ra: Optional[Union[float, str]] = Field(None, description='Right Ascension in degrees or hmsdms', example=315.01417)
-    dec: Optional[Union[float, str]] = Field(None, description='Declination in degrees or hmsdms', example=35.299)
-    radius: Optional[Float] = Field(None, description='Search radius in specified units', example=0.01)
+    ra: Optional[Union[float, str]] = Field(None, description='Right Ascension in degrees or hmsdms', example=150.385)
+    dec: Optional[Union[float, str]] = Field(None, description='Declination in degrees or hmsdms', example=1.02)
+    radius: Optional[Float] = Field(None, description='Search radius in specified units', example=0.02)
     units: Optional[SearchCoordUnits] = Field('degree', description='Units of search radius', example='degree')
     id: Optional[Union[int, str]] = Field(None, description='The SDSS identifier', example=23326)
+    altid: Optional[Union[int, str]] = Field(None, description='An alternative identifier', example=27021603187129892)
+    idtype: Optional[str] = Field(None, description='The type of integer id, for ambiguous ids', example="catalogid")
     program: Optional[str] = Field(None, description='The program name', example='bhm_rm')
     carton: Optional[str] = Field(None, description='The carton name', example='bhm_rm_core')
+    observed: Optional[bool] = Field(True, description='Flag to only include targets that have been observed', example=True)
 
-
-class MainResponse(SDSSidPipesBase, SDSSidStackedBase):
+class MainResponse(SDSSModel):
     """ Combined model from all individual query models """
 
 
@@ -77,11 +80,13 @@ class QueryRoutes(Base):
 
     @router.post('/main', summary='Main query for the UI or combining queries',
                  dependencies=[Depends(get_pw_db)],
-                 response_model=MainSearchResponse)
+                 response_model=MainSearchResponse, response_model_exclude_unset=True,
+                 response_model_exclude_none=True)
     async def main_search(self, body: SearchModel):
         """ Main query for UI and for combining queries together """
 
         print('form data', body)
+        query = None
 
         # build the coordinate query
         if body.ra and body.dec:
@@ -91,26 +96,39 @@ class QueryRoutes(Base):
         elif body.id:
             query = get_targets_by_sdss_id(body.id)
 
+        # build the altid query
+        elif body.altid:
+            query = get_target_by_altid(body.altid, body.idtype)
+
         # build the program/carton query
         if body.program or body.carton:
             query = carton_program_search(body.program or body.carton,
                                           'program' if body.program else 'carton',
                                           query=query)
         # append query to pipes
-        query = append_pipes(query)
+        if query:
+            query = append_pipes(query, observed=body.observed)
 
-        return {'status': 'success', 'data': query.dicts().iterator(), 'msg': 'data successfully retrieved'}
+        # query iterator
+        res = query.dicts().iterator() if query else []
+
+        return {'status': 'success', 'data': res, 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
     async def cone_search(self,
-                          ra: Annotated[Union[float, str], Query(description='Right Ascension in degrees or hmsdms', example=315.01417)],
-                          dec: Annotated[Union[float, str], Query(description='Declination in degrees or hmsdms', example=35.299)],
-                          radius: Annotated[float, Query(description='Search radius in specified units', example=0.01)],
-                          units: Annotated[SearchCoordUnits, Query(description='Units of search radius', example='degree')] = "degree"):
+                          ra: Annotated[Union[float, str], Query(description='Right Ascension in degrees or hmsdms', example=315.78)],
+                          dec: Annotated[Union[float, str], Query(description='Declination in degrees or hmsdms', example=-3.2)],
+                          radius: Annotated[float, Query(description='Search radius in specified units', example=0.02)],
+                          units: Annotated[SearchCoordUnits, Query(description='Units of search radius', example='degree')] = "degree",
+                          observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True):
         """ Perform a cone search """
 
-        return list(cone_search(ra, dec, radius, units=units))
+        res = cone_search(ra, dec, radius, units=units)
+        r = append_pipes(res, observed=observed)
+        # return sorted by distance
+        # doing this here due to the append_pipes distinct
+        return sorted(r.dicts().iterator(), key=lambda x: x['distance'])
 
     @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
                 response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
@@ -135,7 +153,7 @@ class QueryRoutes(Base):
     async def sdss_ids_search(self, body: SDSSIdsModel):
         """ Perform a search for SDSS targets based on a list of input sdss_id values."""
         return list(get_targets_by_sdss_id(body.sdss_id_list))
-    
+
     @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
     async def catalog_id_search(self, catalog_id: Annotated[int, Query(description='Value of catalog_id', example=7613823349)]):
@@ -164,18 +182,34 @@ class QueryRoutes(Base):
 
         return carton_program_map()
 
+    @router.get('/list/parents', summary='Return a list of available parent catalog tables',
+                response_model=List[str])
+    async def parent_catalogs(self):
+        """Return a list of available parent catalog tables."""
+
+        columns = catalogdb.SDSS_ID_To_Catalog._meta.fields.keys()
+
+        # In sdss_id_to_catalog table, the parent catalog columns are named
+        # as 'parent_catalog__parent_catalog_pk_column'.
+        catalogs = [col.split('__')[0] for col in columns if '__' in col]
+
+        return sorted(catalogs)
+
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
     async def carton_program(self,
                              name: Annotated[str, Query(description='Carton or program name', example='manual_mwm_tess_ob')],
                              name_type: Annotated[str,
                                                   Query(enum=['carton', 'program'],
                                                         description='Specify search on carton or program',
-                                                        example='carton')] = 'carton'):
+                                                        example='carton')] = 'carton',
+                             observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True):
         """ Perform a search on carton or program """
-        with database.atomic() as transaction:
+        with database.atomic():
             database.execute_sql('SET LOCAL enable_seqscan=false;')
-            return list(carton_program_search(name, name_type))
+            query = carton_program_search(name, name_type)
+            query = append_pipes(query, observed=observed)
+            return query.dicts().iterator()
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
@@ -195,7 +229,7 @@ class QueryRoutes(Base):
 
     @router.get('/mapper', summary='Perform a search for SDSS targets based on the mapper',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
-    async def get_target_list_by_mapper(self, 
+    async def get_target_list_by_mapper(self,
                                         mapper: Annotated[MapperName, Query(description='Mapper name', example=MapperName.MWM)] = MapperName.MWM,
                                         page_number: Annotated[int, Query(description='Page number of the returned items', gt=0, example=1)] = 1,
                                         items_per_page: Annotated[int, Query(description='Number of items displayed in a page', gt=0, example=10)] = 10):

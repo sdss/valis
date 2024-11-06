@@ -7,7 +7,7 @@
 import datetime
 import math
 from typing import Optional, Annotated, Any, TypeVar
-from pydantic import ConfigDict, BaseModel, Field, BeforeValidator
+from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer, field_validator, FieldValidationInfo
 from enum import Enum
 
 
@@ -54,6 +54,11 @@ class SDSSidStackedBase(PeeweeBase):
     catalogid21: Optional[int] = Field(None, description='the version 21 catalog id')
     catalogid25: Optional[int] = Field(None, description='the version 25 catalog id')
     catalogid31: Optional[int] = Field(None, description='the version 31 catalog id')
+    last_updated: datetime.date = Field(None, description='the date the sdss_id row was last updated', exclude=True)
+
+    @field_serializer('last_updated')
+    def serialize_dt(self, date: datetime.date) -> str:
+        return date.isoformat()
 
 
 class SDSSidFlatBase(PeeweeBase):
@@ -67,7 +72,7 @@ class SDSSidFlatBase(PeeweeBase):
     n_associated: int = Field(..., description='The total number of sdss_ids associated with that catalogid.')
     ra_catalogid: Optional[float] = Field(None, description='Right Ascension, in degrees, specific to the catalogid')
     dec_catalogid: Optional[float] = Field(None, description='Declination, in degrees, specific to the catalogid')
-
+    rank: int = Field(..., description='Ranking when catalogid paired to multiple sdss_id, with rank 1 as priority.')
 
 class SDSSidPipesBase(PeeweeBase):
     """ Pydantic response model for the Peewee vizdb.SDSSidToPipes ORM """
@@ -75,12 +80,24 @@ class SDSSidPipesBase(PeeweeBase):
     sdss_id: int = Field(..., description='the SDSS identifier')
     in_boss: bool = Field(..., description='Flag if target is in the BHM reductions', examples=[False])
     in_apogee: bool = Field(..., description='Flag if target is in the MWM reductions', examples=[False])
+    in_bvs: bool = Field(..., description='Flag if target is in the boss component of the Astra reductions', examples=[False], exclude=True)
     in_astra: bool = Field(..., description='Flag if the target is in the Astra reductions', examples=[False])
+    has_been_observed: Optional[bool] = Field(False, validate_default=True, description='Flag if target has been observed or not', examples=[False])
+    release: Optional[str] = Field(None, description='the Astra release field, either sdss5 or dr17')
+    obs: Optional[str] = Field(None, description='the observatory the observation is from')
+    mjd: Optional[int] = Field(None, description='the MJD of the data reduction')
 
+    @field_validator('has_been_observed')
+    @classmethod
+    def is_observed(cls, v: str, info: FieldValidationInfo) -> str:
+        """ validator for when has_been_observed was not available in table """
+        if not v:
+            return info.data['in_boss'] or info.data['in_apogee'] or info.data['in_astra']
+        return v
 
 class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
     """ Main Pydantic response for SDSS id plus Pipes flags """
-    pass
+    distance: Optional[float] = Field(None, description='Separation distance between input target and cone search results, in degrees')
 
 
 class BossSpectrum(PeeweeBase):
@@ -94,12 +111,13 @@ class BossSpectrum(PeeweeBase):
     survey: str = None
     firstcarton: str = None
     objtype: str = None
-    specobjid: int = None
+    specobjid: Optional[int] = None
 
 class AstraSource(PeeweeBase):
     """ Pydantic response model for the MWM Astra source metadata """
     sdss_id: int = None
-    sdss4_apogee_id: Optional[int] = None
+    catalogid: int = None
+    sdss4_apogee_id: Optional[str] = None
     gaia_dr2_source_id: Optional[int] = None
     gaia_dr3_source_id: Optional[int] = None
     tic_v8_id: Optional[int] = None
@@ -115,8 +133,8 @@ class AstraSource(PeeweeBase):
     sdss4_apogee_extra_target_flags: int = None
     ra: float = None
     dec: float = None
-    n_boss_visits: int = None
-    n_apogee_visits: int = None
+    n_boss_visits: Optional[int] = None
+    n_apogee_visits: Optional[int] = None
     l: float = None
     b: float = None
     ebv: float = None
@@ -184,9 +202,30 @@ class CatalogModel(PeeweeBase):
     parallax: Optional[float] = None
 
 
+class ParentCatalogModel(PeeweeBase):
+    """Pydantic model for parent catalog information """
+
+    sdss_id: Annotated[int, Field(description='The sdss_id associated with the parent catalogue data')]
+    catalogid: Annotated[int, Field(description='The catalogid associated with the parent catalogue data')]
+
+    # This model is usually instantiated with a dictionary of all the parent
+    # catalogue columns so we allow extra fields.
+    model_config = ConfigDict(extra='allow')
+
+
 class CatalogResponse(CatalogModel, SDSSidFlatBase):
     """ Response model for source catalog and sdss_id information """
-    pass
+
+    parent_catalogs: dict[str, Any] = Field(..., description='The parent catalog associations for a given catalogid')
+
+    @field_serializer('parent_catalogs')
+    def serialize_parent_catalogs(v: dict[str, Any], info: FieldSerializationInfo) -> dict[str, Any]:
+        """ Serialize the parent catalogs, excluding None values and trimming strings."""
+
+        if info.exclude_none:
+            return {k: v.strip() if isinstance(v, str) else v for k, v in v.items() if v is not None}
+        else:
+            return v
 
 
 class CartonModel(PeeweeBase):
@@ -236,3 +275,32 @@ class MapperName(str, Enum):
     MWM: str = 'MWM'
     BHM: str = 'BHM'
     LVM: str = 'LVM'
+
+
+def gen_misc_models():
+    """ Generate metadata info for miscellaneous return columns
+
+    This is a hack to handle cases where we return columns in search
+    results that are not part of the original pipelines database ORM
+    but we want to have the same metadata like "display_name" and
+    "description".  For example, the "distance" column returned by cone
+    searches, as part of the SDSSModel response.  This fakes the metadata
+    framework so the front-end can use the same code. See usage for the
+    info/database endpoint in "convert_metadata".
+
+    Fakes a "misc" database schema and "misctab" table to hold these
+    pseudo-columns.
+
+    """
+    params = [{'SDSSModel.distance': {'display_name': 'Distance [deg]',
+                                      'unit': 'degree', 'sql_type': 'float'}}]
+
+    for param in params:
+        name, data = param.popitem()
+        model, column = name.split('.')
+        col = globals()[model].model_fields[column]
+
+        yield {"pk": 0, "schema": "miscdb", "table_name": "misctab",
+               "column_name": column, "display_name": data["display_name"],
+               "description": col.description,
+               "unit": data["unit"], "sql_type": data["sql_type"]}

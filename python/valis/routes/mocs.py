@@ -4,8 +4,10 @@
 #
 
 import orjson
+import os
 import pathlib
-from typing import List, Dict
+import re
+from typing import List, Dict, Annotated
 from pydantic import BaseModel, Field
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_restful.cbv import cbv
@@ -15,12 +17,20 @@ from valis.routes.files import ORJSONResponseCustom
 
 from sdss_access.path import Path
 
-def read_json(path):
+def read_json(path: str) -> dict:
+    """ Read a MOC.json file """
     with open(path, 'r') as f:
         lines = f.readlines()
         first = lines[0]
-        mocorder = int(first.split('\n')[0].split('#MOCORDER ')[-1])
-        data = orjson.loads("\n".join(lines[1:]))
+        if "MOCORDER" in first:
+            # written by Hipsgen-cat
+            mocorder = int(first.split('\n')[0].split('#MOCORDER ')[-1])
+            sub = lines[1:]
+        else:
+            # written by MOCpy
+            mocorder = int(max(map(int,re.findall(r'"(.*?)":', '\n'.join(lines)))))
+            sub = lines
+        data = orjson.loads("\n".join(sub))
         return {'order': mocorder, 'moc': data}
 
 
@@ -34,7 +44,6 @@ router = APIRouter()
 @cbv(router)
 class Mocs(Base):
     """ Endpoints for interacting with SDSS MOCs """
-    name: str = 'sdss_moc'
 
     def check_path_name(self, path, name: str):
         """ temp function until sort out directory org for """
@@ -48,32 +57,43 @@ class Mocs(Base):
             raise HTTPException(status_code=422, detail=f'path {path} does not exist on disk.')
 
     @router.get('/preview', summary='Preview an individual survey MOC', response_class=RedirectResponse)
-    async def get_moc(self, survey: str):
+    async def get_moc(self, survey: Annotated[str, Query(..., description='The SDSS survey name')] = 'manga'):
         """ Preview an individual survey MOC """
         return f'/static/mocs/{self.release.lower()}/{survey}/'
 
     @router.get('/json', summary='Get the MOC file in JSON format')
-    async def get_json(self, survey: str = Query(..., description='The SDSS survey name', example='manga')) -> MocModel:
+    async def get_json(self, survey: Annotated[str, Query(..., description='The SDSS survey name')] = 'manga') -> MocModel:
         """ Get the MOC file in JSON format """
         # temporarily affixing the access path to sdss5 sandbox until
         # we decide on real org for DRs, etc
-        spath = Path(release='sdss5')
+        spath = Path(release='sdsswork')
 
-        self.check_path_name(spath, self.name)
-        path = spath.full(self.name, release=self.release.lower(), survey=survey, ext='json')
+        self.check_path_name(spath, 'sdss_moc')
+        path = spath.full('sdss_moc', release=self.release.lower(), survey=survey, ext='json')
         self.check_path_exists(spath, path)
         return ORJSONResponseCustom(content=read_json(path), option=orjson.OPT_SERIALIZE_NUMPY)
 
     @router.get('/fits', summary='Download the MOC file in FITs format')
-    async def get_fits(self, survey: str = Query(..., description='The SDSS survey name', example='manga')):
+    async def get_fits(self, survey: Annotated[str, Query(..., description='The SDSS survey name')] = 'manga'):
         """ Download the MOC file in FITs format """
         # temporarily affixing the access path to sdss5 sandbox
         # we decide on real org for DRs, etc
-        spath = Path(release='sdss5')
+        spath = Path(release='sdsswork')
 
-        self.check_path_name(spath, self.name)
-        path = spath.full(self.name, release=self.release.lower(), survey=survey.lower(), ext='fits')
+        self.check_path_name(spath, 'sdss_moc')
+        path = spath.full('sdss_moc', release=self.release.lower(), survey=survey.lower(), ext='fits')
         self.check_path_exists(spath, path)
         pp = pathlib.Path(path)
         name = f'{survey.lower()}_{pp.name}'
         return FileResponse(path, filename=name, media_type='application/fits')
+
+    @router.get('/list', summary='List the available MOCs')
+    async def list_mocs(self) -> list[str]:
+        """ List the available MOCs """
+        Path(release='sdsswork')
+        # switching from rglob to glob. takes ~10 seconds for 61 files
+        # possibly cache this function but it'd be nice for it update without a restart
+        # this is a hack to avoid the lvm content, many directories
+        # when lvm is ready to be included, we will need to update this
+        mocs = sorted(set([':'.join(i.parent.parts[-2:]) for i in pathlib.Path(os.getenv("SDSS_HIPS")).glob('*/*/Moc.fits')]))
+        return mocs
