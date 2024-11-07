@@ -277,17 +277,18 @@ class Target(Base):
                                tile_id: Annotated[int, Path(description="The tile_id of the LVM dither", example=1028790)],
                                mjd: Annotated[int, Path(desciption='The MJD of the observations', example=60314)],
                                exposure: Annotated[int, Path(desciption='The exposure number', example=10328)],
-                               fiberid: Annotated[int, Path(desciption='Sequential ID of science fiber within Dither (1 to 1801)', example=777)],):
+                               fiberid: Annotated[int, Path(desciption='Sequential ID of science fiber within Dither (1 to 1801)', example=777)],
+                               version: Annotated[str, Query(description='DRP version', example='1.0.3')] = '1.0.3'):
         
         # construct file path for lvmSFrame-*.fits file
         suffix = str(exposure).zfill(8)
         if tile_id == 11111:
-            filename = f"0011XX/11111/{mjd}/lvmSFrame-{suffix}.fits"
+            filename = f"lvm/spectro/redux/{version}/0011XX/11111/{mjd}/lvmSFrame-{suffix}.fits"
         else:
-            filename = f"{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
+            filename = f"lvm/spectro/redux/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
 
-        LVM_ROOT = f"/data/sdss/sas/sdsswork/lvm/spectro/redux/1.0.3/"
-        file = LVM_ROOT + filename
+        DATA_ROOT = f"/data/sdss/sas/sdsswork/"
+        file = DATA_ROOT + filename
                 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
@@ -306,6 +307,7 @@ class Target(Base):
             flux = hdul['FLUX'].data[fiberid_in_stack, :] * 1e17
 
         return dict(filename=filename,
+                    version=version,
                     wave=arr2list(wave),
                     flux=arr2list(flux),)
 
@@ -317,18 +319,19 @@ class Target(Base):
                              mjd: Annotated[int, Path(desciption='The MJD of the observations', example=60314)],
                              exposure: Annotated[int, Path(desciption='The exposure number', example=10328)],
                              wl = Query('6562.85,4861.36', description='List of emission lines to be retrieved', example='6562.85,4861.36'),
+                             version: Annotated[str, Query(description='DRP version', example='1.0.3')] = '1.0.3',
                              ):
 
 
         # construct file path for lvmSFrame-*.fits file
         suffix = str(exposure).zfill(8)
         if tile_id == 11111:
-            filename = f"0011XX/11111/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
+            filename = f"lvm/spectro/analysis/{version}/0011XX/11111/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
         else:
-            filename = f"{str(tile_id)[:4]}XX/{tile_id}/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
+            filename = f"lvm/spectro/analysis/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
 
-        DAP_ROOT = f"/data/sdss/sas/sdsswork/lvm/spectro/analysis/1.0.3/"
-        file = DAP_ROOT + filename
+        DATA_ROOT = f"/data/sdss/sas/sdsswork/"
+        file = DATA_ROOT + filename
 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
