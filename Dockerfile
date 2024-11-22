@@ -64,6 +64,13 @@ RUN poetry install -E solara --only main
 # Create dir for socket and logs
 RUN mkdir -p /tmp/webapp
 
+# Install hips2fits_cutout script
+# It is not installable via packager managers (pip, poetry) since there is no setup.py
+# Therefore install it manually and not through pyproject.toml dependancies.
+RUN poetry add cdshealpix@^0.7.0
+RUN git clone https://github.com/cds-astro/hips2fits-cutout.git /usr/lib/hips2fits-cutout
+ENV PYTHONPATH=/usr/lib/hips2fits-cutout:$PYTHONPATH
+
 # Setting environment variables
 # these can be manually overridden
 ENV MODULE_NAME="valis.wsgi"
