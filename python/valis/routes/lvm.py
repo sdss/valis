@@ -74,8 +74,8 @@ class LVM(Base):
         For more details, refer to GitHub repository [https://github.com/cds-astro/hips2fits-cutout](https://github.com/cds-astro/hips2fits-cutout).
         """
 
-        SDSS_HIPS = os.getenv("SDSS_HIPS")
-        hips_path = f"{SDSS_HIPS}/{version}/{hips}/"
+        LVM_HIPS = os.getenv("LVM_HIPS")
+        hips_path = f"{LVM_HIPS}/{version}/{hips}/"
 
         #  Check if HiPS path exists
         if not os.path.exists(hips_path):
