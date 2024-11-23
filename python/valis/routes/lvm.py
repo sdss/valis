@@ -32,6 +32,16 @@ from hips2fits_cutout import generate as hips2fits_generate
 router = APIRouter()
 
 
+def arr2list(nparr, badmask=None):
+    """
+    Function to convert numpy array to list masking non-number values.
+    It used for serilization.
+    """
+    if badmask is None:
+        badmask = ~np.isfinite(nparr)
+    return np.where(badmask, None, nparr).tolist()
+
+
 class ImageFormat(str, Enum):
     png = "png"
     jpg = "jpg"

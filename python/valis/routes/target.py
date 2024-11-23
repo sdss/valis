@@ -29,16 +29,6 @@ Simbad.add_votable_fields('distance_result')
 Simbad.add_votable_fields('ra(d)', 'dec(d)')
 
 
-def arr2list(nparr, badmask=None):
-    """
-    Function to convert numpy array to list masking non-number values.
-    Which is needed for serilization.
-    """
-    if badmask is None:
-        badmask = ~np.isfinite(nparr)
-    return np.where(badmask, None, nparr).tolist()
-
-
 class CoordModel(BaseModel):
     """ Pydantic model for a SkyCoord object """
     value: Tuple[float, float] = Field(..., description='The coordinate value', example=(230.50745896, 43.53232817))
