@@ -27,6 +27,10 @@ from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, Pi
 from io import BytesIO
 
 from hips2fits_cutout import generate as hips2fits_generate
+import matplotlib.pyplot as plt
+
+
+VALID_MATPLOTLIB_CMAPS = plt.colormaps()
 
 
 router = APIRouter()
@@ -49,6 +53,15 @@ class ImageFormat(str, Enum):
     fits = "fits"
 
 
+class ImageStretch(str, Enum):
+    linear = "linear"
+    sqrt = "sqrt"
+    power = "power"
+    log = "log"
+    asinh = "asinh"
+    sinh = "sinh"
+
+
 @cbv(router)
 class LVM(Base):
     """ Endpoints for dealing with HiPS cutouts """
@@ -65,23 +78,41 @@ class LVM(Base):
                         height: int = Query(300, description="Height in pixels. `Note:` `width` x `height` should not exceed 5000 x 5000 pixels.", example=300),
                         min: Optional[float] = Query(None, description="Minimum cut value. Used for jpg, png formats", example=0),
                         max: Optional[float] = Query(None, description="Maximum cut value. Used for jpg, png formats", example=10000),
-                        stretch: Optional[str] = Query('linear', enum=['linear', 'sqrt', 'power', 'log', 'asinh', 'sinh'], description="Stretch for the image. Used for jpg, png formats.", example='linear'),
-                        cmap: Optional[str] = Query('Greys_r', description="Colormap for the image. All Matplotlib colormaps are accepted. Used for jpg, png formats.", example='Greys_r'),
+                        stretch: Optional[ImageStretch] = Query('linear', description="Stretch for the image. Used for jpg, png formats.", example='linear'),
+                        cmap: Optional[str] = Query('magma', description="Colormap for the image. All [Matplotlib colormaps](https://matplotlib.org/stable/users/explain/colors/colormaps.html) are accepted. Used for jpg, png formats.", example='Greys_r'),
                         ) -> Response:
         """
-        Provides image cutouts from LVM HiPS maps.
+        ## Image cutouts service for LVM HiPS maps.
 
         This endpoint allows users to extract image cutouts from the LVM 
         HiPS (Hierarchical Progressive Survey) maps available at [https://data.sdss5.org/sas/sdsswork/sandbox/data-viz/hips/sdsswork/lvm](https://data.sdss5.org/sas/sdsswork/sandbox/data-viz/hips/sdsswork/lvm).
-        
 
-        Users can specify parameters such as sky coordinates, field of view,
-        image dimensions, and output format to retrieve the desired cutout.
-        The output image uses the `SIN` (orthographic) coordinate projection.
 
-        
+        Users can specify parameters such as sky coordinates (`ra`, `dec`), field of view (`fov`), image dimensions (`width`, `height`), and output format to retrieve the desired cutout (`png`, `jpg`, `fits`). The output image uses the `SIN` (orthographic) coordinate projection.
+
+
         This service utilizes the `hips2fits_cutout` script developed by CDS, Strasbourg Astronomical Observatory, France (DOI : 10.26093/2msf-n437).
         For more details, refer to GitHub repository [https://github.com/cds-astro/hips2fits-cutout](https://github.com/cds-astro/hips2fits-cutout).
+
+
+        ### Examples:
+
+        1. [https://data.sdss5.org/valis-lvmvis-api/lvm/cutout/image/1.1.0/hips_flx_Halpha?ra=84.0&dec=-68.92](https://data.sdss5.org/valis-lvmvis-api/lvm/cutout/image/1.1.0/hips_flx_Halpha?ra=84.0&dec=-68.92)
+
+            Default 1 degree cutout from `1.1.0/hips_flx_Halpha` around ra=84 and dec=-68.92 (near 30 Doradus in LMC)
+
+        2. [https://data.sdss5.org/valis-lvmvis-api/lvm/cutout/image/1.1.0/hips_vel_Halpha?ra=13.13&dec=-72.79&fov=2&stretch=linear&cmap=turbo&min=120&max=200](https://data.sdss5.org/valis-lvmvis-api/lvm/cutout/image/1.1.0/hips_vel_Halpha?ra=13.13&dec=-72.79&fov=2&stretch=linear&cmap=turbo&min=120&max=200)
+
+            A two degree cutout from the velocity HiPS showing the SMC velocty field in range 120-200 km/s.
+
+        3. [https://data.sdss5.org/valis-lvmvis-api/lvm/cutout/image/1.1.0/hips_ratio_log_SII6717and31_Ha?ra=154.385088&dec=-57.9132434&fov=0.51&width=700&height=630&format=fits](https://data.sdss5.org/valis-lvmvis-api/lvm/cutout/image/1.1.0/hips_ratio_log_SII6717and31_Ha?ra=154.385088&dec=-57.9132434&fov=0.51&width=700&height=630&format=fits)
+
+            A `fits` image of log [SII]6717,31 / Halpha around NGC 3199 nebular (ra=154.385088 and dec=-57.9132434). An output `fits` image will have pixel size `0.51 * 3600 / 700 = 2.62 arcsec` which is comparable to the HEALPix pixel size of 3.22 arcsec.
+
+
+        **Note:**
+            LVM HiPS generated for `NSIDE=2**16` corresponds to a minimum HEALPix pixel angular size of 3.22 arcsec. To ensure a pixel size of output image comparable to 3.22 arcsec set `fov`, `width`, `height` parameters such that `fov * 3600 / max(width, height)` is comparable or higher than 3.22 arcsec.
+
         """
 
         LVM_HIPS = os.getenv("LVM_HIPS")
@@ -94,6 +125,10 @@ class LVM(Base):
         # Check the size of the requested image
         if width * height > 5000 * 5000:
             raise HTTPException(status_code=400, detail="Requested image size (width x height) exceeds the maximum allowed limit of 5000x5000 pixels.")
+
+        # check that provided `cmap` is valid
+        if cmap not in VALID_MATPLOTLIB_CMAPS:
+            raise HTTPException(status_code=400, detail=f"Invalid colormap '{cmap}'. Valid options are: {', '.join(VALID_MATPLOTLIB_CMAPS)}. See also https://matplotlib.org/stable/users/explain/colors/colormaps.html")
 
         image_data = BytesIO()
         hips2fits_generate(ra, dec, fov, width, height, hips_path, image_data, format=format, min_cut=min, max_cut=max, stretch=stretch, cmap=cmap)
