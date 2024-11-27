@@ -26,7 +26,7 @@ from valis.db.db import get_pw_db
 from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel
 from io import BytesIO
 
-from hips2fits_cutout import generate as hips2fits_generate
+from hips2fits_cutout import _create_wcs_object, generate_from_wcs
 import matplotlib.pyplot as plt
 
 
@@ -45,6 +45,33 @@ def arr2list(nparr, badmask=None):
         badmask = ~np.isfinite(nparr)
     return np.where(badmask, None, nparr).tolist()
 
+
+class CoordinateSystem(str, Enum):
+    icrs = "icrs"
+    galactic = "galactic"
+
+
+class WCSProjection(str, Enum):
+    """All WCS Projection types compartible with hips2fits_cutout script"""
+    car = "CAR"  # Plate Carrée
+    cea = "CEA"  # Cylindrical Equal Area
+    mer = "MER"  # Mercator
+    sfl = "SFL"  # Sanson-Flamsteed (Global Sinusoidal)
+    coe = "COE"  # Conic Equal Area
+    azp = "AZP"  # Perspective Zenithal
+    szp = "SZP"  # Slant Zenithal Perspective
+    tan = "TAN"  # Gnomonic
+    stg = "STG"  # Stereographic
+    sin = "SIN"  # Orthographic
+    arc = "ARC"  # Zenithal Equidistant
+    zea = "ZEA"  # Equal Area
+    mol = "MOL"  # Mollweide
+    ait = "AIT"  # Hammer-Aitoff
+    csc = "CSC"  # COBE Quadrilateralized Spherical Cube
+    hpx = "HPX"  # HEALPix
+    xph = "XPH"  # HEALPix Polar
+
+PROJECTION_DESCRIPTIONS = ", ".join([proj.value for proj in WCSProjection])
 
 class ImageFormat(str, Enum):
     png = "png"
@@ -71,11 +98,14 @@ class LVM(Base):
                         version: str = Path(..., enum=['1.1.0', '1.0.3', '1.0.3b'], description="DRP/DAP version", example='1.1.0'),
                         hips: str = Path(..., description="HiPS name including version. Should be available at https://data.sdss5.org/sas/sdsswork/sandbox/data-viz/hips/sdsswork/lvm", example='hips_flx_Halpha'),
                         format: ImageFormat = Query('png', description='Format of the output image', example='png'),
-                        ra: float = Query(..., description="Right Ascension in degrees (ICRS)", example=13.14033),
-                        dec: float = Query(..., description="Declination in degrees (ICRS)", example=-72.79495),
-                        fov: float = Query(1.0, description="Field of view in degrees. If width and height are not equal, then fov defines the largest dimension.", example=1.0),
-                        width: int = Query(300, description="Width in pixels", example=300),
-                        height: int = Query(300, description="Height in pixels. `Note:` `width` x `height` should not exceed 5000 x 5000 pixels.", example=300),
+                        ra: float = Query(..., description="Right Ascension in degrees (ICRS) or Galactic longitude `l` (in degrees) if `coordsys` is `galactic`.", example=13.14033),
+                        dec: float = Query(..., description="Declination in degrees (ICRS) or Galactic latitude `b` (in degrees) if `coordsys` is `galactic`.", example=-72.79495),
+                        coordsys: Optional[CoordinateSystem] = Query('icrs', description="Coordinate system, either `icrs` or `galactic`. If `galactic` then `ra` and `dec` are expected to be galactic longitude `l` and latitude `b`.", example='icrs'),
+                        projection: Optional[WCSProjection] = Query('SIN', description=f"Projection type for WCS. Possible values: {PROJECTION_DESCRIPTIONS}.", example='SIN'),
+                        pa: float = Query(0.0, description="Positional angle in degrees", example=45),
+                        fov: float = Query(1.0, gt=0, description="Field of view in degrees. If width and height are not equal, then fov defines the largest dimension.", example=1.0),
+                        width: int = Query(300, gt=1, description="Width in pixels", example=300),
+                        height: int = Query(300, gt=1, description="Height in pixels. `Note:` `width` x `height` should not exceed 5000 x 5000 pixels.", example=300),
                         min: Optional[float] = Query(None, description="Minimum cut value. Used for jpg, png formats", example=0),
                         max: Optional[float] = Query(None, description="Maximum cut value. Used for jpg, png formats", example=10000),
                         stretch: Optional[ImageStretch] = Query('linear', description="Stretch for the image. Used for jpg, png formats.", example='linear'),
@@ -131,7 +161,12 @@ class LVM(Base):
             raise HTTPException(status_code=400, detail=f"Invalid colormap '{cmap}'. Valid options are: {', '.join(VALID_MATPLOTLIB_CMAPS)}. See also https://matplotlib.org/stable/users/explain/colors/colormaps.html")
 
         image_data = BytesIO()
-        hips2fits_generate(ra, dec, fov, width, height, hips_path, image_data, format=format, min_cut=min, max_cut=max, stretch=stretch, cmap=cmap)
+
+        # Main part of generation cutout using hips2fits_cutout function
+        sc = SkyCoord(ra, dec, frame=coordsys, unit='deg')
+        wcs = _create_wcs_object(sc, width, height, fov, coordsys=coordsys, projection=projection, rotation_angle=pa)
+        generate_from_wcs(wcs, hips_path, image_data, format=format, min_cut=min, max_cut=max, stretch=stretch, cmap=cmap)
+
         image_data.seek(0)
 
         media_types = dict(jpg='image/jpeg', jpeg='image/jpeg', png='image/png', fits='application/fits')
