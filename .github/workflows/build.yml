@@ -35,6 +35,12 @@ jobs:
         poetry install  # --no-interaction --no-ansi -vvv  # add this for local debugs with "act"
       if: steps.cache.outputs.cache-hit != 'true'
 
+    - name: Install hips2fits_cutout script
+      run: |
+        poetry add cdshealpix@^0.7.0
+        git clone https://github.com/cds-astro/hips2fits-cutout.git /usr/lib/hips2fits-cutout
+        echo "PYTHONPATH=/usr/lib/hips2fits-cutout:\$PYTHONPATH" >> $GITHUB_ENV
+
     - name: Test with pytest
       run: |
         poetry run pytest tests
