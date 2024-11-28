@@ -10,11 +10,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Set up Python 3.9
+    - name: Set up Python 3.10
       id: setup-python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.9
+        python-version: 3.10
 
     - name: Install Poetry
       uses: snok/install-poetry@v1
@@ -37,7 +37,7 @@ jobs:
 
     - name: Install hips2fits_cutout script
       run: |
-        poetry add cdshealpix@^0.7.0
+        poetry add cdshealpix@^0.7.0 numba@^0.59.1
         git clone https://github.com/cds-astro/hips2fits-cutout.git /usr/lib/hips2fits-cutout
         echo "PYTHONPATH=/usr/lib/hips2fits-cutout:\$PYTHONPATH" >> $GITHUB_ENV
 
