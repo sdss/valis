@@ -248,7 +248,7 @@ class PipeFiles(BaseModel):
     """ Pydantic model for lists of files """
     boss: Optional[str] = None
     apogee: Optional[str] = None
-    astra: Optional[str] = None
+    astra: Optional[list[str]] = None
 
 
 class PipesModel(PeeweeBase):
