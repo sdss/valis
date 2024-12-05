@@ -113,7 +113,7 @@ def extract_data(product: str, filepath: str, multispec: Union[int, str] = None)
         for key, val in data.items():
             if key == 'header':
                 continue
-            val.dtype = val.dtype.newbyteorder('=')
+            data[key] = val.byteswap().newbyteorder('=')
 
         return data
 
