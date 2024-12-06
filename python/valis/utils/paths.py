@@ -156,7 +156,8 @@ def build_apogee_path(values: dict, release: str, ignore_existence: bool = False
                            ignore_existence=ignore_existence)
 
 
-def build_astra_path(values: dict, release: str, ignore_existence: bool = False) -> str:
+def build_astra_path(values: dict, release: str, name: str = 'mwmStar',
+                     ignore_existence: bool = False) -> str:
     """ Build an Astra mwmStar file path
 
     Builds an Astra file path to the mwmStar file.  It sets a default
@@ -168,6 +169,8 @@ def build_astra_path(values: dict, release: str, ignore_existence: bool = False)
         the input data values to give to the path template
     release : str
         the data release
+    name : str
+        the name of the file product
     ignore_existence : bool, optional
         flag to ignore file existence and return path, by default False
 
@@ -176,5 +179,5 @@ def build_astra_path(values: dict, release: str, ignore_existence: bool = False)
     str
         the output file path
     """
-    return build_file_path(values, 'mwmStar', release, defaults={'component': ''},
+    return build_file_path(values, name, release, defaults={'component': ''},
                            ignore_existence=ignore_existence)

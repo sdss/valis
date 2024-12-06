@@ -6123,13 +6123,13 @@ viz-extra = ["glue-core[qt]", "yt"]
 
 [[package]]
 name = "specutils"
-version = "1.15.0"
+version = "1.19.0"
 description = "Package for spectroscopic astronomical data"
 optional = true
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 files = [
-    {file = "specutils-1.15.0-py3-none-any.whl", hash = "sha256:6df749b100ce9a373628804b93e9d00f26dad97a24513ac34ceb4306affac94c"},
-    {file = "specutils-1.15.0.tar.gz", hash = "sha256:f20a4d1b6432c008fcabf13c519aca532f25435167f551d4697bd59d6c03a93f"},
+    {file = "specutils-1.19.0-py3-none-any.whl", hash = "sha256:d3e876a2e8014f190f57bd38acb97de000d16d8b2d065852b36b99d851a492b4"},
+    {file = "specutils-1.19.0.tar.gz", hash = "sha256:2228bca73d22ffd703a9f0d1d97ce9d9f91a2d5274e642f9cf1d7d3388ce93c7"},
 ]
 
 [package.dependencies]
@@ -6138,7 +6138,7 @@ asdf-astropy = ">=0.3"
 astropy = ">=5.1"
 gwcs = ">=0.18"
 ndcube = ">=2.0"
-numpy = ">=1.19"
+numpy = ">=1.24"
 scipy = ">=1.3"
 
 [package.extras]

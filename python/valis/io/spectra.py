@@ -106,6 +106,13 @@ def extract_data(product: str, filepath: str, multispec: Union[int, str] = None)
                     vals = vals.value
 
                 data[param] = vals
+            elif info['type'] == "wcscon":
+                # extract the correct wcs header column
+                npixels = hdulist[extension].header[info['nwave']]
+                cdelt = hdulist[extension].header[info['cdelt']]
+                crval = hdulist[extension].header[info['crval']]
+
+                data[param] = 10 ** (np.arange(npixels) * cdelt + crval)
             else:
                 data[param] = hdulist[extension].data
 
