@@ -4,8 +4,10 @@
 
 # all resuable queries go here
 
+from contextlib import contextmanager
 import itertools
 import packaging
+import uuid
 from typing import Sequence, Union, Generator
 
 import astropy.units as u
@@ -58,17 +60,20 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
     if table not in {'stacked', 'flat'}:
         raise ValueError('table must be either "stacked" or "flat"')
 
-    model = vizdb.SDSSidStacked if table == 'stacked' else vizdb.SDSSidFlat
-    qq = query.select_extend(vizdb.SDSSidToPipes.in_boss,
-                               vizdb.SDSSidToPipes.in_apogee,
-                               vizdb.SDSSidToPipes.in_bvs,
-                               vizdb.SDSSidToPipes.in_astra,
-                               vizdb.SDSSidToPipes.has_been_observed,
-                               vizdb.SDSSidToPipes.release,
-                               vizdb.SDSSidToPipes.obs,
-                               vizdb.SDSSidToPipes.mjd).\
-        join(vizdb.SDSSidToPipes, on=(model.sdss_id == vizdb.SDSSidToPipes.sdss_id),
-             attr='pipes').distinct(vizdb.SDSSidToPipes.sdss_id)
+    # Run initial query as a temporary table.
+    temp = create_temporary_table(query, indices=['sdss_id'])
+
+    qq = temp.select(temp.__star__,
+                    vizdb.SDSSidToPipes.in_boss,
+                    vizdb.SDSSidToPipes.in_apogee,
+                    vizdb.SDSSidToPipes.in_bvs,
+                    vizdb.SDSSidToPipes.in_astra,
+                    vizdb.SDSSidToPipes.has_been_observed,
+                    vizdb.SDSSidToPipes.release,
+                    vizdb.SDSSidToPipes.obs,
+                    vizdb.SDSSidToPipes.mjd).\
+        join(vizdb.SDSSidToPipes, on=(temp.c.sdss_id == vizdb.SDSSidToPipes.sdss_id)).\
+        distinct(temp.c.sdss_id)
 
     if observed:
         qq = qq.where(vizdb.SDSSidToPipes.has_been_observed == observed)
@@ -286,7 +291,8 @@ def carton_program_map(key: str = 'program') -> dict:
 
 def carton_program_search(name: str,
                           name_type: str,
-                          query: peewee.ModelSelect | None = None) -> peewee.ModelSelect:
+                          query: peewee.ModelSelect | None = None,
+                          limit: int | None = None) -> peewee.ModelSelect:
     """ Perform a search on either carton or program
 
     Parameters
@@ -298,6 +304,8 @@ def carton_program_search(name: str,
     query : ModelSelect
         An initial query to extend. If ``None``, a new query with all the unique
         ``sdss_id``s is created.
+    limit : int
+        Limit the number of results returned.
 
     Returns
     -------
@@ -308,6 +316,13 @@ def carton_program_search(name: str,
     if query is None:
         query = vizdb.SDSSidStacked.select(vizdb.SDSSidStacked).distinct()
 
+    # NOTE: These setting seem to help when querying some cartons or programs, mainly
+    # those with small number of targets, and in some cases with these the query
+    # actually applies the LIMIT more efficiently, but it's not a perfect solution.
+    vizdb.database.execute_sql('SET enable_gathermerge = off;')
+    vizdb.database.execute_sql('SET parallel_tuple_cost = 100;')
+    vizdb.database.execute_sql('SET enable_bitmapscan = off;')
+
     query = (query.join(
                 vizdb.SDSSidFlat,
                 on=(vizdb.SDSSidFlat.sdss_id == vizdb.SDSSidStacked.sdss_id))
@@ -316,6 +331,9 @@ def carton_program_search(name: str,
              .join(targetdb.CartonToTarget)
              .join(targetdb.Carton)
              .where(getattr(targetdb.Carton, name_type) == name))
+
+    if limit:
+        query = query.limit(limit)
 
     return query
 
@@ -953,3 +971,23 @@ def get_target_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
 
     # get the sdss_id metadata info
     return get_targets_by_sdss_id(res.sdss_id)
+
+
+def create_temporary_table(query: peewee.ModelSelect,
+                           indices: list[str] | None = None) -> Generator[None, None, peewee.Table]:
+    """Create a temporary table from a query."""
+
+    table_name = uuid.uuid4().hex[0:8]
+
+    table = peewee.Table(table_name)
+    table.bind(vizdb.database)
+
+    query.create_table(table_name, temporary=True)
+
+    if indices:
+        for index in indices:
+            vizdb.database.execute_sql(f'CREATE INDEX ON "{table_name}" ({index})')
+
+    vizdb.database.execute_sql(f'ANALYZE "{table_name}"')
+
+    return table
