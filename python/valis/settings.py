@@ -3,10 +3,13 @@
 #
 
 from enum import Enum
-from typing import List, Union, Optional
-from valis import config
+from functools import lru_cache
+from typing import List, Literal, Optional, Union
+
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import field_validator, Field, AnyHttpUrl
+
+from valis import config
 
 
 def read_valis_config() -> dict:
@@ -30,6 +33,11 @@ class EnvEnum(str, Enum):
     prod = 'production'
 
 
+class CacheBackendEnum(str, Enum):
+    memcached = 'memcached'
+    redis = 'redis'
+
+
 class Settings(BaseSettings):
     valis_env: EnvEnum = EnvEnum.dev
     allow_origin: Union[str, List[AnyHttpUrl]] = Field([])
@@ -40,6 +48,7 @@ class Settings(BaseSettings):
     db_host: Optional[str] = 'localhost'
     db_pass: Optional[str] = None
     db_reset: bool = True
+    cache_backend: CacheBackendEnum = CacheBackendEnum.redis
     model_config = SettingsConfigDict(env_prefix="valis_")
 
     @field_validator('allow_origin')
@@ -53,3 +62,13 @@ class Settings(BaseSettings):
     @classmethod
     def strip_slash(cls, v):
         return [i.rstrip('/') for i in v]
+
+
+@lru_cache
+def get_settings():
+    """ Get the valis settings """
+    cfg = read_valis_config()
+    return Settings(**cfg)
+
+
+settings = get_settings()
