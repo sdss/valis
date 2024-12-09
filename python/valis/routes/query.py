@@ -107,7 +107,7 @@ class QueryRoutes(Base):
                                           query=query)
         # append query to pipes
         if query:
-            query = append_pipes(query, observed=body.observed)
+            query = append_pipes(query, observed=body.observed, release=self.release)
 
         # query iterator
         res = query.dicts().iterator() if query else []
@@ -125,7 +125,7 @@ class QueryRoutes(Base):
         """ Perform a cone search """
 
         res = cone_search(ra, dec, radius, units=units)
-        r = append_pipes(res, observed=observed)
+        r = append_pipes(res, observed=observed, release=self.release)
         # return sorted by distance
         # doing this here due to the append_pipes distinct
         return sorted(r.dicts().iterator(), key=lambda x: x['distance'])
@@ -208,7 +208,7 @@ class QueryRoutes(Base):
         with database.atomic():
             database.execute_sql('SET LOCAL enable_seqscan=false;')
             query = carton_program_search(name, name_type)
-            query = append_pipes(query, observed=observed)
+            query = append_pipes(query, observed=observed, release=self.release)
             return query.dicts().iterator()
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',

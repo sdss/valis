@@ -11,6 +11,7 @@ from typing import Sequence, Union, Generator
 import astropy.units as u
 import deepmerge
 import peewee
+from peewee import Case
 from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import apogee_drpdb as apo
 from sdssdb.peewee.sdss5db import boss_drp as boss
@@ -26,7 +27,7 @@ from valis.utils.versions import get_software_tag
 
 
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
-                 observed: bool = True) -> peewee.ModelSelect:
+                 observed: bool = True, release: str = None) -> peewee.ModelSelect:
     """ Joins a query to the SDSSidToPipes table
 
     Joines an existing query to the SDSSidToPipes table and returns
@@ -71,6 +72,27 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
 
     if observed:
         qq = qq.where(vizdb.SDSSidToPipes.has_been_observed == observed)
+
+    if release:
+        # get the release
+        rel = vizdb.Releases.select().where(vizdb.Releases.release==release).first()
+
+        # if a release has no cutoff info, then force the cutoff to 0, query will return nothing
+        # to fix this we want mjd cutoffs by survey for all older releases
+        if not rel.mjd_cutoff_apo and not rel.mjd_cutoff_lco:
+            rel.mjd_cutoff_apo = 0
+            rel.mjd_cutoff_lco = 0
+
+        # create the mjd cutoff condition
+        qq = qq.where(vizdb.SDSSidToPipes.mjd <= Case(
+            vizdb.SDSSidToPipes.obs,
+            (
+                ('apo', rel.mjd_cutoff_apo),
+                ('lco', rel.mjd_cutoff_lco)
+            ),
+            None
+            )
+        )
 
     return qq
 
