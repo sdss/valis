@@ -15,7 +15,7 @@ from astroquery.simbad import Simbad
 from valis.routes.base import Base
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
                               get_parent_catalog_data, get_target_cartons,
-                              get_target_pipeline)
+                              get_target_pipeline, get_target_by_altid, append_pipes)
 from valis.db.db import get_pw_db
 from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel
 
@@ -166,6 +166,18 @@ class Target(Base):
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return target metadata for a given sdss_id """
         return get_target_meta(sdss_id, self.release) or {}
+
+    @router.get('/sdssid/{id}', summary='Retrieve a target sdss_id from an alternative id',
+                dependencies=[Depends(get_pw_db)],
+                response_model=Union[SDSSModel, dict],
+                response_model_exclude_unset=True, response_model_exclude_none=True)
+    async def get_target_altid(self,
+        id: Annotated[int | str, Path(title="The alternative id of the target to get", example="2M23595980+1528407")],
+        idtype: Annotated[str, Query(enum=['catalogid', 'gaiaid'], description='For ambiguous integer ids, the type of id, e.g. "catalogid"', example=None)] = None
+        ):
+        """ Return target metadata for a given sdss_id """
+        query = append_pipes(get_target_by_altid(id, idtype=idtype), observed=False)
+        return query.dicts().first() or {}
 
     @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],
