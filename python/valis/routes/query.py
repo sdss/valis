@@ -5,6 +5,7 @@
 from enum import Enum
 from typing import List, Union, Dict, Annotated, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi_cache.decorator import cache
 from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field, BeforeValidator
 
@@ -116,6 +117,7 @@ class QueryRoutes(Base):
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
+    @cache(expire=3600, namespace='valis-cache')
     async def cone_search(self,
                           ra: Annotated[Union[float, str], Query(description='Right Ascension in degrees or hmsdms', example=315.78)],
                           dec: Annotated[Union[float, str], Query(description='Declination in degrees or hmsdms', example=-3.2)],
@@ -132,6 +134,7 @@ class QueryRoutes(Base):
 
     @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
                 response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
+    @cache(expire=3600, namespace='valis-cache')
     async def sdss_id_search(self, sdss_id: Annotated[int, Query(description='Value of sdss_id', example=47510284)]):
         """ Perform an sdss_id search.
 
@@ -163,6 +166,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/cartons', summary='Return a list of all cartons',
                 response_model=list, dependencies=[Depends(get_pw_db)])
+    @cache(expire=3600, namespace='valis-cache')
     async def cartons(self):
         """ Return a list of all carton or programs """
 
@@ -170,6 +174,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/programs', summary='Return a list of all programs',
                 response_model=list, dependencies=[Depends(get_pw_db)])
+    @cache(expire=3600, namespace='valis-cache')
     async def programs(self):
         """ Return a list of all carton or programs """
 
@@ -177,6 +182,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/program-map', summary='Return a mapping of cartons in all programs',
                 response_model=Dict[str, List[str]], dependencies=[Depends(get_pw_db)])
+    @cache(expire=3600, namespace='valis-cache')
     async def program_map(self):
         """ Return a mapping of cartons in all programs """
 
@@ -184,6 +190,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/parents', summary='Return a list of available parent catalog tables',
                 response_model=List[str])
+    @cache(expire=3600, namespace='valis-cache')
     async def parent_catalogs(self):
         """Return a list of available parent catalog tables."""
 
@@ -197,6 +204,7 @@ class QueryRoutes(Base):
 
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
                 response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
+    @cache(expire=3600, namespace='valis-cache')
     async def carton_program(self,
                              name: Annotated[str, Query(description='Carton or program name', example='manual_mwm_tess_ob')],
                              name_type: Annotated[str,
