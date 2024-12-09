@@ -36,7 +36,7 @@ logger = logging.getLogger("uvicorn.error")
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     backend = settings.cache_backend
-    if backend == 'memcache':
+    if backend == 'memcached':
         logger.info('Using Memcached backend for caching')
         memcache_client = MemcacheClient('localhost', 11211)
         FastAPICache.init(MemcachedBackend(memcache_client),
