@@ -49,6 +49,8 @@ uvicorn valis.wsgi:app --reload
 ```
 This will start a local web server at `http://localhost:8000/valis/`.  The API documentation will be located at `http://localhost:8000/valis/docs`.  Or to see the alternate documentation, go to `http://localhost:8000/valis/redoc/`
 
+By default, the app will try to cache some route responses to a Redis database in localhost. If you don't have a Redis instance running you can use `memcached` for testing. To do so, edit `~/.config/sdss/valis.yaml` and add `cache_backend: memcached`.
+
 ### Database Connection
 
 Valis uses the `sdssdb` package for all connections to databases.  The most relevant database for the API is the `sdss5db` on `pipelines.sdss.org`.  The easiest way to connect is through a local SSH tunnel. To set up a tunnel,
