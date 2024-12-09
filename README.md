@@ -93,8 +93,9 @@ Additionally, you can set the environment variable `VALIS_DB_RESET=false` or add
 ## Deployment
 
 This section describes a variety of deployment methods.  Valis uses gunicorn as its
-wsgi http server. It binds the app both to port 8000, and a unix socket.  The defaut mode
-is to start valis with an awsgi uvicorn server, with 4 workers.
+wsgi http server. It binds the app both to port 8000, and a unix socket.  The default mode is to start valis with an awsgi uvicorn server, with 4 workers.
+
+Valis requires a Redis database running at the default location in `localhost:6379`.  If this is not possible, caching can be done in memory by modifying `~/.config/sdss/valis.yaml` to use `cache_backend: memcached`.
 
 ### Deploying Zora + Valis together
 See the SDSS [Zora+Valis Docker](https://github.com/sdss/zora_valis_dockers) repo page.
