@@ -36,6 +36,7 @@ class EnvEnum(str, Enum):
 class CacheBackendEnum(str, Enum):
     inmemory = 'in-memory'
     redis = 'redis'
+    null = 'null'
 
 
 class Settings(BaseSettings):
@@ -48,7 +49,7 @@ class Settings(BaseSettings):
     db_host: Optional[str] = 'localhost'
     db_pass: Optional[str] = None
     db_reset: bool = True
-    cache_backend: CacheBackendEnum = CacheBackendEnum.inmemory
+    cache_backend: CacheBackendEnum | None = CacheBackendEnum.inmemory
     model_config = SettingsConfigDict(env_prefix="valis_")
 
     @field_validator('allow_origin')

@@ -25,18 +25,18 @@ from typing import (
     List,
     Optional,
     ParamSpec,
+    Tuple,
     Type,
     TypeVar,
     Union,
     cast
 )
 
-from aiomcache import Client as MemcacheClient
 from fastapi.dependencies.utils import (
     get_typed_return_annotation,
     get_typed_signature
 )
-from fastapi_cache import FastAPICache
+from fastapi_cache import Backend, FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import _augment_signature, _locate_param
@@ -80,6 +80,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         logger.info('Using Redis backend for caching')
         redis = Redis.from_url("redis://localhost")
         FastAPICache.init(RedisBackend(redis),
+                          prefix="fastapi-cache",
+                          key_builder=valis_cache_key_builder)
+    elif backend == 'null' or not backend:
+        logger.info('Using null backend for caching')
+        FastAPICache.init(NullCacheBackend(),
                           prefix="fastapi-cache",
                           key_builder=valis_cache_key_builder)
     else:
@@ -265,3 +270,19 @@ def valis_cache(
         return inner
 
     return wrapper
+
+
+class NullCacheBackend(Backend):
+    """A null cache backend that does no caching and always runs the route."""
+
+    async def get_with_ttl(self, key: str) -> Tuple[int, Optional[bytes]]:
+        return 0, None
+
+    async def get(self, key: str) -> Optional[bytes]:
+        return None
+
+    async def set(self, key: str, value: bytes, expire: Optional[int] = None) -> None:
+        pass
+
+    async def clear(self, namespace: Optional[str] = None, key: Optional[str] = None) -> int:
+        pass
