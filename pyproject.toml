@@ -50,7 +50,7 @@ deepmerge = "^1.1.1"
 fuzzy-types = "^0.1.3"
 sdss-solara = {git = "https://github.com/sdss/sdss_solara.git", rev = "main", optional = true}
 markdown = "^3.7"
-fastapi-cache2 = { version = "^0.2.2", extras = ["redis", "memcache"] }
+fastapi-cache2 = { version = "^0.2.2", extras = ["redis"] }
 
 [tool.poetry.dev-dependencies]
 ipython = ">=7.11.0"
