@@ -37,7 +37,7 @@ from fastapi.dependencies.utils import (
     get_typed_signature
 )
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.memcached import MemcachedBackend
+from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import _augment_signature, _locate_param
 from redis.asyncio.client import Redis
@@ -71,10 +71,9 @@ CACHE_TTL: float = 15_552_000 # 6 months
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     backend = settings.cache_backend
-    if backend == 'memcached':
-        logger.info('Using Memcached backend for caching')
-        memcache_client = MemcacheClient('localhost', 11211)
-        FastAPICache.init(MemcachedBackend(memcache_client),
+    if backend == 'in-memory':
+        logger.info('Using in-memory backend for caching')
+        FastAPICache.init(InMemoryBackend(),
                           prefix="fastapi-cache",
                           key_builder=valis_cache_key_builder)
     elif backend == 'redis':
