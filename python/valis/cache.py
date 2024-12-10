@@ -65,7 +65,7 @@ R = TypeVar("R")
 
 logger = logging.getLogger("uvicorn.error")
 
-CACHE_TTL: float = 3600
+CACHE_TTL: float = 15_552_000 # 6 months
 
 
 @asynccontextmanager
