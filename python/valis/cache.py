@@ -142,6 +142,12 @@ def valis_cache(
     with a key builder that hashes the body of the request in addition to the function
     arguments.
 
+    The main change is that the call to ``fastapi_cache.decorator._uncacheable`` has
+    been removed and we accept all route types. `.valis_cache_key_builder` looks
+    at the body of the request and hashes its body so that POST requests to the same
+    route with different parameters are cached separately. It also defaults to
+    ``settings.cache_ttl`` for the expiration time of the cached value.
+
     """
 
     injected_request = Parameter(
