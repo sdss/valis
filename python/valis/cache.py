@@ -18,6 +18,8 @@ import logging
 from contextlib import asynccontextmanager
 from functools import wraps
 from inspect import Parameter, isawaitable, iscoroutinefunction
+import re
+from tkinter.font import names
 from typing import (
     TYPE_CHECKING,
     Awaitable,
@@ -40,7 +42,8 @@ from fastapi_cache import Backend, FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import _augment_signature, _locate_param
-from redis.asyncio.client import Redis
+from redis.asyncio.client import Redis as RedisAsync
+from redis.client import Redis
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.status import HTTP_304_NOT_MODIFIED
@@ -76,7 +79,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
                           key_builder=valis_cache_key_builder)
     elif backend == 'redis':
         logger.info('Using Redis backend for caching')
-        redis = Redis.from_url("redis://localhost")
+        redis = RedisAsync.from_url("redis://localhost")
         FastAPICache.init(RedisBackend(redis),
                           prefix="fastapi-cache",
                           key_builder=valis_cache_key_builder)
@@ -290,3 +293,42 @@ class NullCacheBackend(Backend):
 
     async def clear(self, namespace: Optional[str] = None, key: Optional[str] = None) -> int:
         pass
+
+
+def clear_redis_cache(namespace: Optional[str] = None,
+                      host: str = 'localhost',
+                      port: int = 6379) -> None:
+    """Clears the Redis cache.
+
+    Parameters
+    ----------
+    namespace
+        The namespace to clear, e.g., ``valis-target``. If ``None``, all the
+        ``valis-*`` keys under the ``fastapi-cache`` namespace will be cleared.
+    host
+        The Redis host.
+    port
+        The Redis port.
+
+    """
+
+    redis = Redis.from_url(f"redis://{host}:{port}")
+
+    if namespace is None:
+        # There is no good way in Redis to delete an entire namespace so we need
+        # to get all the keys and delete them one by one.
+        keys = redis.keys("fastapi-cache:valis-*")
+        namespaces: set[str] = set()
+        for key in keys:
+            valis_namespace = re.match(rb"fastapi-cache:(valis-\w+):", key)
+            if valis_namespace:
+                namespaces.add(valis_namespace.group(1).decode())
+
+    else:
+        namespaces = {namespace}
+
+    for namespace in namespaces:
+        # Same here. For each namespace we get its keys and delete them.
+        namespace_keys = redis.keys(f"fastapi-cache:{namespace}:*")
+        for key in namespace_keys:
+            redis.delete(key)
