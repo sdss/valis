@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     db_pass: Optional[str] = None
     db_reset: bool = True
     cache_backend: CacheBackendEnum | None = CacheBackendEnum.inmemory
+    cache_ttl: int = 15552000 # 6 months
     model_config = SettingsConfigDict(env_prefix="valis_")
 
     @field_validator('allow_origin')

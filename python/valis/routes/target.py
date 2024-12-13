@@ -12,7 +12,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
 from valis.routes.base import Base
-from valis.cache import CACHE_TTL, valis_cache
+from valis.cache import valis_cache
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
                               get_parent_catalog_data, get_target_cartons,
                               get_target_pipeline, get_target_by_altid, append_pipes)

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field, BeforeValidator
 
-from valis.cache import CACHE_TTL, valis_cache
+from valis.cache import valis_cache
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase, MapperName, SDSSModel

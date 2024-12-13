@@ -65,9 +65,7 @@ R = TypeVar("R")
 
 logger = logging.getLogger("uvicorn.error")
 
-CACHE_TTL: float = 15_552_000 # 6 months
-
-
+print(settings.cache_ttl, type(settings.cache_ttl))
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     backend = settings.cache_backend
@@ -131,7 +129,7 @@ async def valis_cache_key_builder(
 
 
 def valis_cache(
-    expire: Optional[int] = CACHE_TTL,
+    expire: Optional[int] = settings.cache_ttl,
     coder: Optional[Type[Coder]] = None,
     key_builder: Optional[KeyBuilder] = None,
     namespace: str = "valis-cache",
