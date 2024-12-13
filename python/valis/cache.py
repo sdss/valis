@@ -15,11 +15,10 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from functools import wraps
 from inspect import Parameter, isawaitable, iscoroutinefunction
-import re
-from tkinter.font import names
 from typing import (
     TYPE_CHECKING,
     Awaitable,
