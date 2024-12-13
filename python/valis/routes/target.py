@@ -183,7 +183,7 @@ class Target(Base):
     @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
                 dependencies=[Depends(get_pw_db)],
                 response_model=List[SpectrumModel])
-    @valis_cache()
+    @valis_cache(namespace='valis-target')
     async def get_spectrum(self, sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
                            product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
                            ext: Annotated[str, Query(description='For multi-extension spectra, e.g. mwmStar, the name of the spectral extension', example='BOSS/APO')] = None,
@@ -194,7 +194,7 @@ class Target(Base):
                 dependencies=[Depends(get_pw_db)],
                 response_model=List[CatalogResponse],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
-    @valis_cache()
+    @valis_cache(namespace='valis-target')
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return catalog information for a given sdss_id """
 
@@ -243,7 +243,7 @@ class Target(Base):
                 dependencies=[Depends(get_pw_db)],
                 response_model=List[CartonModel],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
-    @valis_cache()
+    @valis_cache(namespace='valis-target')
     async def get_cartons(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return carton information for a given sdss_id """
         return get_target_cartons(sdss_id).dicts().iterator()
@@ -252,7 +252,7 @@ class Target(Base):
                 dependencies=[Depends(get_pw_db)],
                 response_model=PipesModel,
                 response_model_exclude_unset=True)
-    @valis_cache()
+    @valis_cache(namespace='valis-target')
     async def get_pipeline(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
                            pipe: Annotated[str,
                                            Query(enum=['all', 'boss', 'apogee', 'astra'],

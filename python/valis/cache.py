@@ -65,7 +65,7 @@ R = TypeVar("R")
 
 logger = logging.getLogger("uvicorn.error")
 
-print(settings.cache_ttl, type(settings.cache_ttl))
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     backend = settings.cache_backend
