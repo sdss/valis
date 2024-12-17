@@ -11,6 +11,7 @@ import astropy.units as u
 from astropy.io import fits
 from astropy.nddata import InverseVariance
 from astropy.wcs import WCS
+import numpy as np
 
 try:
     from specutils import Spectrum1D
@@ -107,6 +108,12 @@ def extract_data(product: str, filepath: str, multispec: Union[int, str] = None)
                 data[param] = vals
             else:
                 data[param] = hdulist[extension].data
+
+        # set dtype byteorder to the native
+        for key, val in data.items():
+            if key == 'header':
+                continue
+            data[key] = val.byteswap().newbyteorder('=')
 
         return data
 

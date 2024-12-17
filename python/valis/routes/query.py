@@ -41,6 +41,7 @@ class SearchModel(BaseModel):
     program: Optional[str] = Field(None, description='The program name', example='bhm_rm')
     carton: Optional[str] = Field(None, description='The carton name', example='bhm_rm_core')
     observed: Optional[bool] = Field(True, description='Flag to only include targets that have been observed', example=True)
+    limit: Optional[int] = Field(None, description='Limit the number of returned targets', example=100)
 
 class MainResponse(SDSSModel):
     """ Combined model from all individual query models """
@@ -105,9 +106,16 @@ class QueryRoutes(Base):
             query = carton_program_search(body.program or body.carton,
                                           'program' if body.program else 'carton',
                                           query=query)
+
+        # DANGER!!! This limit applies *before* the append_pipes call. If the
+        # append_pipes call includes observed=True we may have limited things in
+        # such a way that only unobserved or very few targets are returned.
+        if body.limit:
+            query = query.limit(body.limit)
+
         # append query to pipes
         if query:
-            query = append_pipes(query, observed=body.observed)
+            query = append_pipes(query, observed=body.observed, release=self.release)
 
         # query iterator
         res = query.dicts().iterator() if query else []
@@ -125,7 +133,7 @@ class QueryRoutes(Base):
         """ Perform a cone search """
 
         res = cone_search(ra, dec, radius, units=units)
-        r = append_pipes(res, observed=observed)
+        r = append_pipes(res, observed=observed, release=self.release)
         # return sorted by distance
         # doing this here due to the append_pipes distinct
         return sorted(r.dicts().iterator(), key=lambda x: x['distance'])
@@ -203,12 +211,17 @@ class QueryRoutes(Base):
                                                   Query(enum=['carton', 'program'],
                                                         description='Specify search on carton or program',
                                                         example='carton')] = 'carton',
-                             observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True):
+                             observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True,
+                             limit: Annotated[int | None, Query(description='Limit the number of returned targets', example=100)] = None):
         """ Perform a search on carton or program """
         with database.atomic():
-            database.execute_sql('SET LOCAL enable_seqscan=false;')
-            query = carton_program_search(name, name_type)
+            if limit is False:
+                # This tweak seems to do more harm than good when limit is passed.
+                database.execute_sql('SET LOCAL enable_seqscan=false;')
+
+            query = carton_program_search(name, name_type, limit=limit)
             query = append_pipes(query, observed=observed)
+
             return query.dicts().iterator()
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',
