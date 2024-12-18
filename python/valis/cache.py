@@ -12,15 +12,18 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import logging
 import re
+import orjson
 from contextlib import asynccontextmanager
 from functools import wraps
 from inspect import Parameter, isawaitable, iscoroutinefunction
 from typing import (
     TYPE_CHECKING,
+    Any,
     Awaitable,
     Callable,
     List,
@@ -37,7 +40,7 @@ from fastapi.dependencies.utils import (
     get_typed_return_annotation,
     get_typed_signature
 )
-from fastapi_cache import Backend, FastAPICache
+from fastapi_cache import Backend, Coder, FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
 from fastapi_cache.backends.redis import RedisBackend
 from fastapi_cache.decorator import _augment_signature, _locate_param
@@ -66,6 +69,32 @@ R = TypeVar("R")
 
 
 logger = logging.getLogger("uvicorn.error")
+
+
+def bdefault(obj):
+    """ Custom encoder for orjson """
+    # handle python memoryview objects
+    if isinstance(obj, memoryview):
+        return base64.b64encode(obj.tobytes()).decode()
+    raise TypeError
+
+
+class ORJsonCoder(Coder):
+    """ Custom encoder class for the cache that uses orjson """
+
+    @classmethod
+    def encode(cls, value: Any) -> bytes:
+        """ serialization """
+        return orjson.dumps(
+            value,
+            default=bdefault,
+            option=orjson.OPT_SERIALIZE_NUMPY,
+        )
+
+    @classmethod
+    def decode(cls, value: bytes) -> Any:
+        """ deserialization """
+        return orjson.loads(value)
 
 
 @asynccontextmanager
@@ -132,7 +161,7 @@ async def valis_cache_key_builder(
 
 def valis_cache(
     expire: Optional[int] = settings.cache_ttl,
-    coder: Optional[Type[Coder]] = None,
+    coder: Optional[Type[Coder]] = ORJsonCoder,
     key_builder: Optional[KeyBuilder] = None,
     namespace: str = "valis-cache",
     injected_dependency_namespace: str = "__fastapi_cache",
