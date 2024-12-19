@@ -36,6 +36,7 @@ from typing import (
     cast
 )
 
+from fastapi.concurrency import run_in_threadpool
 from fastapi.dependencies.utils import (
     get_typed_return_annotation,
     get_typed_signature
