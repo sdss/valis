@@ -1,12 +1,9 @@
 from __future__ import print_function, division, absolute_import
 
-import math
 import re
 import os
-import httpx
-import orjson
-from typing import Any, Tuple, List, Union, Optional, Annotated
-from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
+from functools import partial
+from typing import Any, Tuple, List, Dict, Union, Optional, Annotated, Literal
 from enum import Enum
 from fastapi import APIRouter, HTTPException, Query, Path, Depends, Response
 from fastapi_restful.cbv import cbv
@@ -16,14 +13,8 @@ import pandas as pd
 import astropy.units as u
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
-from astroquery.simbad import Simbad
 
 from valis.routes.base import Base
-from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_parent_catalog_data, get_target_cartons,
-                              get_target_pipeline, get_target_by_altid, append_pipes)
-from valis.db.db import get_pw_db
-from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel
 from io import BytesIO
 
 from hips2fits_cutout import _create_wcs_object, generate_from_wcs
@@ -87,6 +78,73 @@ class ImageStretch(str, Enum):
     log = "log"
     asinh = "asinh"
     sinh = "sinh"
+
+
+ALLOWED_LINE_TYPES = {'flux', 'skyflux', 'sky', 'ivar', 'sky_ivar', 'err', 'sky_err', 'lsf'}
+ALLOWED_LINE_METHODS = {'mean', 'median', 'std'}
+ALLOWED_LINE_TELESCOPES = {'Sci', 'SkyE', 'SkyW', 'Spec'}
+DEFAULTS = {
+    "type": "flux",
+    "method": "median",
+    "telescope": "Sci",
+    "fibstatus": 0,
+}
+
+
+def convert_to_number(value: str):
+    """
+    Convert a string to a number (int or float) if it represents one.
+    Otherwise, return the string as is.
+    """
+    if value.isdigit():  # Check if it's a positive integer
+        return int(value)
+    try:
+        return float(value)  # Try converting to a float
+    except ValueError:
+        return value  # Return the original string if not a number
+
+
+def parse_line_query(line: str) -> Dict[str, Any]:
+    """
+    Parse and validate a single `l` query string of get_spectrum_exposure_plot endpoint.
+    """
+    components = line.split(";")
+    parsed = {}
+
+    # Parse key-value pairs
+    for component in components:
+        if ":" not in component:
+            raise ValueError(f"Invalid component: {component}. Must be in 'key:value' format.")
+        key, value = component.split(":", 1)
+        parsed[key] = convert_to_number(value)
+
+    # Apply default values if key keys are missing
+    for key, default_value in DEFAULTS.items():
+        if key not in parsed:
+            parsed[key] = default_value
+
+    # Validate mandatory fields
+    if "id" not in parsed:
+        raise ValueError(f"'id' must be provided in shape drpversion/tile_id/mjd/expnum i.e. 1.1.0/1028028/60260/7591.")
+
+    if "type" not in parsed or parsed["type"] not in ALLOWED_LINE_TYPES:
+        raise ValueError(f"'type' must be one of {ALLOWED_LINE_TYPES}.")
+
+    if "method" not in parsed or parsed["method"] not in ALLOWED_LINE_METHODS:
+        if not parsed["method"].startswith("percentile_"):
+            raise ValueError(f"'method' must be one of {ALLOWED_LINE_METHODS} or 'percentile_XX' (e.g., 'percentile_90.3').")
+        # Validate percentile method
+        match = re.fullmatch(r"percentile_(\d+(\.\d+)?)", parsed["method"])
+        if not match:
+            raise ValueError(f"Invalid percentile method: {parsed['method']}. Must be 'percentile_XX' where XX is a float.")
+        parsed["method"] = "percentile"
+        parsed["percentile_value"] = float(match.group(1))
+
+    # Validate optional fields
+    if "telescope" in parsed and parsed["telescope"] not in ALLOWED_LINE_TELESCOPES:
+        raise ValueError(f"'telescope' must be one of {ALLOWED_LINE_TELESCOPES}.")
+
+    return parsed
 
 
 @cbv(router)
@@ -183,8 +241,7 @@ class LVM(Base):
                                mjd: Annotated[int, Path(desciption='The MJD of the observations', example=60314)],
                                exposure: Annotated[int, Path(desciption='The exposure number', example=10328)],
                                fiberid: Annotated[int, Path(desciption='Sequential ID of science fiber within Dither (1 to 1801)', example=777)],
-                               version: Annotated[str, Query(description='DRP version', example='1.0.3')] = '1.0.3'):
-
+                               version: Annotated[str, Query(description='DRP version', example='1.1.0')] = '1.1.0'):
         # construct file path for lvmSFrame-*.fits file
         suffix = str(exposure).zfill(8)
         if tile_id == 11111:
@@ -216,6 +273,313 @@ class LVM(Base):
                     wave=arr2list(wave),
                     flux=arr2list(flux),)
 
+    @router.get('/spectrum_exposure_plot/',
+                summary='Endpoint to plot averaged spectra retrieved from LVM SFrame file.')
+    async def get_spectrum_exposure_plot(
+        self,
+        l: List[str] = Query(None, description="Defines spectra to be plotted."),
+        format: Annotated[Literal['png', 'jpg', 'jpeg', 'pdf', 'svg'], Query(description="Format of the output plot")] = 'png',
+        width: Annotated[int, Query(description="Figure width in inches", gt=0)] = 15,
+        height: Annotated[int, Query(description="Figure height in inches", gt=0)] = 5,
+        dpi: Annotated[int, Query(description="Dots per inch (DPI) of the output image applied for rasterized formats.", gt=10, lt=600)] = 100,
+        tight_layout: Annotated[bool, Query(description="Apply `tight_layout` to the plot")] = True,
+        log: Annotated[bool, Query(description="Weather Y-axis logarithmically scaled")] = False,
+        xlabel: Annotated[str, Query(description="X-axis label")] = "Wavelength, A",
+        ylabel: Annotated[str, Query(description="Y-axis label")] = "Flux, erg/s/cm2/A",
+        title: Annotated[Optional[str], Query(description="Title of the plot")] = None,
+        ypmin: Annotated[float, Query(description="Y-axis minimal value (percentile)", ge=0, le=100)] = 0.1,
+        ypmax: Annotated[float, Query(description="Y-axis maximal value (percentile)", ge=0, le=100)] = 99.9,
+        ymin: Annotated[Optional[float], Query(description="Y-axis minimal value, overriding **ypmin**.")] = None,
+        ymax: Annotated[Optional[float], Query(description="Y-axis maximal value, overriding **ypmax**.")] = None,
+        xmin: Annotated[Optional[float], Query(description="X-axis minimal value")] = None,
+        xmax: Annotated[Optional[float], Query(description="X-axis maximal value")] = None,
+        legend: Annotated[Optional[Literal['short', 'long', '', None]],
+                          Query(description="Controls the legend display. Options: 'short' (default), 'long', or None.")] = 'short',
+        ) -> Response:
+        """
+        # Plot spectra from individual exposure
+
+        This endpoint plots averaged spectra retrieved from LVM SFrame FITS files.
+
+        ## Parameters
+
+        ### **l** query parameter _(mandatory)_
+
+        This parameter defines how spectra extracted from exposure
+        FITS files and specifies plotting options. Multiple **l** parameter
+        will be processed as multiple spectra to be plotted. The format for
+        **l** parameter is as follows:
+
+        ```l=key1:value1;key2:value2;...```
+
+        The following *keys* are supported:
+
+
+        - **id** (mandatory)
+
+            Specifies the SFrame RSS file used to retrieve the averaged spectrum.
+            The paramter signature is as follows:
+
+            ```DRPversion/tile_id/mjd/expnum```
+
+            For example, `id:1.1.0/1028004/60256/07371`.
+
+            _NOTE:_ Queries with identifiers for non-existing files will
+            return a **404 NotFound** error. Incorrect formatting of the `id`
+            parameter will result in a **400 Bad Request** error.
+
+
+        - **type** (optional, default: *flux*)
+
+            Specifies the type of data to plot. Allowed values are:
+            - **flux**: the `FLUX` extension of the SFrame file is used.
+            - **sky**: the `SKY` extension of the SFrame file is used.
+            - **skyflux**: the sum of `FLUX` and `SKY` extensions is used
+                to retrieve the output spectrum without sky subtraction.
+            - **ivar**: represents the inverse variance, `IVAR` extension.
+            - **sky_ivar**: represents the sky inverse variance, `SKY_IVAR` extension.
+            - **err**: calculated error from `IVAR` extensions as `1/np.sqrt(ivar)`.
+            - **sky_err**: same as `err` but calculated using `SKY_IVAR`.
+            - **lsf**: the line spread function extnsion `LSF`.
+
+
+
+        - **method** (optional, default: *median*)
+
+            Specifies the aggregation method used to process the data. Allowed
+            values are:
+
+            - **mean**: Calculate the mean value using `np.nanmean()`.
+            - **median**: Calculate the median value using `np.nanmedian()`.
+            - **std**: Calculate the standard deviation using `np.std()`.
+            - **percentile_XX**: Calculate a specific percentile using
+                `np.percentile()`, where **XX** is the desired percentile
+                value (e.g., **percentile_90.3**). Percentile value must be in
+                the range [0, 100].
+
+
+        - **telescope** (optional, default: *Sci*):
+
+            Specifies the fibers corresponding to the
+            selected telescope used for averaging the output spectrum. The same
+            values in the **telescope** column in the `SLITMAP` extension.
+            Allowed values are:
+
+            - **Sci**: Science telescope data.
+            - **SkyE**: Sky East telescope data.
+            - **SkyW**: Sky West telescope data.
+            - **Spec**: Photometrical spectral standard telescope fibers.
+
+
+        - **fibstatus** (optional, default: *0*): Specifies the fiber status to filter the
+            fibers in RSS file. The same values in the **fibstatus** column in
+            the `SLITMAP` extension.
+
+        - Other keys are assumed to be Matplotlib `plt.plot()` parameters like
+            *color*, *marker*, *linestyle* or *ls*, *linewidth* or *lw*,
+            *markersize* or *ms*, *alpha*, *zorder*, *markeredgecolor* or *mec*,
+            *markerfacecolor* or *mfc*, *markeredgewidth* or *mew*, etc.
+            See details in [Matplotlib documentation](https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html).
+            If unexpected keyword argumen provided, the endpoint will return a
+            **400 Bad Request** error.
+
+            Examples of Matplotlib related keys: `color:blue;alpha:0.4;linestyle:dotted`.
+
+
+        ### Other parameters
+
+        Other parameters define the plot appearance and output format. See details in the section below.
+
+
+        ## Examples
+
+
+        1. `https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.1.0/1028990/60327/11121`
+
+            A minimal example showing the default median spectrum of good science
+            fibers for exposure 11121.
+
+            [![Example1](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.1.0/1028990/60327/11121 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.1.0/1028990/60327/11121)
+
+        2. ```
+            https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?
+                l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;lw:0.5;color:red&
+                xmin=6540&xmax=6750&ymin=0&ymax=1.5e-13&width=4&height=5
+            ```
+            This example demonstrates the spectrum around the H-alpha line with
+            custom size of the plot.
+
+            [![Example2](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;lw:0.5;color:red&xmin=6540&xmax=6750&ymin=0&ymax=1.5e-13&width=4&height=5 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;lw:0.5;color:red&xmin=6540&xmax=6750&ymin=0&ymax=1.5e-13&width=4&height=5)
+
+
+        3. ```
+            https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?
+                l=id:1.1.0/1050095/60396/15084;type:skyflux;method:mean;color:blue;lw:0.3&
+                l=id:1.1.0/1050095/60396/15084;type:err;method:mean;color:gray;alpha:0.7&
+                l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;color:darkred&
+                ypmax=99
+            ```
+            Plotting three spectra retrieved from the same SFrame (exposure
+            15084): the mean spectrum, spectrum + sky, and error. The error,
+            derived from the `IVAR` extension, is calculated as
+            `err = np.sqrt(np.mean(1 / IVAR))`.
+
+            [![Example3](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.1.0/1050095/60396/15084;type:skyflux;method:mean;color:blue;lw:0.3&l=id:1.1.0/1050095/60396/15084;type:err;method:mean;color:gray;alpha:0.7&l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;color:darkred&ypmax=99 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.1.0/1050095/60396/15084;type:skyflux;method:mean;color:blue;lw:0.3&l=id:1.1.0/1050095/60396/15084;type:err;method:mean;color:gray;alpha:0.7&l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;color:darkred&ypmax=99)
+
+        4. ```
+            https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?
+                l=id:1.0.3/1050095/60396/15084;color:red;lw:0.4&
+                l=id:1.1.0/1050095/60396/15084;color:purple&
+                legend=long&ymin=-2e-13&ymax=2e-13&
+                title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084
+            ```
+
+            Example of spectra retrieved from separate SFrames: one for DRP version 1.0.3 and another for 1.1.0.
+
+            [![Example4](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.0.3/1050095/60396/15084;color:red;lw:0.4&l=id:1.1.0/1050095/60396/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.0.3/1050095/60396/15084;color:red;lw:0.4&l=id:1.1.0/1050095/60396/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084)
+        """
+
+        DATA_ROOT = f"/data/sdss/sas/sdsswork/"
+        FACTOR = 1
+
+        if not l:
+            raise HTTPException(status_code=400, detail="Query parameter 'l' is mandatory query parameter. See `lvm/spectrum_exposures_plot` documentation.")
+
+        try:
+            data = [parse_line_query(line) for line in l]
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        # iterate over spectra to be plotted
+        for d in data:
+            # parse id into standard LVM id and create full path to SFRame
+            try:
+                version, tile_id, mjd, exposure = d['id'].split('/')
+                d['version'], d['tile_id'], d['mjd'], d['exposure'] = version, tile_id, mjd, exposure
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=("Invalid `id` parameter. Must be in the format `DRPversion/tile_id/mjd/exposure` "
+                            "i.e. `id:1.1.0/1028004/60256/07371`"))
+
+            suffix = str(exposure).zfill(8)
+            if tile_id == 11111:
+                filename = f"lvm/spectro/redux/{version}/0011XX/11111/{mjd}/lvmSFrame-{suffix}.fits"
+            else:
+                filename = f"lvm/spectro/redux/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
+
+            file = DATA_ROOT + filename
+
+            if not os.path.exists(file):
+                raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
+
+            # read data and construct required spectrum to be plotted
+
+            with fits.open(file) as hdul:
+                wave = hdul['WAVE'].data
+                slitmap = hdul['SLITMAP'].data
+
+                mask = (slitmap['telescope'] == d.get('telescope', 'Sci')) & (slitmap['fibstatus'] == d.get('fibstatus', 0))
+
+                aggregation_functions = {
+                    'mean': partial(np.nanmean, axis=0),
+                    'median': partial(np.nanmedian, axis=0),
+                    'std': partial(np.nanstd, axis=0),
+                    'percentile': partial(np.nanpercentile, q=d.get('percentile_value', 50), axis=0)
+                }
+
+                aggfunc = aggregation_functions[d['method']]
+
+                try:
+                    if d['type'] in {'flux', 'sky', 'skyflux'}:
+                        if d['type'] == 'flux':
+                            values = hdul['FLUX'].data[mask, :]
+                        if d['type'] == 'sky':
+                            values = hdul['SKY'].data[mask, :]
+                        elif d['type'] == 'skyflux':
+                            values = (hdul['SKY'].data[mask, :] +
+                                      hdul['FLUX'].data[mask, :])
+                        # Directly apply the aggregation function
+                        d['array'] = aggfunc(values) * FACTOR
+
+                    elif d['type'] in {'err', 'sky_err'}:
+                        if d['type'] == 'err':
+                            ivar = hdul['IVAR'].data[mask, :]
+                        elif d['type'] == 'sky_err':
+                            ivar = hdul['SKY_IVAR'].data[mask, :]
+                        # Convert IVAR to VAR, apply the aggregation function,
+                        # and then convert back to ERR
+                        d['array'] = np.sqrt(aggfunc(1.0 / ivar)) * FACTOR
+
+                    elif d['type'] in {'ivar', 'sky_ivar'}:
+                        if d['type'] == 'ivar':
+                            ivar = hdul['IVAR'].data[mask, :]
+                        elif d['type'] == 'sky_ivar':
+                            ivar = hdul['SKY_IVAR'].data[mask, :]
+                        d['array'] = aggfunc(ivar) ** FACTOR
+                except ValueError as e:
+                    # this will handle error if percentile value is out of range [0, 100]
+                    raise HTTPException(status_code=400, detail=str(e))
+
+            # Extract additional plotting kwargs
+            non_plot_keys = {'id', 'version', 'tile_id', 'mjd', 'exposure', 'type',
+                             'method', 'telescope', 'fibstatus', 'array', 'percentile_value'}
+            d['plot_kwargs'] = {key: value for key, value in d.items() if key not in non_plot_keys}
+
+        # Create a plot
+        fig = plt.figure(figsize=(width, height))
+
+        for d in data:
+            legend_options = dict(
+                short="{exposure} {method}({type})".format(**d),
+                long="{exposure} {method}({type}) {telescope} {version}".format(**d),
+            )
+            label  = legend_options.get(legend, None)
+            try:
+                plt.plot(wave, d['array'], label=label, **d['plot_kwargs'])
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+
+        if title is not None:
+            plt.title(title)
+
+        ymin = ymin if ymin is not None else np.nanpercentile([d['array'] for d in data], ypmin)
+        ymax = ymax if ymax is not None else np.nanpercentile([d['array'] for d in data], ypmax)
+        plt.ylim(ymin, ymax)
+
+        xmin = xmin if xmin is not None else np.nanmin(wave)
+        xmax = xmax if xmax is not None else np.nanmax(wave)
+        plt.xlim(xmin, xmax)
+
+        if log:
+            plt.yscale('log')
+
+        if tight_layout:
+            plt.tight_layout()
+
+        if legend is not None:
+            plt.legend()
+
+        # write output plot
+        buffer = BytesIO()
+        fig.savefig(buffer, format=format, dpi=dpi)
+        plt.close()
+        buffer.seek(0)
+
+        media_types = dict(jpg='image/jpeg',
+                           jpeg='image/jpeg',
+                           png='image/png',
+                           svg='image/svg+xml',
+                           pdf='application/pdf')
+
+        return StreamingResponse(buffer,
+                                 media_type=media_types[format],
+                                 headers={"Content-Disposition": f'inline; filename=lvm_spectrum_{exposure}.{format}',
+                                          "Content-Length": str(buffer.getbuffer().nbytes)})
+
     @router.get('/dap_lines/{tile_id}/{mjd}/{exposure}',
                 summary='Experimental endpoint to extract LVM DAP emission line fluxes')
     async def get_dap_fluxes(self,
@@ -223,7 +587,7 @@ class LVM(Base):
                              mjd: Annotated[int, Path(desciption='The MJD of the observations', example=60314)],
                              exposure: Annotated[int, Path(desciption='The exposure number', example=10328)],
                              wl = Query('6562.85,4861.36', description='List of emission lines to be retrieved', example='6562.85,4861.36'),
-                             version: Annotated[str, Query(description='DRP version', example='1.0.3')] = '1.0.3',
+                             version: Annotated[str, Query(description='DRP version', example='1.1.0')] = '1.1.0',
                              ):
 
         # construct file path for lvmSFrame-*.fits file
