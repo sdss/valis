@@ -21,7 +21,6 @@ from sdssdb.peewee.sdss5db import targetdb, vizdb
 from sdssdb.peewee.sdss5db import catalogdb as cat
 from sdssdb.peewee.sdss5db import astradb as astra
 
-
 from valis.db.models import MapperName
 from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
