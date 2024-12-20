@@ -49,6 +49,8 @@ uvicorn valis.wsgi:app --reload
 ```
 This will start a local web server at `http://localhost:8000/valis/`.  The API documentation will be located at `http://localhost:8000/valis/docs`.  Or to see the alternate documentation, go to `http://localhost:8000/valis/redoc/`
 
+By default, the app will try to cache some route responses to a Redis database in localhost. If you don't have a Redis instance running you can use `in-memory` for testing (this caches the response directly in RAM). To do so, edit `~/.config/sdss/valis.yaml` and add `cache_backend: in-memory` (this should only be used in development or it could quickly use all available memory; the memory is freed when the app is stopped). Caching can be completely disabled by setting `cache_backend: null`. The time the cache is kept can be set with the `cache_ttl` (time to live) setting option.
+
 ### Database Connection
 
 Valis uses the `sdssdb` package for all connections to databases.  The most relevant database for the API is the `sdss5db` on `pipelines.sdss.org`.  The easiest way to connect is through a local SSH tunnel. To set up a tunnel,
@@ -91,8 +93,9 @@ Additionally, you can set the environment variable `VALIS_DB_RESET=false` or add
 ## Deployment
 
 This section describes a variety of deployment methods.  Valis uses gunicorn as its
-wsgi http server. It binds the app both to port 8000, and a unix socket.  The defaut mode
-is to start valis with an awsgi uvicorn server, with 4 workers.
+wsgi http server. It binds the app both to port 8000, and a unix socket.  The default mode is to start valis with an awsgi uvicorn server, with 4 workers.
+
+Valis requires a Redis database running at the default location in `localhost:6379`.  If this is not possible, caching can be done in memory by modifying `~/.config/sdss/valis.yaml` to use `cache_backend: in-memory`.
 
 ### Deploying Zora + Valis together
 See the SDSS [Zora+Valis Docker](https://github.com/sdss/zora_valis_dockers) repo page.
