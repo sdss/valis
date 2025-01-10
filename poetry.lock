@@ -592,18 +592,19 @@ bqplot = ">=0.12,<0.13"
 
 [[package]]
 name = "bqplot-image-gl"
-version = "1.4.11"
+version = "1.6.0"
 description = "An ipywidget image widget for astronomical purposes"
 optional = true
-python-versions = "*"
+python-versions = ">=3.7"
 files = [
-    {file = "bqplot-image-gl-1.4.11.tar.gz", hash = "sha256:fc0079e9da7bcf33258133ff07f3af1b664390890fc32458934460b838047233"},
-    {file = "bqplot_image_gl-1.4.11-py2.py3-none-any.whl", hash = "sha256:2adeeb835391c231979d706a812b15edd350bea86757fa803d9f2a47e0c9c526"},
+    {file = "bqplot_image_gl-1.6.0-py3-none-any.whl", hash = "sha256:9fa27eeb755884a1ab3fa0ebe921f6828d583fba1cb7e8250f0d94639647a122"},
+    {file = "bqplot_image_gl-1.6.0.tar.gz", hash = "sha256:bc010fb14f0b25cdd74ecd982b2885523da4d7694258ed9355f2ed4bc22a82ed"},
 ]
 
 [package.dependencies]
 bqplot = ">=0.12"
 ipywidgets = ">=7.0.0"
+pillow = "*"
 
 [[package]]
 name = "branca"
@@ -1785,21 +1786,21 @@ visualtest = ["pytest-mpl"]
 
 [[package]]
 name = "glue-jupyter"
-version = "0.21.0"
+version = "0.23.1"
 description = "Jupyter notebook/lab viewers for glue"
 optional = true
 python-versions = ">=3.8"
 files = [
-    {file = "glue_jupyter-0.21.0-py3-none-any.whl", hash = "sha256:4042111a1c4cd4484d87f85e5e0538ecc272c866e8cb15e9b57c9f8beb2e0b47"},
-    {file = "glue_jupyter-0.21.0.tar.gz", hash = "sha256:ddf6388ab4de15b1ec833d1361d9fd9c30628e5fde93519e2706004a7cc75c81"},
+    {file = "glue_jupyter-0.23.1-py3-none-any.whl", hash = "sha256:a76a70a88aa70f23b3e6c5729b51449769b2bbd0954b5fbdbc1db84ec7f6b4f3"},
+    {file = "glue_jupyter-0.23.1.tar.gz", hash = "sha256:f0d240718312afeab849d4701a9313bcefbae33b982db22b233d9cf7a87b97ff"},
 ]
 
 [package.dependencies]
 bqplot = ">=0.12.17"
 bqplot-gl = "*"
-bqplot-image-gl = ">=1.4.3"
+bqplot-image-gl = ">=1.5.0"
 glue-core = ">=1.20.0"
-glue-vispy-viewers = ">=1.0"
+glue-vispy-viewers = {version = ">=1.2.1", extras = ["jupyter"]}
 ipympl = ">=0.3.0"
 ipyvolume = {version = ">=0.6.0a10", markers = "python_version >= \"3.8\""}
 ipyvue = ">=1.2.0,<2"
@@ -1828,7 +1829,9 @@ files = [
 echo = ">=0.6"
 glfw = "*"
 glue-core = ">=1.13.1"
+glue-jupyter = {version = "*", optional = true, markers = "extra == \"jupyter\""}
 imageio = "*"
+jupyter-rfb = {version = "*", optional = true, markers = "extra == \"jupyter\""}
 matplotlib = "*"
 numpy = "*"
 pyopengl = "*"
@@ -2358,13 +2361,13 @@ docs = ["myst-nb", "sphinx (>=1.5)", "sphinx-book-theme", "sphinx-copybutton", "
 
 [[package]]
 name = "ipypopout"
-version = "1.4.0"
+version = "2.0.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "ipypopout-1.4.0-py2.py3-none-any.whl", hash = "sha256:f727af69fe0ce580cdec5383c27d11669b80030625087476f66503e04a13d5ca"},
-    {file = "ipypopout-1.4.0.tar.gz", hash = "sha256:5bad4f3a65994747480b5710c52c64a576c26b0d0232da6092cd0755fce82c2c"},
+    {file = "ipypopout-2.0.0-py2.py3-none-any.whl", hash = "sha256:63a7c81c64aebc0903fcec8c877522b1f92be3ace8602f40eef7b17a0864d1c9"},
+    {file = "ipypopout-2.0.0.tar.gz", hash = "sha256:44a114c6deae0502fa87b0e2a15bd01cfea7e2722f5efd2d672c8b7f3f654587"},
 ]
 
 [package.dependencies]
@@ -2372,7 +2375,7 @@ ipyvuetify = ">=1.7.0,<2"
 ipywidgets = ">=7.7"
 
 [package.extras]
-solara = ["solara (>=1.36)"]
+solara = ["solara-server (>=1.40.0)"]
 test = ["solara[pytest]"]
 voila = ["voila (>=0.2.10,<0.5)"]
 
@@ -2628,53 +2631,55 @@ testing = ["jaraco.classes", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest
 
 [[package]]
 name = "jdaviz"
-version = "3.10.3"
+version = "4.1.0"
 description = "Astronomical data analysis development leveraging the Jupyter platform"
 optional = true
 python-versions = ">=3.10"
 files = [
-    {file = "jdaviz-3.10.3-py3-none-any.whl", hash = "sha256:dbcbbca5d744aedc03f0c97c38da51cb6a5cbb8d5c87c3638017e14962c937f3"},
-    {file = "jdaviz-3.10.3.tar.gz", hash = "sha256:78cb5f11c89a7cf68e406cb2596aef84445426dc2f23e79d9ca85cd9d5732841"},
+    {file = "jdaviz-4.1.0-py3-none-any.whl", hash = "sha256:a2e83f0c284b430c5e25b57594958163d48552321bcdaf9249e1bc9cadddde1a"},
+    {file = "jdaviz-4.1.0.tar.gz", hash = "sha256:fb676aae845c4ff8920450ef2ba4e26767a668cc16be0e219a1ce6de1d5a9de8"},
 ]
 
 [package.dependencies]
 asdf = ">=2.14.3"
 asteval = ">=0.9.23"
-astropy = ">=4.3"
+astropy = ">=6"
 astroquery = "*"
 bqplot = ">=0.12.37"
-bqplot-image-gl = ">=1.4.11"
 echo = ">=0.5.0"
 glue-astronomy = ">=0.10"
-glue-core = ">=1.18.0"
-glue-jupyter = ">=0.20"
+glue-core = ">=1.20.0"
+glue-jupyter = ">=0.23.0"
 gwcs = ">=0.16.1"
 idna = "*"
 ipygoldenlayout = ">=0.3.0"
 ipykernel = ">=6.19.4"
-ipypopout = ">=0.0.11"
+ipypopout = ">=2.0.0"
 ipysplitpanes = ">=0.1.0"
 ipyvue = ">=1.6"
 ipyvuetify = ">=1.7.0"
 ipywidgets = ">=8.0.6"
 matplotlib = ">=3.6"
+nbclassic = "*"
 packaging = "*"
 photutils = ">=1.4"
 pyyaml = ">=5.4.1"
 regions = ">=0.6"
+requests = "*"
 scikit-image = "*"
 sidecar = ">=0.5.2"
-specreduce = ">=1.3.0,<1.4.0"
-specutils = ">=1.15"
+solara = ">=1.40.0"
+specreduce = ">=1.4.1"
+specutils = ">=1.18"
 stdatamodels = ">=1.3"
 traitlets = ">=5.0.5"
 vispy = ">=0.6.5"
-voila = ">=0.4,<0.5"
 
 [package.extras]
 all = ["opencv-python", "pysiaf"]
-docs = ["sphinx-astropy[confv2] (>=1.9.1)", "sphinx-design"]
-roman = ["roman-datamodels (>=0.17.1)"]
+docs = ["sphinx-astropy[confv2] (>=1.9.1)", "sphinx_design"]
+roman = ["roman_datamodels (>=0.22.0)"]
+strauss = ["strauss"]
 test = ["pytest", "pytest-astropy", "pytest-tornasync"]
 
 [[package]]
@@ -2906,6 +2911,22 @@ files = [
 
 [package.dependencies]
 jupyter-server = ">=1.1.2"
+
+[[package]]
+name = "jupyter-rfb"
+version = "0.4.4"
+description = "Remote Frame Buffer for Jupyter"
+optional = true
+python-versions = ">=3.9"
+files = [
+    {file = "jupyter_rfb-0.4.4-py2.py3-none-any.whl", hash = "sha256:0c1689bfc1a50c2a5b1cb74168e75d06c313a3a916e95df4013b8decf7f59de8"},
+    {file = "jupyter_rfb-0.4.4.tar.gz", hash = "sha256:40e9af8e29adb90b5f58c0b9cb646abc2a142e0ac5f00822ba65291d958945e7"},
+]
+
+[package.dependencies]
+ipywidgets = ">=7.6.0,<9"
+jupyterlab-widgets = "*"
+numpy = "*"
 
 [[package]]
 name = "jupyter-server"
@@ -3531,6 +3552,28 @@ files = [
     {file = "mypy_extensions-1.0.0-py3-none-any.whl", hash = "sha256:4392f6c0eb8a5668a69e23d168ffa70f0be9ccfd32b5cc2d26a34ae5b844552d"},
     {file = "mypy_extensions-1.0.0.tar.gz", hash = "sha256:75dbf8955dc00442a438fc4d0666508a9a97b6bd41aa2f0ffe9d2f2725af0782"},
 ]
+
+[[package]]
+name = "nbclassic"
+version = "1.1.0"
+description = "Jupyter Notebook as a Jupyter Server extension."
+optional = true
+python-versions = ">=3.7"
+files = [
+    {file = "nbclassic-1.1.0-py3-none-any.whl", hash = "sha256:8c0fd6e36e320a18657ff44ed96c3a400f17a903a3744fc322303a515778f2ba"},
+    {file = "nbclassic-1.1.0.tar.gz", hash = "sha256:77b77ba85f9e988f9bad85df345b514e9e64c7f0e822992ab1df4a78ac64fc1e"},
+]
+
+[package.dependencies]
+ipykernel = "*"
+ipython-genutils = "*"
+nest-asyncio = ">=1.5"
+notebook-shim = ">=0.2.3"
+
+[package.extras]
+docs = ["myst-parser", "nbsphinx", "sphinx", "sphinx-rtd-theme", "sphinxcontrib-github-alt"]
+json-logging = ["json-logging"]
+test = ["coverage", "nbval", "pytest", "pytest-cov", "pytest-jupyter", "pytest-playwright", "pytest-tornasync", "requests", "requests-unixsocket", "testpath"]
 
 [[package]]
 name = "nbclient"
@@ -5322,13 +5365,13 @@ full = ["numpy"]
 
 [[package]]
 name = "reacton"
-version = "1.8.3"
+version = "1.9.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "reacton-1.8.3-py2.py3-none-any.whl", hash = "sha256:36ea1f347345b14e4a9a58c6f866fefa04ec0e46a91c99355aeb756e066b770a"},
-    {file = "reacton-1.8.3.tar.gz", hash = "sha256:db0b42242746c902a31220a52efcb8964ba4e1e0cff2c5145b75569547811bff"},
+    {file = "reacton-1.9.0-py2.py3-none-any.whl", hash = "sha256:ab11a575237447c1e6402d09c7981d024888176710696698942890368d298afc"},
+    {file = "reacton-1.9.0.tar.gz", hash = "sha256:36b2d1eefc8d4d3ccce74ce1a78cb502b948eadb27758702acb9a7f9f46fd7fb"},
 ]
 
 [package.dependencies]
@@ -5336,7 +5379,7 @@ ipywidgets = "*"
 typing-extensions = ">=4.1.1"
 
 [package.extras]
-dev = ["black", "bqplot", "bump2version", "coverage", "flake8", "ipykernel", "ipyvuetify", "jinja2", "mypy", "numpy", "pandas", "pre-commit", "pytest", "pytest-cov"]
+dev = ["bqplot", "bump2version", "coverage", "ipykernel", "ipyvuetify", "jinja2", "mypy", "numpy (<2)", "pandas", "pre-commit", "pytest", "pytest-cov", "ruff"]
 generate = ["black", "bqplot", "jinja2", "mypy"]
 
 [[package]]
@@ -5993,35 +6036,35 @@ files = [
 
 [[package]]
 name = "solara"
-version = "1.39.0"
+version = "1.42.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "solara-1.39.0-py2.py3-none-any.whl", hash = "sha256:c9b016b28055d7fdaf2cf0c0231b93b1eec0eb59473d5b29473d472e6cfa4505"},
-    {file = "solara-1.39.0.tar.gz", hash = "sha256:77a930cad4decea4cb24f519b43b0d39be633d95ea593d497a80483aebeb8bb2"},
+    {file = "solara-1.42.0-py2.py3-none-any.whl", hash = "sha256:5ad674bcc3facdf0574c7c3d3de758cec883a8e4272b7bef78411ce4e2ebb835"},
+    {file = "solara-1.42.0.tar.gz", hash = "sha256:9cc27d178e2b98e958afbaf7a429b38fa04562db807da1ec6203fd2e4c6daf55"},
 ]
 
 [package.dependencies]
-solara-server = {version = "1.39.0", extras = ["dev", "starlette"]}
-solara-ui = {version = "1.39.0", extras = ["all"]}
+solara-server = {version = "1.42.0", extras = ["dev", "starlette"]}
+solara-ui = {version = "1.42.0", extras = ["all"]}
 
 [package.extras]
-all = ["solara[assets]", "solara[dev]", "solara[documentation]", "solara[pytest]"]
-assets = ["solara-assets (==1.39.0)"]
-dev = ["bqplot", "bqplot-image-gl", "bump2version", "codespell", "dask[dataframe]", "ipyreact", "mdit-py-plugins", "mypy", "numpy (<2)", "playwright", "plotly", "polars", "pre-commit", "pytest", "pytest-cov", "pytest-mock", "pytest-playwright", "pytest-timeout", "python-dotenv", "ruff", "types-markdown", "types-pyyaml", "types-requests", "vaex-core", "vaex-hdf5", "vaex-jupyter"]
-documentation = ["altair", "bqplot", "folium", "ipycanvas", "ipyleaflet", "matplotlib", "numpy (<2)", "openai", "plotly", "tiktoken", "vaex-core", "vaex-hdf5", "vega-datasets"]
-pytest = ["pytest-ipywidgets[all] (==1.39.0)"]
+all = ["altair", "bqplot", "bqplot-image-gl", "bump2version", "codespell", "dask[dataframe]", "folium", "ipyaggrid", "ipycanvas", "ipyleaflet", "ipyreact", "matplotlib", "mdit-py-plugins", "mkdocs-pycafe", "mypy", "numpy (<2)", "openai", "playwright", "plotly", "polars", "pre-commit", "pytest", "pytest-cov", "pytest-ipywidgets[all] (==1.42.0)", "pytest-mock", "pytest-playwright", "pytest-timeout", "python-dotenv", "ruff", "solara-assets (==1.42.0)", "tiktoken", "types-markdown", "types-pyyaml", "types-requests", "vaex-core", "vaex-hdf5", "vaex-jupyter", "vega-datasets"]
+assets = ["solara-assets (==1.42.0)"]
+dev = ["bqplot", "bqplot-image-gl", "bump2version", "codespell", "dask[dataframe]", "ipyaggrid", "ipyreact", "mdit-py-plugins", "mypy", "numpy (<2)", "playwright", "plotly", "polars", "pre-commit", "pytest", "pytest-cov", "pytest-mock", "pytest-playwright", "pytest-timeout", "python-dotenv", "ruff", "types-markdown", "types-pyyaml", "types-requests", "vaex-core", "vaex-hdf5", "vaex-jupyter"]
+documentation = ["altair", "bqplot", "folium", "ipycanvas", "ipyleaflet", "matplotlib", "mkdocs-pycafe", "numpy (<2)", "openai", "plotly", "tiktoken", "vaex-core", "vaex-hdf5", "vega-datasets"]
+pytest = ["pytest-ipywidgets[all] (==1.42.0)"]
 
 [[package]]
 name = "solara-server"
-version = "1.39.0"
+version = "1.42.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "solara_server-1.39.0-py2.py3-none-any.whl", hash = "sha256:a16160cc423d39a70bab42ca2b3a51a305596464c5233e2c84d7988ee15c9e3b"},
-    {file = "solara_server-1.39.0.tar.gz", hash = "sha256:af4e273da9fd9e1497cc4b77e424071b2b424ae92b61c457f7adc5e0b1528232"},
+    {file = "solara_server-1.42.0-py2.py3-none-any.whl", hash = "sha256:31c233be8fa9da12558fc7f9dbaaca9a1088afc26823c89c4681995d5199a18d"},
+    {file = "solara_server-1.42.0.tar.gz", hash = "sha256:7e09fcd45d501923ddc6c20172bb87be81a80ce0d0b1ca1e493b247181a00a4f"},
 ]
 
 [package.dependencies]
@@ -6029,7 +6072,7 @@ click = ">=7.1.0"
 filelock = "*"
 ipykernel = "*"
 jinja2 = "*"
-jupyter-client = ">=7.0.0"
+jupyter-client = "*"
 nbformat = "*"
 rich-click = "*"
 solara-ui = "*"
@@ -6040,38 +6083,38 @@ watchfiles = {version = "*", optional = true, markers = "python_version > \"3.6\
 websockets = {version = "*", optional = true, markers = "extra == \"starlette\""}
 
 [package.extras]
-all = ["solara-server[dev]", "solara-server[flask]", "solara-server[starlette]"]
+all = ["flask", "flask-sock", "starlette", "uvicorn", "watchdog", "watchfiles", "websockets"]
 dev = ["watchdog", "watchfiles"]
 flask = ["flask", "flask-sock"]
 starlette = ["starlette", "uvicorn", "websockets"]
 
 [[package]]
 name = "solara-ui"
-version = "1.39.0"
+version = "1.42.0"
 description = ""
 optional = true
 python-versions = "*"
 files = [
-    {file = "solara_ui-1.39.0-py2.py3-none-any.whl", hash = "sha256:87fd10fd08573af1e1237160b4a043f84073afdf89e73f337fb44526238d26b6"},
-    {file = "solara_ui-1.39.0.tar.gz", hash = "sha256:586a8d10ac23526ad62ab819bcbba4de1432738eaef96e371ce2a076f3fdcd6c"},
+    {file = "solara_ui-1.42.0-py2.py3-none-any.whl", hash = "sha256:83516136ad05fb04191adeadff8c9beae0753fbfd5c355bec912f12f555390ad"},
+    {file = "solara_ui-1.42.0.tar.gz", hash = "sha256:2f6726e3bd424c0e321eaad97a2107686c2b08c52db36675f12094e4389e9dfd"},
 ]
 
 [package.dependencies]
-cachetools = {version = "*", optional = true, markers = "extra == \"cache\""}
+cachetools = {version = "*", optional = true, markers = "extra == \"all\""}
 humanize = "*"
 ipyvue = ">=1.9.0"
 ipyvuetify = ">=1.6.10"
 ipywidgets = ">=7.7"
-markdown = {version = "*", optional = true, markers = "extra == \"markdown\""}
-numpy = {version = "*", optional = true, markers = "extra == \"extra\""}
-pillow = {version = "*", optional = true, markers = "extra == \"extra\""}
-pygments = {version = "*", optional = true, markers = "extra == \"markdown\""}
-pymdown-extensions = {version = "*", optional = true, markers = "extra == \"markdown\""}
+markdown = {version = "*", optional = true, markers = "extra == \"all\""}
+numpy = {version = "*", optional = true, markers = "extra == \"all\""}
+pillow = {version = "*", optional = true, markers = "extra == \"all\""}
+pygments = {version = "*", optional = true, markers = "extra == \"all\""}
+pymdown-extensions = {version = "*", optional = true, markers = "extra == \"all\""}
 reacton = ">=1.7.1"
 requests = "*"
 
 [package.extras]
-all = ["solara-ui[cache]", "solara-ui[extra]", "solara-ui[markdown]"]
+all = ["cachetools", "markdown", "numpy", "pillow", "pygments", "pygments (==2.10)", "pymdown-extensions"]
 cache = ["cachetools"]
 extra = ["numpy", "pillow"]
 markdown = ["markdown", "pygments", "pygments (==2.10)", "pymdown-extensions"]
@@ -6089,26 +6132,26 @@ files = [
 
 [[package]]
 name = "specreduce"
-version = "1.3.0"
-description = "Astropy affiliated package for Spectroscopic Reductions"
+version = "1.4.1"
+description = "Astropy coordinated package for Spectroscopic Reductions"
 optional = true
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 files = [
-    {file = "specreduce-1.3.0-py3-none-any.whl", hash = "sha256:883057908debead294a3e8e2af2b953f51e8dc215c596f32860fae9b81cb1222"},
-    {file = "specreduce-1.3.0.tar.gz", hash = "sha256:04cc6b9c47886d45ece7f2902ef834b359d93681ad3ba0d0adbfd0743ed19973"},
+    {file = "specreduce-1.4.1-py3-none-any.whl", hash = "sha256:dfcf23bdeda9b8c9ada7e0b51d6eeceb905654cd8b6f004d633a6b491c2b6ded"},
+    {file = "specreduce-1.4.1.tar.gz", hash = "sha256:dac8fb421002c953a32214c32e10e8cdc4721fd5170e7700e0778e2f34276a91"},
 ]
 
 [package.dependencies]
 astropy = "*"
-matplotlib = "*"
-photutils = "*"
+gwcs = "*"
+numpy = "*"
+scipy = "*"
 specutils = ">=1.9.1"
-synphot = "*"
 
 [package.extras]
-data = ["specreduce-data"]
-docs = ["sphinx-astropy"]
-test = ["pytest-astropy"]
+all = ["matplotlib", "photutils", "synphot"]
+docs = ["matplotlib", "photutils", "sphinx-astropy", "synphot"]
+test = ["photutils", "pytest-astropy", "tox"]
 
 [[package]]
 name = "spectral-cube"
@@ -6443,38 +6486,6 @@ files = [
 
 [package.dependencies]
 pbr = ">=2.0.0,<2.1.0 || >2.1.0"
-
-[[package]]
-name = "synphot"
-version = "1.3.post0"
-description = "Synthetic photometry"
-optional = true
-python-versions = ">=3.9"
-files = [
-    {file = "synphot-1.3.post0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ddc6e57c30e557d5812ccc4d22b7010066106f4a38f70a24cee41ed36a626289"},
-    {file = "synphot-1.3.post0-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ad807205798cdaf4ec0750008d3a5c9f9f4d778aff30c5d9c937ea362dd6758f"},
-    {file = "synphot-1.3.post0-cp310-cp310-win_amd64.whl", hash = "sha256:2be25f8c8a46bfc0990f8ffb5be6c58d240c708b9810ed16a177d105650f2091"},
-    {file = "synphot-1.3.post0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:7bb44041ea5b9305da6d0c08a8cb53b2106acf874f1a4bf9aae252fe9cc5ed87"},
-    {file = "synphot-1.3.post0-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4619980b5ab64a350c8d867405262869bfdcaf00ef8a9da9fd7c544d1feb2f94"},
-    {file = "synphot-1.3.post0-cp311-cp311-win_amd64.whl", hash = "sha256:9f0fce71764100e65c8ef9c4dc084bdab0aa5772d07d0a148b6f75912ad19dd9"},
-    {file = "synphot-1.3.post0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:a45317dd194bd3f4d6157c57705f784fb5aba4529f90a19135a1eb2ef496a41e"},
-    {file = "synphot-1.3.post0-cp312-cp312-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:e2f1c709e45123dda30845453c65c27783d7f56de31b1b272f9e1d7d929a9ce4"},
-    {file = "synphot-1.3.post0-cp312-cp312-win_amd64.whl", hash = "sha256:90b1a5f94c56f9539472bf94f61371685761fe94292a0636b533a41f6cf7f777"},
-    {file = "synphot-1.3.post0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:a8996adc2e5a04a4a9736ea1fe593b8ec30aff0ff4bb3a94a52fffc5bedc0f38"},
-    {file = "synphot-1.3.post0-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:56e41ad32c301e013e2061b3e0072b97adfd5e8e301dbfb28a23e1adc254fedf"},
-    {file = "synphot-1.3.post0-cp39-cp39-win_amd64.whl", hash = "sha256:987ad2ada32faf0682eeef2f3f9aa82317aac36c5172d226fc98e707a59054d8"},
-    {file = "synphot-1.3.post0.tar.gz", hash = "sha256:5bf3f8e415ac83d44c0727fb7257db33b09262af850c0cf1100f2a70a319a814"},
-]
-
-[package.dependencies]
-astropy = ">=5"
-numpy = ">=1.20"
-scipy = ">=1.6"
-
-[package.extras]
-all = ["dust-extinction", "specutils (>=0.7)"]
-docs = ["matplotlib", "sphinx-astropy"]
-test = ["pytest-astropy"]
 
 [[package]]
 name = "tabulate"
@@ -7140,31 +7151,6 @@ pyside6 = ["PySide6"]
 sdl2 = ["PySDL2"]
 tk = ["pyopengltk"]
 wx = ["wxPython"]
-
-[[package]]
-name = "voila"
-version = "0.4.4"
-description = "Voilà turns Jupyter notebooks into standalone web applications"
-optional = true
-python-versions = ">=3.8"
-files = [
-    {file = "voila-0.4.4-py3-none-any.whl", hash = "sha256:b4cd3c17583fc348db781a1f9c09e4dc79baff98f4bf558818957c95fe6036a0"},
-    {file = "voila-0.4.4.tar.gz", hash = "sha256:8475c3250245716fd192e80cd6ce265b7effb2a2e389dc0374853e0ee9e4a440"},
-]
-
-[package.dependencies]
-jupyter-client = ">=6.1.3,<9"
-jupyter-core = ">=4.11.0"
-jupyter-server = ">=1.18,<3"
-jupyterlab-server = ">=2.3.0,<3"
-nbclient = ">=0.4.0,<0.8"
-nbconvert = ">=6.4.5,<8"
-traitlets = ">=5.0.3,<6"
-websockets = ">=9.0"
-
-[package.extras]
-dev = ["black", "flake8", "hatch", "jupyter-releaser"]
-test = ["ipywidgets", "matplotlib", "mock", "notebook (==6)", "numpy", "pandas", "papermill", "pytest", "pytest-tornasync"]
 
 [[package]]
 name = "watchdog"
