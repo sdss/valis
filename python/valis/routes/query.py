@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field, BeforeValidator
 
+from valis.cache import valis_cache
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase, MapperName, SDSSModel
@@ -41,6 +42,7 @@ class SearchModel(BaseModel):
     program: Optional[str] = Field(None, description='The program name', example='bhm_rm')
     carton: Optional[str] = Field(None, description='The carton name', example='bhm_rm_core')
     observed: Optional[bool] = Field(True, description='Flag to only include targets that have been observed', example=True)
+    limit: Optional[int] = Field(None, description='Limit the number of returned targets', example=100)
 
 class MainResponse(SDSSModel):
     """ Combined model from all individual query models """
@@ -82,6 +84,7 @@ class QueryRoutes(Base):
                  dependencies=[Depends(get_pw_db)],
                  response_model=MainSearchResponse, response_model_exclude_unset=True,
                  response_model_exclude_none=True)
+    @valis_cache(namespace='valis-query')
     async def main_search(self, body: SearchModel):
         """ Main query for UI and for combining queries together """
 
@@ -105,17 +108,26 @@ class QueryRoutes(Base):
             query = carton_program_search(body.program or body.carton,
                                           'program' if body.program else 'carton',
                                           query=query)
+
+        # DANGER!!! This limit applies *before* the append_pipes call. If the
+        # append_pipes call includes observed=True we may have limited things in
+        # such a way that only unobserved or very few targets are returned.
+        if body.limit:
+            query = query.limit(body.limit)
+
         # append query to pipes
         if query:
-            query = append_pipes(query, observed=body.observed)
+            query = append_pipes(query, observed=body.observed, release=self.release)
 
-        # query iterator
-        res = query.dicts().iterator() if query else []
+        # Results. Note that we cannot return an iterator in a cached route or the
+        # initial query (when it does not hit the cache) will return an empty list.
+        res = list(query.dicts()) if query else []
 
         return {'status': 'success', 'data': res, 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
                 response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def cone_search(self,
                           ra: Annotated[Union[float, str], Query(description='Right Ascension in degrees or hmsdms', example=315.78)],
                           dec: Annotated[Union[float, str], Query(description='Declination in degrees or hmsdms', example=-3.2)],
@@ -125,13 +137,14 @@ class QueryRoutes(Base):
         """ Perform a cone search """
 
         res = cone_search(ra, dec, radius, units=units)
-        r = append_pipes(res, observed=observed)
+        r = append_pipes(res, observed=observed, release=self.release)
         # return sorted by distance
         # doing this here due to the append_pipes distinct
-        return sorted(r.dicts().iterator(), key=lambda x: x['distance'])
+        return sorted(r.dicts(), key=lambda x: x['distance'])
 
     @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
                 response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def sdss_id_search(self, sdss_id: Annotated[int, Query(description='Value of sdss_id', example=47510284)]):
         """ Perform an sdss_id search.
 
@@ -163,6 +176,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/cartons', summary='Return a list of all cartons',
                 response_model=list, dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def cartons(self):
         """ Return a list of all carton or programs """
 
@@ -170,6 +184,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/programs', summary='Return a list of all programs',
                 response_model=list, dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def programs(self):
         """ Return a list of all carton or programs """
 
@@ -177,6 +192,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/program-map', summary='Return a mapping of cartons in all programs',
                 response_model=Dict[str, List[str]], dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def program_map(self):
         """ Return a mapping of cartons in all programs """
 
@@ -184,6 +200,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/parents', summary='Return a list of available parent catalog tables',
                 response_model=List[str])
+    @valis_cache(namespace='valis-query')
     async def parent_catalogs(self):
         """Return a list of available parent catalog tables."""
 
@@ -197,19 +214,26 @@ class QueryRoutes(Base):
 
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
                 response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def carton_program(self,
                              name: Annotated[str, Query(description='Carton or program name', example='manual_mwm_tess_ob')],
                              name_type: Annotated[str,
                                                   Query(enum=['carton', 'program'],
                                                         description='Specify search on carton or program',
                                                         example='carton')] = 'carton',
-                             observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True):
+                             observed: Annotated[bool, Query(description='Flag to only include targets that have been observed', example=True)] = True,
+                             limit: Annotated[int | None, Query(description='Limit the number of returned targets', example=100)] = None):
         """ Perform a search on carton or program """
         with database.atomic():
-            database.execute_sql('SET LOCAL enable_seqscan=false;')
-            query = carton_program_search(name, name_type)
+            if limit is False:
+                # This tweak seems to do more harm than good when limit is passed.
+                database.execute_sql('SET LOCAL enable_seqscan=false;')
+
+            query = carton_program_search(name, name_type, limit=limit)
             query = append_pipes(query, observed=observed)
-            return query.dicts().iterator()
+
+            # The list() is necessary here to not return a generator in the cached route.
+            return list(query.dicts())
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',
                 response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
