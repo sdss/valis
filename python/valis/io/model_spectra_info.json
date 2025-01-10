@@ -35,5 +35,18 @@
             "error": {"extension": 1, "type": "table", "column": "ivar"},
             "mask": {"extension": 1, "type": "table", "column": "pixel_flags"}
         }
+    },
+    {
+        "product": "mwmVisit",
+        "aliases": ["mwmvisit"],
+        "pipeline": "astra",
+        "multi_spectra": true,
+        "spectral_extensions": ["BOSS/APO", "BOSS/LCO", "APOGEE/APO", "APOGEE/LCO"],
+        "parameters": {
+            "flux": {"extension": 1, "type": "table", "column": "flux", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
+            "wavelength": {"extension": 1, "type": "wcscon", "column": "LOGLIN", "nwave": "NPIXELS", "units": "Angstrom", "crval": "CRVAL", "cdelt": "CDELT"},
+            "error": {"extension": 1, "type": "table", "column": "ivar"},
+            "mask": {"extension": 1, "type": "table", "column": "pixel_flags"}
+        }
     }
 ]

@@ -547,7 +547,8 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     # get astra pipeline target
     elif pipeline == 'astra' and (qq := get_astra_target(sdss_id, release)):
         res = qq.dicts().first()
-        return {pipeline: res, 'files': {pipeline: build_astra_path(res, release)}}
+        return {pipeline: res, 'files': {pipeline: [build_astra_path(res, release),
+                                                    build_astra_path(res, release, name='mwmVisit')]}}
 
 
 def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> dict:
