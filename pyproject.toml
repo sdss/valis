@@ -52,7 +52,7 @@ sdss-solara = {git = "https://github.com/sdss/sdss_solara.git", rev = "main", op
 markdown = "^3.7"
 fastapi-cache2 = { version = "^0.2.2", extras = ["redis"] }
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 ipython = ">=7.11.0"
 matplotlib = ">=3.1.1"
 flake8 = ">=3.7.9"
