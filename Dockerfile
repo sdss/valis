@@ -71,6 +71,7 @@ ENV VALIS_SOCKET_DIR='/tmp/webapp'
 ENV VALIS_LOGS_DIR='/tmp/webapp'
 ENV VALIS_ALLOW_ORIGIN="https://data.sdss5.org/zora/"
 ENV VALIS_DB_REMOTE=True
+ENV SOLARA_CHECK_HOOKS="off"
 
 # Stage 3: Build stage (inherits from dev-stage)
 FROM dev-stage as build-stage
