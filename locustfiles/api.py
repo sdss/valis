@@ -4,7 +4,7 @@ from locust import HttpUser, task, between
 
 # A set of files to run with [locust.io](https://locust.io/) for performance testing the app.
 # pip install locust
-# then run "locust -f locustfile.py" and open http://localhost:8089/ in your browser
+# then run "locust -f api.py" and open http://localhost:8089/ in your browser
 
 
 class FastAPIUser(HttpUser):
