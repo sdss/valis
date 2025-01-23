@@ -53,7 +53,7 @@ class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
 
     async def __call__(self, request: Request, release: str = Depends(release)):
         self.release = release or "WORK"
-        if self.release != 'WORK':
+        if 'DR' in self.release:
             return None
         await super().__call__(request)
 

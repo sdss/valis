@@ -17,6 +17,7 @@ from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               get_targets_by_sdss_id, get_targets_by_catalog_id,
                               get_targets_obs, get_paged_target_list_by_mapper,
                               get_target_by_altid)
+from valis.routes.auth import set_auth
 from sdssdb.peewee.sdss5db import database, catalogdb
 
 # convert string floats to proper floats
@@ -81,7 +82,7 @@ class QueryRoutes(Base):
     #         filter(vizdb.SDSSidStacked.cone_search(ra, dec, radius, ra_col='ra_sdss_id', dec_col='dec_sdss_id')).all()
 
     @router.post('/main', summary='Main query for the UI or combining queries',
-                 dependencies=[Depends(get_pw_db)],
+                 dependencies=[Depends(get_pw_db), Depends(set_auth)],
                  response_model=MainSearchResponse, response_model_exclude_unset=True,
                  response_model_exclude_none=True)
     @valis_cache(namespace='valis-query')
@@ -126,7 +127,7 @@ class QueryRoutes(Base):
         return {'status': 'success', 'data': res, 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
-                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db), Depends(set_auth)])
     @valis_cache(namespace='valis-query')
     async def cone_search(self,
                           ra: Annotated[Union[float, str], Query(description='Right Ascension in degrees or hmsdms', example=315.78)],
@@ -143,7 +144,8 @@ class QueryRoutes(Base):
         return sorted(r.dicts(), key=lambda x: x['distance'])
 
     @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
-                response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
+                response_model=Union[SDSSidStackedBase, dict],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     @valis_cache(namespace='valis-query')
     async def sdss_id_search(self, sdss_id: Annotated[int, Query(description='Value of sdss_id', example=47510284)]):
         """ Perform an sdss_id search.
@@ -162,13 +164,15 @@ class QueryRoutes(Base):
         return targets or {}
 
     @router.post('/sdssid', summary='Perform a search for SDSS targets based on a list of sdss_id values',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSidStackedBase],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def sdss_ids_search(self, body: SDSSIdsModel):
         """ Perform a search for SDSS targets based on a list of input sdss_id values."""
         return list(get_targets_by_sdss_id(body.sdss_id_list))
 
     @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSidStackedBase],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def catalog_id_search(self, catalog_id: Annotated[int, Query(description='Value of catalog_id', example=7613823349)]):
         """ Perform a catalog_id search """
 
@@ -213,7 +217,8 @@ class QueryRoutes(Base):
         return sorted(catalogs)
 
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
-                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSModel],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     @valis_cache(namespace='valis-query')
     async def carton_program(self,
                              name: Annotated[str, Query(description='Carton or program name', example='manual_mwm_tess_ob')],
@@ -236,7 +241,8 @@ class QueryRoutes(Base):
             return list(query.dicts())
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSidStackedBase],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def obs(self,
                   release: Annotated[str, Query(description='Data release to query', example='IPL3')],
                   obs: Annotated[str,
@@ -252,7 +258,8 @@ class QueryRoutes(Base):
         return list(get_targets_obs(release, obs, spectrograph))
 
     @router.get('/mapper', summary='Perform a search for SDSS targets based on the mapper',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSidStackedBase],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def get_target_list_by_mapper(self,
                                         mapper: Annotated[MapperName, Query(description='Mapper name', example=MapperName.MWM)] = MapperName.MWM,
                                         page_number: Annotated[int, Query(description='Page number of the returned items', gt=0, example=1)] = 1,
