@@ -13,8 +13,16 @@ class DashUser(HttpUser):
     wait_time = between(1, 5)  # Simulate user think time between requests
 
     data_types = ['star', 'visit']
-    plot_types = ['scatter', 'heatmap', 'skyplot', 'histogram', 'stats']
-    data_sets = ['best', 'apogeenet', 'thepayne', 'bossnet', 'aspcap', 'bhm', 'slam']
+    #plot_types = ['scatter', 'heatmap', 'skyplot', 'histogram', 'stats']
+    #data_sets = ['best', 'apogeenet', 'thepayne', 'bossnet', 'aspcap', 'bhm', 'slam']
+
+    plot_types = ['scatter', 'heatmap']
+    data_sets = ['apogeenet', 'thepayne']
+    carton = ['mwm_halo_local,ops_sky', 'mwm_snc_openfiber,mwm_erosita_stars', 'manual_mwm_planet_tess_pc',
+              'mwm_halo_distant_rrl','mwm_yso_cluster,mwm_ob_core']
+    x = ['teff', 'g_mag', 'u_sdss_mag', 'snr']
+    y = ['logg', 'fe_h', 'g_mag', 'k_mag']
+    color = ['fe_h','snr', 'ebv']
 
     @task
     def query_dashboard(self):
@@ -24,6 +32,10 @@ class DashUser(HttpUser):
                   'datatype': random.choice(self.data_types),
                   'dataset': random.choice(self.data_sets),
                   'plottype': random.choice(self.plot_types),
+                  'carton': random.choice(self.carton),
+                  'x': random.choice(self.x),
+                  'y': random.choice(self.y),
+                  'color': random.choice(self.color)
                   }
         with self.client.get(url, params=params, catch_response=True) as response:
             if response.status_code != 200:
