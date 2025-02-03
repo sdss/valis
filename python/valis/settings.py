@@ -40,7 +40,7 @@ class CacheBackendEnum(str, Enum):
 
 
 class Settings(BaseSettings):
-    valis_env: EnvEnum = EnvEnum.dev
+    env: EnvEnum = EnvEnum.dev
     allow_origin: Union[str, List[AnyHttpUrl]] = Field([])
     db_server: str | None = 'pipelines'
     db_remote: bool = False

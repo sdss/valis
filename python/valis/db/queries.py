@@ -581,7 +581,7 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
     # create initial dict
     data = {'info': {},
             'boss': {}, 'apogee': {}, 'astra': {},
-            'files': {'boss': '', 'apogee': '', 'astra': ''}}
+            'files': {'boss': '', 'apogee': '', 'astra': ['']}}
     data['info'].update(pipes)
 
     # get only a given pipeline data
