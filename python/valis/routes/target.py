@@ -15,13 +15,15 @@ import astropy.units as u
 from astropy.io import fits
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
-
 from valis.routes.base import Base
+from valis.cache import valis_cache
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
                               get_parent_catalog_data, get_target_cartons,
                               get_target_pipeline, get_target_by_altid, append_pipes)
 from valis.db.db import get_pw_db
 from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel
+from valis.routes.auth import set_auth
+
 
 router = APIRouter()
 
@@ -184,18 +186,20 @@ class Target(Base):
         return query.dicts().first() or {}
 
     @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)],
                 response_model=List[SpectrumModel])
+    @valis_cache(namespace='valis-target')
     async def get_spectrum(self, sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
                            product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
                            ext: Annotated[str, Query(description='For multi-extension spectra, e.g. mwmStar, the name of the spectral extension', example='BOSS/APO')] = None,
                            ):
-        return get_a_spectrum(sdss_id, product, self.release, ext=ext)
+        return list(get_a_spectrum(sdss_id, product, self.release, ext=ext))
 
     @router.get('/catalogs/{sdss_id}', summary='Retrieve catalog information for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)],
                 response_model=List[CatalogResponse],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
+    @valis_cache(namespace='valis-target')
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return catalog information for a given sdss_id """
 
@@ -213,10 +217,11 @@ class Target(Base):
         return response_data
 
     @router.get('/parents/{catalog}/{sdss_id}',
-                dependencies=[Depends(get_pw_db)],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)],
                 response_model=list[ParentCatalogModel],
                 responses={400: {'description': 'Invalid input sdss_id or catalog'}},
                 summary='Retrieve parent catalog information for a taget by sdss_id')
+    @valis_cache(namespace='valis-target')
     async def get_parents(self,
                           catalog: Annotated[str, Path(description='The parent catalog to search',
                                                        example='gaia_dr3_source')],
@@ -241,17 +246,20 @@ class Target(Base):
         return result
 
     @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)],
                 response_model=List[CartonModel],
                 response_model_exclude_unset=True, response_model_exclude_none=True)
+    @valis_cache(namespace='valis-target')
     async def get_cartons(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
         """ Return carton information for a given sdss_id """
-        return get_target_cartons(sdss_id).dicts().iterator()
+        return list(get_target_cartons(sdss_id).dicts())
 
     @router.get('/pipelines/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)],
                 response_model=PipesModel,
-                response_model_exclude_unset=True)
+                response_model_exclude_unset=True,
+                response_model_exclude_none=True)
+    @valis_cache(namespace='valis-target')
     async def get_pipeline(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
                            pipe: Annotated[str,
                                            Query(enum=['all', 'boss', 'apogee', 'astra'],

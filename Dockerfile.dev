@@ -34,6 +34,8 @@ ENV VALIS_SOCKET_DIR='/tmp/valis'
 ENV VALIS_LOGS_DIR='/tmp'
 ENV VALIS_ALLOW_ORIGIN="http://localhost:3000"
 ENV VALIS_DB_REMOTE=True
+ENV VALIS_ENV="development"
+ENV SOLARA_CHECK_HOOKS="off"
 
 # Stage 3: Build stage (inherits from dev-stage)
 FROM dev-stage as build-stage

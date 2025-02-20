@@ -21,7 +21,6 @@ from sdssdb.peewee.sdss5db import targetdb, vizdb
 from sdssdb.peewee.sdss5db import catalogdb as cat
 from sdssdb.peewee.sdss5db import astradb as astra
 
-
 from valis.db.models import MapperName
 from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
@@ -548,7 +547,8 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     # get astra pipeline target
     elif pipeline == 'astra' and (qq := get_astra_target(sdss_id, release)):
         res = qq.dicts().first()
-        return {pipeline: res, 'files': {pipeline: build_astra_path(res, release)}}
+        return {pipeline: res, 'files': {pipeline: [build_astra_path(res, release),
+                                                    build_astra_path(res, release, name='mwmVisit')]}}
 
 
 def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> dict:
@@ -581,7 +581,7 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
     # create initial dict
     data = {'info': {},
             'boss': {}, 'apogee': {}, 'astra': {},
-            'files': {'boss': '', 'apogee': '', 'astra': ''}}
+            'files': {'boss': '', 'apogee': '', 'astra': ['']}}
     data['info'].update(pipes)
 
     # get only a given pipeline data

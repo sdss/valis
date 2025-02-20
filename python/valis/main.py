@@ -16,7 +16,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import pathlib
 from typing import Dict
-from functools import lru_cache
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,10 +23,23 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.staticfiles import StaticFiles
 
 import valis
-from valis.routes import access, auth, envs, files, info, maskbits, mocs, target, query, lvm
+from valis.cache import lifespan
+from valis.routes import (
+    access,
+    auth,
+    envs,
+    files,
+    info,
+    maskbits,
+    mocs,
+    query,
+    target,
+    lvm
+)
 from valis.routes.auth import set_auth
 from valis.routes.base import release
-from valis.settings import Settings, read_valis_config
+from valis.settings import settings
+
 
 # set up the solara server
 try:
@@ -95,19 +107,9 @@ tags_metadata = [
     },
 ]
 
-
-@lru_cache
-def get_settings():
-    """ Get the valis settings """
-    cfg = read_valis_config()
-    return Settings(**cfg)
-
-
-settings = get_settings()
-
 # create the application
 app = FastAPI(title='Valis', description='The SDSS API', version=valis.__version__,
-              openapi_tags=tags_metadata, dependencies=[])
+              openapi_tags=tags_metadata, lifespan=lifespan, dependencies=[])
 # submount app to allow for production /valis location
 app.mount("/valis-lvmvis-api", app)
 

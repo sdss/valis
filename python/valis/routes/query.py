@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field, BeforeValidator
 
+from valis.cache import valis_cache
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
 from valis.db.models import SDSSidStackedBase, SDSSidPipesBase, MapperName, SDSSModel
@@ -16,6 +17,7 @@ from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               get_targets_by_sdss_id, get_targets_by_catalog_id,
                               get_targets_obs, get_paged_target_list_by_mapper,
                               get_target_by_altid)
+from valis.routes.auth import set_auth
 from sdssdb.peewee.sdss5db import database, catalogdb
 
 # convert string floats to proper floats
@@ -80,9 +82,10 @@ class QueryRoutes(Base):
     #         filter(vizdb.SDSSidStacked.cone_search(ra, dec, radius, ra_col='ra_sdss_id', dec_col='dec_sdss_id')).all()
 
     @router.post('/main', summary='Main query for the UI or combining queries',
-                 dependencies=[Depends(get_pw_db)],
+                 dependencies=[Depends(get_pw_db), Depends(set_auth)],
                  response_model=MainSearchResponse, response_model_exclude_unset=True,
                  response_model_exclude_none=True)
+    @valis_cache(namespace='valis-query')
     async def main_search(self, body: SearchModel):
         """ Main query for UI and for combining queries together """
 
@@ -117,13 +120,15 @@ class QueryRoutes(Base):
         if query:
             query = append_pipes(query, observed=body.observed, release=self.release)
 
-        # query iterator
-        res = query.dicts().iterator() if query else []
+        # Results. Note that we cannot return an iterator in a cached route or the
+        # initial query (when it does not hit the cache) will return an empty list.
+        res = list(query.dicts()) if query else []
 
         return {'status': 'success', 'data': res, 'msg': 'data successfully retrieved'}
 
     @router.get('/cone', summary='Perform a cone search for SDSS targets with sdss_ids',
-                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db), Depends(set_auth)])
+    @valis_cache(namespace='valis-query')
     async def cone_search(self,
                           ra: Annotated[Union[float, str], Query(description='Right Ascension in degrees or hmsdms', example=315.78)],
                           dec: Annotated[Union[float, str], Query(description='Declination in degrees or hmsdms', example=-3.2)],
@@ -136,10 +141,12 @@ class QueryRoutes(Base):
         r = append_pipes(res, observed=observed, release=self.release)
         # return sorted by distance
         # doing this here due to the append_pipes distinct
-        return sorted(r.dicts().iterator(), key=lambda x: x['distance'])
+        return sorted(r.dicts(), key=lambda x: x['distance'])
 
     @router.get('/sdssid', summary='Perform a search for an SDSS target based on the sdss_id',
-                response_model=Union[SDSSidStackedBase, dict], dependencies=[Depends(get_pw_db)])
+                response_model=Union[SDSSidStackedBase, dict],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
+    @valis_cache(namespace='valis-query')
     async def sdss_id_search(self, sdss_id: Annotated[int, Query(description='Value of sdss_id', example=47510284)]):
         """ Perform an sdss_id search.
 
@@ -157,13 +164,15 @@ class QueryRoutes(Base):
         return targets or {}
 
     @router.post('/sdssid', summary='Perform a search for SDSS targets based on a list of sdss_id values',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSidStackedBase],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def sdss_ids_search(self, body: SDSSIdsModel):
         """ Perform a search for SDSS targets based on a list of input sdss_id values."""
         return list(get_targets_by_sdss_id(body.sdss_id_list))
 
     @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSidStackedBase],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def catalog_id_search(self, catalog_id: Annotated[int, Query(description='Value of catalog_id', example=7613823349)]):
         """ Perform a catalog_id search """
 
@@ -171,6 +180,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/cartons', summary='Return a list of all cartons',
                 response_model=list, dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def cartons(self):
         """ Return a list of all carton or programs """
 
@@ -178,6 +188,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/programs', summary='Return a list of all programs',
                 response_model=list, dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def programs(self):
         """ Return a list of all carton or programs """
 
@@ -185,6 +196,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/program-map', summary='Return a mapping of cartons in all programs',
                 response_model=Dict[str, List[str]], dependencies=[Depends(get_pw_db)])
+    @valis_cache(namespace='valis-query')
     async def program_map(self):
         """ Return a mapping of cartons in all programs """
 
@@ -192,6 +204,7 @@ class QueryRoutes(Base):
 
     @router.get('/list/parents', summary='Return a list of available parent catalog tables',
                 response_model=List[str])
+    @valis_cache(namespace='valis-query')
     async def parent_catalogs(self):
         """Return a list of available parent catalog tables."""
 
@@ -204,7 +217,9 @@ class QueryRoutes(Base):
         return sorted(catalogs)
 
     @router.get('/carton-program', summary='Search for all SDSS targets within a carton or program',
-                response_model=List[SDSSModel], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSModel],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
+    @valis_cache(namespace='valis-query')
     async def carton_program(self,
                              name: Annotated[str, Query(description='Carton or program name', example='manual_mwm_tess_ob')],
                              name_type: Annotated[str,
@@ -222,10 +237,12 @@ class QueryRoutes(Base):
             query = carton_program_search(name, name_type, limit=limit)
             query = append_pipes(query, observed=observed)
 
-            return query.dicts().iterator()
+            # The list() is necessary here to not return a generator in the cached route.
+            return list(query.dicts())
 
     @router.get('/obs', summary='Return targets with spectrum at observatory',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSidStackedBase],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def obs(self,
                   release: Annotated[str, Query(description='Data release to query', example='IPL3')],
                   obs: Annotated[str,
@@ -241,7 +258,8 @@ class QueryRoutes(Base):
         return list(get_targets_obs(release, obs, spectrograph))
 
     @router.get('/mapper', summary='Perform a search for SDSS targets based on the mapper',
-                response_model=List[SDSSidStackedBase], dependencies=[Depends(get_pw_db)])
+                response_model=List[SDSSidStackedBase],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def get_target_list_by_mapper(self,
                                         mapper: Annotated[MapperName, Query(description='Mapper name', example=MapperName.MWM)] = MapperName.MWM,
                                         page_number: Annotated[int, Query(description='Page number of the returned items', gt=0, example=1)] = 1,

@@ -53,7 +53,7 @@ class SDSSidStackedBase(PeeweeBase):
     dec_sdss_id: Optional[float] = Field(..., description='Declination of the most recent cross-match catalogid')
     catalogid21: Optional[int] = Field(None, description='the version 21 catalog id')
     catalogid25: Optional[int] = Field(None, description='the version 25 catalog id')
-    catalogid31: Optional[int] = Field(None, description='the version 31 catalog id')
+    #catalogid31: Optional[int] = Field(None, description='the version 31 catalog id')  # TODO - uncomment when v1 crossmatch is made public
     last_updated: datetime.date = Field(None, description='the date the sdss_id row was last updated', exclude=True)
 
     @field_serializer('last_updated')
@@ -248,7 +248,7 @@ class PipeFiles(BaseModel):
     """ Pydantic model for lists of files """
     boss: Optional[str] = None
     apogee: Optional[str] = None
-    astra: Optional[str] = None
+    astra: Optional[list[str]] = None
 
 
 class PipesModel(PeeweeBase):
