@@ -583,9 +583,9 @@ class LVM(Base):
             Specifies the SFrame RSS file used to retrieve the averaged spectrum.
             The paramter signature is as follows:
 
-            ```DRPversion/tile_id/mjd/expnum```
+            ```DRPversion/expnum```
 
-            For example, `id:1.1.0/1028004/60256/07371`.
+            For example, `id:1.1.0/07371`.
 
             _NOTE:_ Queries with identifiers for non-existing files will
             return a **404 NotFound** error. Incorrect formatting of the `id`
@@ -657,29 +657,29 @@ class LVM(Base):
         ## Examples
 
 
-        1. `https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/1028990/60327/11121`
+        1. `https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/11121`
 
             A minimal example showing the default median spectrum of good science
             fibers for exposure 11121.
 
-            [![Example1](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/1028990/60327/11121 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/1028990/60327/11121)
+            [![Example1](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/11121 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/11121)
 
         2. ```
             https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?
-                l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;lw:0.5;color:red&
+                l=id:1.1.0/15084;type:flux;method:mean;lw:0.5;color:red&
                 xmin=6540&xmax=6750&ymin=0&ymax=1.5e-13&width=4&height=5
             ```
             This example demonstrates the spectrum around the H-alpha line with
             custom size of the plot.
 
-            [![Example2](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;lw:0.5;color:red&xmin=6540&xmax=6750&ymin=0&ymax=1.5e-13&width=4&height=5 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;lw:0.5;color:red&xmin=6540&xmax=6750&ymin=0&ymax=1.5e-13&width=4&height=5)
+            [![Example2](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/15084;type:flux;method:mean;lw:0.5;color:red&xmin=6540&xmax=6750&ymin=0&ymax=1.5e-13&width=4&height=5 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/15084;type:flux;method:mean;lw:0.5;color:red&xmin=6540&xmax=6750&ymin=0&ymax=1.5e-13&width=4&height=5)
 
 
         3. ```
             https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?
-                l=id:1.1.0/1050095/60396/15084;type:skyflux;method:mean;color:blue;lw:0.3&
-                l=id:1.1.0/1050095/60396/15084;type:err;method:mean;color:gray;alpha:0.7&
-                l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;color:darkred&
+                l=id:1.1.0/15084;type:skyflux;method:mean;color:blue;lw:0.3&
+                l=id:1.1.0/15084;type:err;method:mean;color:gray;alpha:0.7&
+                l=id:1.1.0/15084;type:flux;method:mean;color:darkred&
                 ypmax=99
             ```
             Plotting three spectra retrieved from the same SFrame (exposure
@@ -687,19 +687,19 @@ class LVM(Base):
             derived from the `IVAR` extension, is calculated as
             `err = np.sqrt(np.mean(1 / IVAR))`.
 
-            [![Example3](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/1050095/60396/15084;type:skyflux;method:mean;color:blue;lw:0.3&l=id:1.1.0/1050095/60396/15084;type:err;method:mean;color:gray;alpha:0.7&l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;color:darkred&ypmax=99 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/1050095/60396/15084;type:skyflux;method:mean;color:blue;lw:0.3&l=id:1.1.0/1050095/60396/15084;type:err;method:mean;color:gray;alpha:0.7&l=id:1.1.0/1050095/60396/15084;type:flux;method:mean;color:darkred&ypmax=99)
+            [![Example3](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/15084;type:skyflux;method:mean;color:blue;lw:0.3&l=id:1.1.0/15084;type:err;method:mean;color:gray;alpha:0.7&l=id:1.1.0/15084;type:flux;method:mean;color:darkred&ypmax=99 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.1.0/15084;type:skyflux;method:mean;color:blue;lw:0.3&l=id:1.1.0/15084;type:err;method:mean;color:gray;alpha:0.7&l=id:1.1.0/15084;type:flux;method:mean;color:darkred&ypmax=99)
 
         4. ```
             https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?
-                l=id:1.0.3/1050095/60396/15084;color:red;lw:0.4&
-                l=id:1.1.0/1050095/60396/15084;color:purple&
+                l=id:1.0.3/15084;color:red;lw:0.4&
+                l=id:1.1.0/15084;color:purple&
                 legend=long&ymin=-2e-13&ymax=2e-13&
                 title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084
             ```
 
             Example of spectra retrieved from separate SFrames: one for DRP version 1.0.3 and another for 1.1.0.
 
-            [![Example4](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.0.3/1050095/60396/15084;color:red;lw:0.4&l=id:1.1.0/1050095/60396/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.0.3/1050095/60396/15084;color:red;lw:0.4&l=id:1.1.0/1050095/60396/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084)
+            [![Example4](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.0.3/15084;color:red;lw:0.4&l=id:1.1.0/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.0.3/15084;color:red;lw:0.4&l=id:1.1.0/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084)
         """
 
         FACTOR = 1
