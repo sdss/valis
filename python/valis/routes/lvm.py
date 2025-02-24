@@ -455,7 +455,7 @@ class LVM(Base):
             file = get_SFrame_filename(expnum, drpver)
 
             if not os.path.exists(file):
-                raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
+                raise HTTPException(status_code=404, detail=f"File {file} does not exist.")
 
             # Read data and construct required spectrum to be plotted
             with fits.open(file) as hdul:
@@ -487,8 +487,8 @@ class LVM(Base):
 
         for d in data:
             legend_options = dict(
-                short="{expnum} {fiberid}".format(**d),
-                long="{expnum} {fiberid} {drpver}".format(**d),
+                short="expnum: {expnum} fiberid: {fiberid}".format(**d),
+                long="expnum: {expnum} fiberid: {fiberid} drpver: {drpver}".format(**d),
             )
             label  = legend_options.get(legend, None)
             try:
