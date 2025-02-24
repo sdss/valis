@@ -184,9 +184,9 @@ def parse_line_query_fiber(line: str) -> Dict[str, Any]:
 def get_LVM_drpall_record(expnum: int, drpver: int) -> Dict[str, Any]:
     "Function to get record from drpall file for a given exposure number"
 
-    drp_file = f"/root/sas/sdsswork/lvm/spectro/redux/{drpver}/drpall-{drpver}.fits"
+    drp_file = f"/data/sdss/sas/sdsswork/lvm/spectro/redux/{drpver}/drpall-{drpver}.fits"
     if not os.path.exists(drp_file):
-        drp_file = f"/root/sas/sdsswork/lvm/spectro/redux/{LAST_DRP_VERSION}/drpall-{LAST_DRP_VERSION}.fits"
+        drp_file = f"/data/sdss/sas/sdsswork/lvm/spectro/redux/{LAST_DRP_VERSION}/drpall-{LAST_DRP_VERSION}.fits"
 
     drpall = fits.getdata(drp_file)
     record = drpall[drpall['EXPNUM'] == expnum][0]
@@ -198,7 +198,7 @@ def get_SFrame_filename(expnum: int, drpver: int) -> str:
     "Function to get SFrame filename for a given exposure number"
 
     drp_record = get_LVM_drpall_record(expnum, drpver)
-    file = f"/root/sas/" + drp_record['location']
+    file = f"/data/sdss/sas/" + drp_record['location']
 
     # if drpall.fits file does not exist for the given drpver, it tries to the last version
     # But we interested in the requested drpver SFrame, need to replace it in the file path
@@ -310,7 +310,7 @@ class LVM(Base):
         else:
             filename = f"lvm/spectro/redux/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
 
-        file = f"/root/sas/sdsswork/" + filename
+        file = f"/data/sdss/sas/sdsswork/" + filename
 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
@@ -856,7 +856,7 @@ class LVM(Base):
         else:
             filename = f"lvm/spectro/analysis/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
 
-        file = f"/root/sas/sdsswork/" + filename
+        file = f"/data/sdss/sas/sdsswork/" + filename
 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
