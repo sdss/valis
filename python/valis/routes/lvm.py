@@ -249,8 +249,7 @@ class LVM(Base):
         else:
             filename = f"lvm/spectro/redux/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
 
-        DATA_ROOT = f"/data/sdss/sas/sdsswork/"
-        file = DATA_ROOT + filename
+        file = f"/root/sas/sdsswork/" + filename
 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
@@ -439,7 +438,6 @@ class LVM(Base):
             [![Example4](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.0.3/1050095/60396/15084;color:red;lw:0.4&l=id:1.1.0/1050095/60396/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/spectrum_exposure_plot/?l=id:1.0.3/1050095/60396/15084;color:red;lw:0.4&l=id:1.1.0/1050095/60396/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084)
         """
 
-        DATA_ROOT = f"/data/sdss/sas/sdsswork/"
         FACTOR = 1
 
         if not l:
@@ -468,7 +466,7 @@ class LVM(Base):
             else:
                 filename = f"lvm/spectro/redux/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
 
-            file = DATA_ROOT + filename
+            file = f"/root/sas/sdsswork/" + filename
 
             if not os.path.exists(file):
                 raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
@@ -597,8 +595,7 @@ class LVM(Base):
         else:
             filename = f"lvm/spectro/analysis/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
 
-        DATA_ROOT = f"/data/sdss/sas/sdsswork/"
-        file = DATA_ROOT + filename
+        file = f"/data/sdss/sas/sdsswork/" + filename
 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
