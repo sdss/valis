@@ -130,7 +130,7 @@ def parse_line_query_exposure(line: str) -> Dict[str, Any]:
 
     # Validate mandatory fields
     if "id" not in parsed:
-        raise ValueError(f"'id' must be provided in shape drpversion/tile_id/mjd/expnum i.e. 1.1.0/1028028/60260/7591.")
+        raise ValueError(f"'id' must be provided in shape drpversion/expnum i.e. 1.1.0/7591.")
 
     if "type" not in parsed or parsed["type"] not in ALLOWED_LINE_TYPES:
         raise ValueError(f"'type' must be one of {ALLOWED_LINE_TYPES}.")
@@ -181,25 +181,40 @@ def parse_line_query_fiber(line: str) -> Dict[str, Any]:
     return parsed
 
 
+def get_LVM_drpall_record(expnum: int, drpver: int) -> Dict[str, Any]:
+    "Function to get record from drpall file for a given exposure number"
+
+    drp_file = f"/root/sas/sdsswork/lvm/spectro/redux/{drpver}/drpall-{drpver}.fits"
+    if not os.path.exists(drp_file):
+        drp_file = f"/root/sas/sdsswork/lvm/spectro/redux/{LAST_DRP_VERSION}/drpall-{LAST_DRP_VERSION}.fits"
+
+    drpall = fits.getdata(drp_file)
+    record = drpall[drpall['EXPNUM'] == expnum][0]
+
+    return {name: record[name] for name in drpall.names}
+
+
+def get_SFrame_filename(expnum: int, drpver: int) -> str:
+    "Function to get SFrame filename for a given exposure number"
+
+    drp_record = get_LVM_drpall_record(expnum, drpver)
+    file = f"/root/sas/" + drp_record['location']
+
+    # if drpall.fits file does not exist for the given drpver, it tries to the last version
+    # But we interested in the requested drpver SFrame, need to replace it in the file path
+    if drp_record['drpver'] != drpver:
+        file = file.replace(drp_record['drpver'], drpver)
+
+    return file
+
+
 @cbv(router)
 class LVM(Base):
     """ Endpoints for dealing with HiPS cutouts """
 
-    def get_LVM_drpall_record(self, expnum, version):
-        "Function to get record from drpall file for a given exposure number"
-
-        drp_file = f"/root/sas/sdsswork/lvm/spectro/redux/{version}/drpall-{version}.fits"
-        if not os.path.exists(drp_file):
-            drp_file = f"/root/sas/sdsswork/lvm/spectro/redux/{LAST_DRP_VERSION}/drpall-{LAST_DRP_VERSION}.fits"
-
-        drpall = fits.getdata(drp_file)
-        record = drpall[drpall['EXPNUM'] == expnum][0]
-
-        return {name: record[name] for name in drpall.names}
-
     @router.get("/cutout/image/{version}/{hips}", summary='Extract image cutout from HiPS maps')
     async def get_image(self,
-                        version: str = Path(..., enum=['1.1.0', '1.0.3', '1.0.3b'], description="DRP/DAP version", example='1.1.0'),
+                        version: str = Path(..., enum=['1.1.1', '1.1.0', '1.0.3', '1.0.3b'], description="DRP/DAP version", example='1.1.0'),
                         hips: str = Path(..., description="HiPS name including version. Should be available at https://data.sdss5.org/sas/sdsswork/sandbox/data-viz/hips/sdsswork/lvm", example='hips_flx_Halpha'),
                         format: ImageFormat = Query('png', description='Format of the output image', example='png'),
                         ra: float = Query(..., description="Right Ascension in degrees (ICRS) or Galactic longitude `l` (in degrees) if `coordsys` is `galactic`.", example=13.14033),
@@ -424,22 +439,20 @@ class LVM(Base):
         for d in data:
             # Parse id into LVM identifiers
             try:
-                version, expnum, fiberid = d['id'].split('/')
+                drpver, expnum, fiberid = d['id'].split('/')
                 expnum, fiberid = int(expnum), int(fiberid)
 
                 if not 1 <= fiberid <= 1944:
                     raise HTTPException(status_code=400,
                                         detail=f"`fiberid` ({fiberid}) must be between 1 and 1944.")
 
-                d['version'], d['expnum'], d['fiberid'] = version, expnum, fiberid
+                d['drpver'], d['expnum'], d['fiberid'] = drpver, expnum, fiberid
             except ValueError as e:
                 raise HTTPException(status_code=400,
                                     detail=("Invalid `id` parameter. Must be in the format `DRPversion/expnum/fiberid` "
                                             "i.e. `id:1.1.0/7371/532`"))
 
-            # extract information from DRPALL file
-            drp_record = self.get_LVM_drpall_record(int(expnum), version)
-            file = f"/root/sas/" + drp_record['location']
+            file = get_SFrame_filename(expnum, drpver)
 
             if not os.path.exists(file):
                 raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
@@ -466,7 +479,7 @@ class LVM(Base):
                     raise ValueError(f"Invalid type: {d['type']}")
 
             # Extract additional plotting kwargs
-            non_plot_keys = {'id', 'version', 'expnum', 'fiberid', 'type', 'array'}
+            non_plot_keys = {'id', 'drpver', 'expnum', 'fiberid', 'type', 'array'}
             d['plot_kwargs'] = {key: value for key, value in d.items() if key not in non_plot_keys}
 
         # Create a plot
@@ -475,7 +488,7 @@ class LVM(Base):
         for d in data:
             legend_options = dict(
                 short="{expnum} {fiberid}".format(**d),
-                long="{expnum} {fiberid} {version}".format(**d),
+                long="{expnum} {fiberid} {drpver}".format(**d),
             )
             label  = legend_options.get(legend, None)
             try:
@@ -703,21 +716,16 @@ class LVM(Base):
         for d in data:
             # parse id into standard LVM id and create full path to SFRame
             try:
-                version, tile_id, mjd, exposure = d['id'].split('/')
-                d['version'], d['tile_id'], d['mjd'], d['exposure'] = version, tile_id, mjd, exposure
+                drpver, expnum = d['id'].split('/')
+                expnum = int(expnum)
+                d['drpver'], d['expnum'] = drpver, expnum
             except ValueError as e:
                 raise HTTPException(
                     status_code=400,
-                    detail=("Invalid `id` parameter. Must be in the format `DRPversion/tile_id/mjd/exposure` "
-                            "i.e. `id:1.1.0/1028004/60256/07371`"))
+                    detail=("Invalid `id` parameter. Must be in the format `DRPversion/expnum` "
+                            "i.e. `id:1.1.0/7371`"))
 
-            suffix = str(exposure).zfill(8)
-            if tile_id == 11111:
-                filename = f"lvm/spectro/redux/{version}/0011XX/11111/{mjd}/lvmSFrame-{suffix}.fits"
-            else:
-                filename = f"lvm/spectro/redux/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
-
-            file = f"/root/sas/sdsswork/" + filename
+            file = get_SFrame_filename(expnum, drpver)
 
             if not os.path.exists(file):
                 raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
@@ -773,7 +781,7 @@ class LVM(Base):
                     raise HTTPException(status_code=400, detail=str(e))
 
             # Extract additional plotting kwargs
-            non_plot_keys = {'id', 'version', 'tile_id', 'mjd', 'exposure', 'type',
+            non_plot_keys = {'id', 'drpver', 'tile_id', 'mjd', 'expnum', 'type',
                              'method', 'telescope', 'fibstatus', 'array', 'percentile_value'}
             d['plot_kwargs'] = {key: value for key, value in d.items() if key not in non_plot_keys}
 
@@ -782,8 +790,8 @@ class LVM(Base):
 
         for d in data:
             legend_options = dict(
-                short="{exposure} {method}({type})".format(**d),
-                long="{exposure} {method}({type}) {telescope} {version}".format(**d),
+                short="{expnum} {method}({type})".format(**d),
+                long="{expnum} {method}({type}) {telescope} {drpver}".format(**d),
             )
             label  = legend_options.get(legend, None)
             try:
@@ -828,7 +836,7 @@ class LVM(Base):
 
         return StreamingResponse(buffer,
                                  media_type=media_types[format],
-                                 headers={"Content-Disposition": f'inline; filename=lvm_spectrum_{exposure}.{format}',
+                                 headers={"Content-Disposition": f'inline; filename=lvm_spectrum_{expnum}.{format}',
                                           "Content-Length": str(buffer.getbuffer().nbytes)})
 
     @router.get('/dap_lines/{tile_id}/{mjd}/{exposure}',
