@@ -856,7 +856,7 @@ class LVM(Base):
         else:
             filename = f"lvm/spectro/analysis/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
 
-        file = f"/data/sdss/sas/sdsswork/" + filename
+        file = f"/root/sas/sdsswork/" + filename
 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
