@@ -6307,16 +6307,26 @@ develop = false
 
 [package.dependencies]
 diskcache = ">=5.6.3"
-numpy = "*"
-plotly = "*"
-solara = ">=1.40.0"
-vaex = ">=4.17.0"
+dotenv = "*"
+fastapi = "*"
+gunicorn = "20.1.0"
+numpy = ">=1.26.4,<2.0.0"
+plotly = ">=5.18.0,<6.0.0"
+pydantic-settings = ">=2.8.0"
+solara = ">=1.40.0,<=1.42.0"
+vaex-core = ">=4.17.0"
+vaex-hdf5 = "*"
+xarray = "*"
+
+[package.extras]
+dev = ["pynvim", "pytest (>=7.0)"]
+docs = ["griffe-pydantic", "mkdocs", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-material", "mkdocs-section-index", "mkdocstrings", "mkdocstrings-python"]
 
 [package.source]
 type = "git"
 url = "https://github.com/sdss/explorer.git"
-reference = "HEAD"
-resolved_reference = "fea584cdcc2ca6a032100b0f231038e93e0e73cd"
+reference = "crossmatch-docs-vue"
+resolved_reference = "6fb2b0642b871324f208697654f084d8cac36e98"
 
 [[package]]
 name = "sdss_solara"
