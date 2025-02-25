@@ -6343,7 +6343,6 @@ develop = false
 jdaviz = ">3.8"
 python-dotenv = ">1.0"
 sdss-access = ">3.0.2"
-sdss_explorer = {git = "https://github.com/sdss/explorer.git"}
 sdss-tree = ">4.0.3"
 solara = ">0.30.0"
 
@@ -6354,8 +6353,8 @@ test = ["pytest", "pytest-doctestplus"]
 [package.source]
 type = "git"
 url = "https://github.com/sdss/sdss_solara.git"
-reference = "main"
-resolved_reference = "5dbc4357a67941e6c35c380f8b1cb09691091bdd"
+reference = "riley"
+resolved_reference = "729be340a20093fd4782154a6afbfcfd5ea92c1c"
 
 [[package]]
 name = "sdss-tree"
