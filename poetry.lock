@@ -7431,9 +7431,9 @@ vaex = ">=4.17.0"
 
 [package.source]
 type = "git"
-url = "ssh://git@github.com/sdss/explorer.git"
-reference = "HEAD"
-resolved_reference = "307399f6e22b07b4e3b28a78299fc6ff44c836ac"
+url = "https://github.com/sdss/explorer.git"
+reference = "crossmatch-docs-vue"
+resolved_reference = "6fb2b0642b871324f208697654f084d8cac36e98"
 
 [[package]]
 name = "sdss_solara"
@@ -7452,7 +7452,7 @@ markdown = "*"
 photutils = ">1.13"
 python-dotenv = ">1.0"
 sdss-access = ">3.0.2"
-sdss-explorer = {git = "ssh://git@github.com/sdss/explorer.git"}
+sdss-explorer = {git = "https://github.com/sdss/explorer.git"}
 sdss-tree = ">4.0.3"
 solara = {version = ">1.41.0", extras = ["all"]}
 solara-ui = {version = ">1.41.0", extras = ["all"]}

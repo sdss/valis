@@ -47,19 +47,19 @@ RUN git config --global credential.helper 'store --file=/root/.git-credentials' 
 # Install poetry and project dependencies
 RUN pip install poetry && \
     poetry config virtualenvs.create false && \
-    poetry install -E solara --no-root && \
+    poetry install -E solara --no-root -vvv && \
     rm -rf ~/.cache
-
-# Remove credentials after use
-RUN rm /root/.git-credentials && \
-    git config --global --unset credential.helper
 
 # Stage 2: Development stage for the project
 FROM dep-stage as dev-stage
 
 # Copy the main project files over and install
 COPY ./ ./
-RUN poetry install -E solara --only main
+RUN poetry install -E solara --only main -vvv
+
+# Remove credentials after use
+RUN rm /root/.git-credentials && \
+    git config --global --unset credential.helper
 
 # Create dir for socket and logs
 RUN mkdir -p /tmp/webapp
