@@ -4,8 +4,14 @@ FROM python:3.10-slim as dep-stage
 # Set up app dir
 WORKDIR /tmp
 
+# UV settings
+# Enable bytecode compilation, copy from cache instal of links b/c mounted, dont download python
+ENV UV_COMPILE_BYTECODE=1 
+ENV UV_LINK_MODE=copy 
+ENV UV_PYTHON_DOWNLOADS=0 
+
 # Copy project files over
-COPY ./pyproject.toml ./poetry.lock ./
+COPY ./pyproject.toml ./uv.lock ./
 
 # Install system prereq packages
 RUN apt-get update && \
@@ -28,13 +34,6 @@ ENV PATH="/root/.cargo/bin:$PATH"
 # Add a command to check if cargo is available
 RUN cargo --version
 
-# setup correct wheels for vaex
-# normal build hangs/fails like https://github.com/vaexio/vaex/issues/2382
-# temp solution, see https://github.com/vaexio/vaex/pull/2331
-ENV PIP_FIND_LINKS=https://github.com/ddelange/vaex/releases/expanded_assets/core-v4.17.1.post4
-RUN pip install --force-reinstall vaex
-ENV PIP_FIND_LINKS=
-
 # need github creds for install of private sdss_explorer
 # Arguments to pass credentials
 ARG GITHUB_TOKEN
@@ -44,18 +43,20 @@ ARG GITHUB_USER
 RUN git config --global credential.helper 'store --file=/root/.git-credentials' && \
     echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /root/.git-credentials
 
-# Install poetry and project dependencies
-RUN pip install poetry && \
-    poetry config virtualenvs.create false && \
-    poetry install -E solara --no-root -vvv && \
-    rm -rf ~/.cache
+# Installing uv and then project dependencies
+RUN pip install uv
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
 
 # Stage 2: Development stage for the project
 FROM dep-stage as dev-stage
 
 # Copy the main project files over and install
 COPY ./ ./
-RUN poetry install -E solara --only main -vvv
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
 # Remove credentials after use
 RUN rm /root/.git-credentials && \
