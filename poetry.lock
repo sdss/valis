@@ -456,29 +456,29 @@ test = ["hypothesis", "pytest", "pytest-remotedata"]
 
 [[package]]
 name = "astroquery"
-version = "0.4.9.post1"
+version = "0.4.7"
 description = "Functions and classes to access online astronomical data resources"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "astroquery-0.4.9.post1-py3-none-any.whl", hash = "sha256:d3e4af26bc57ce1822c1a89963f5096e89f3b8eb414341e0643cb235fee32f50"},
-    {file = "astroquery-0.4.9.post1.tar.gz", hash = "sha256:5c116bf19036d71e9321d4a049875af55349a4888e24844558fe9984b9f57197"},
+    {file = "astroquery-0.4.7-py3-none-any.whl", hash = "sha256:dfa8ca46ca0a983f66e9547c774601b331770242f9f6245df5e603f795d75540"},
+    {file = "astroquery-0.4.7.tar.gz", hash = "sha256:047fbacb0a4faec4cdb62675e919c244c1c35e661044fcbb6c9a933331747ec9"},
 ]
 
 [package.dependencies]
-astropy = ">=5.0"
+astropy = ">=4.2.1"
 beautifulsoup4 = ">=4.8"
 html5lib = ">=0.999"
 keyring = ">=15.0"
-numpy = ">=1.20"
-pyvo = ">=1.5"
+numpy = ">=1.18"
+pyvo = ">=1.1"
 requests = ">=2.19"
 
 [package.extras]
-all = ["astropy-healpix", "boto3", "mocpy (>=0.12)", "regions (>=0.5)"]
-docs = ["fsspec[http]", "matplotlib", "scipy", "sphinx-astropy (>=1.5)", "sphinx-automodapi (<0.18)"]
-test = ["fsspec[http]", "matplotlib", "moto[s3]", "pytest-astropy", "pytest-dependency", "pytest-rerunfailures"]
+all = ["astropy-healpix", "boto3", "mocpy (>=0.9)", "regions"]
+docs = ["fsspec[http]", "matplotlib", "scipy", "sphinx-astropy (>=1.5)"]
+test = ["matplotlib", "pytest-astropy", "pytest-dependency", "pytest-rerunfailures"]
 
 [[package]]
 name = "asttokens"
@@ -7432,8 +7432,8 @@ vaex = ">=4.17.0"
 [package.source]
 type = "git"
 url = "https://github.com/sdss/explorer.git"
-reference = "crossmatch-docs-vue"
-resolved_reference = "6fb2b0642b871324f208697654f084d8cac36e98"
+reference = "HEAD"
+resolved_reference = "307399f6e22b07b4e3b28a78299fc6ff44c836ac"
 
 [[package]]
 name = "sdss_solara"
@@ -9750,4 +9750,4 @@ solara = ["sdss-solara"]
 [metadata]
 lock-version = "2.1"
 python-versions = "~3.10"
-content-hash = "2637079ec4983c87ce71401b4649bd505212a432c203c29c6b4f18814a7a9a3b"
+content-hash = "349486c57fb9544b4f90afad82d5134ce2bfadabd132d81e62dbb295939e8a4e"
