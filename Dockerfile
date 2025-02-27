@@ -86,4 +86,4 @@ LABEL org.opencontainers.image.description "valis production image"
 EXPOSE 8000
 
 # Start the FastAPI app for production
-CMD ["poetry", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
+CMD ["uv", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
