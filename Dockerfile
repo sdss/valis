@@ -56,7 +56,7 @@ FROM dep-stage as dev-stage
 # Copy the main project files over and install
 COPY ./ ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev -f ./pyproject.toml --extra solara
 
 # Remove credentials after use
 RUN rm /root/.git-credentials && \
