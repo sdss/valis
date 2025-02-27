@@ -4963,7 +4963,7 @@ wheels = [
 [[package]]
 name = "sdss-explorer"
 version = "0.0.2"
-source = { git = "https://github.com/sdss/explorer.git?rev=crossmatch-docs-vue#57249c773c32d8de71e0457e39b60197916313da" }
+source = { git = "https://github.com/sdss/explorer.git?rev=crossmatch-docs-vue#834cf07576b49db2fd6657f6d85d8db76575a9b3" }
 dependencies = [
     { name = "diskcache" },
     { name = "dotenv" },
