@@ -1,4 +1,5 @@
 # Ignore .git dirs
+.venv
 .git
 .github
 
