@@ -1,7 +1,7 @@
 # Stage 1: Development stage for Python dependencies
 FROM python:3.10-slim as dep-stage
 
-# Set up app dir
+# Set up tmp dir
 WORKDIR /tmp
 
 # UV settings
@@ -11,7 +11,7 @@ ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_DOWNLOADS=0 
 
 # Copy project files over
-COPY ./pyproject.toml ./uv.lock ./
+COPY ./pyproject.toml ./uv.lock /tmp
 
 # Install system prereq packages
 RUN apt-get update && \
@@ -20,19 +20,8 @@ RUN apt-get update && \
         git \
         # these are for h5py in sdss_explorer
         curl libhdf5-dev pkg-config \
-        # these are for vaex
-        libpcre3 libpcre3-dev gcc g++ libboost-all-dev \
-        libffi-dev python3-dev libxml2-dev libxslt-dev \
-        libpq-dev zlib1g-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Install Rust for sdss_explorer
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && . /root/.cargo/env
-ENV PATH="/root/.cargo/bin:$PATH"
-
-# Add a command to check if cargo is available
-RUN cargo --version
 
 # need github creds for install of private sdss_explorer
 # Arguments to pass credentials
@@ -48,7 +37,7 @@ RUN pip install uv
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev --extra solara
 
 # Stage 2: Development stage for the project
 FROM dep-stage as dev-stage
@@ -56,7 +45,7 @@ FROM dep-stage as dev-stage
 # Copy the main project files over and install
 COPY ./ ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev -f ./pyproject.toml --extra solara
+    uv sync --frozen --no-dev --extra solara
 
 # Remove credentials after use
 RUN rm /root/.git-credentials && \
@@ -67,6 +56,7 @@ RUN mkdir -p /tmp/webapp
 
 # Setting environment variables
 # these can be manually overridden
+ENV PATH="/tmp/.venv/bin:$PATH"
 ENV MODULE_NAME="valis.wsgi"
 ENV VALIS_SOCKET_DIR='/tmp/webapp'
 ENV VALIS_LOGS_DIR='/tmp/webapp'
