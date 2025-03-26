@@ -1,5 +1,5 @@
 # Stage 1: Development stage for Python dependencies
-FROM python:3.10-slim as dep-stage
+FROM python:3.10-slim AS dep-stage
 
 # Set up app dir
 WORKDIR /tmp
@@ -35,27 +35,14 @@ ENV PIP_FIND_LINKS=https://github.com/ddelange/vaex/releases/expanded_assets/cor
 RUN pip install --force-reinstall vaex
 ENV PIP_FIND_LINKS=
 
-# need github creds for install of private sdss_explorer
-# Arguments to pass credentials
-ARG GITHUB_TOKEN
-ARG GITHUB_USER
-
-# Configure git to use the token
-RUN git config --global credential.helper 'store --file=/root/.git-credentials' && \
-    echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /root/.git-credentials
-
 # Install poetry and project dependencies
 RUN pip install poetry && \
     poetry config virtualenvs.create false && \
     poetry install -E solara --no-root && \
     rm -rf ~/.cache
 
-# Remove credentials after use
-RUN rm /root/.git-credentials && \
-    git config --global --unset credential.helper
-
 # Stage 2: Development stage for the project
-FROM dep-stage as dev-stage
+FROM dep-stage AS dev-stage
 
 # Copy the main project files over and install
 COPY ./ ./
@@ -75,11 +62,11 @@ ENV VALIS_ENV="production"
 ENV SOLARA_CHECK_HOOKS="off"
 
 # Stage 3: Build stage (inherits from dev-stage)
-FROM dev-stage as build-stage
+FROM dev-stage AS build-stage
 
 # Set a label
-LABEL org.opencontainers.image.source https://github.com/sdss/valis
-LABEL org.opencontainers.image.description "valis production image"
+LABEL org.opencontainers.image.source=https://github.com/sdss/valis
+LABEL org.opencontainers.image.description="valis production image"
 
 # Expose the port
 EXPOSE 8000

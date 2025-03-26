@@ -8,11 +8,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Python 3.10
       id: setup-python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: "3.10"
 
@@ -22,7 +22,7 @@ jobs:
         virtualenvs-path: ~/.virtualenvs
 
     - name: Cache Poetry virtualenv
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       id: cache
       with:
         path: ~/.virtualenvs

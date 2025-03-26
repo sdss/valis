@@ -617,6 +617,31 @@ webencodings = "*"
 css = ["tinycss2 (>=1.1.0,<1.3)"]
 
 [[package]]
+name = "bokeh"
+version = "3.7.0"
+description = "Interactive plots and applications in the browser from Python"
+optional = true
+python-versions = ">=3.10"
+groups = ["main"]
+markers = "extra == \"solara\""
+files = [
+    {file = "bokeh-3.7.0-py3-none-any.whl", hash = "sha256:0e53301e5ac26f7545b51961e8851351e809f23a2caa7fc37c44f377ece759c4"},
+    {file = "bokeh-3.7.0.tar.gz", hash = "sha256:f19d74e40066a8c237ced80c181fd1329c3b28a9cf347126ea1409f90a9c7874"},
+]
+
+[package.dependencies]
+contourpy = ">=1.2"
+Jinja2 = ">=2.9"
+narwhals = ">=1.13"
+numpy = ">=1.16"
+packaging = ">=16.8"
+pandas = ">=1.2"
+pillow = ">=7.1.0"
+PyYAML = ">=3.10"
+tornado = {version = ">=6.2", markers = "sys_platform != \"emscripten\""}
+xyzservices = ">=2021.09.1"
+
+[[package]]
 name = "bqplot"
 version = "0.12.43"
 description = "Interactive plotting for the Jupyter notebook, using d3.js and ipywidgets."
@@ -669,22 +694,6 @@ files = [
 bqplot = ">=0.12"
 ipywidgets = ">=7.0.0"
 pillow = "*"
-
-[[package]]
-name = "branca"
-version = "0.7.2"
-description = "Generate complex HTML+JS pages with Python"
-optional = true
-python-versions = ">=3.7"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "branca-0.7.2-py3-none-any.whl", hash = "sha256:853a359c34d08fd06498be762d8be9932750db4049cac11e25dd6f23562e25c2"},
-    {file = "branca-0.7.2.tar.gz", hash = "sha256:ca4c94643ef31b819987ca5bd19c6009ea17b440baa3aac04628545f7a4da023"},
-]
-
-[package.dependencies]
-jinja2 = ">=3"
 
 [[package]]
 name = "cachetools"
@@ -964,6 +973,27 @@ files = [
     {file = "colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"},
 ]
 markers = {main = "sys_platform == \"win32\" or platform_system == \"Windows\"", dev = "sys_platform == \"win32\""}
+
+[[package]]
+name = "colorcet"
+version = "3.1.0"
+description = "Collection of perceptually uniform colormaps"
+optional = true
+python-versions = ">=3.7"
+groups = ["main"]
+markers = "extra == \"solara\""
+files = [
+    {file = "colorcet-3.1.0-py3-none-any.whl", hash = "sha256:2a7d59cc8d0f7938eeedd08aad3152b5319b4ba3bcb7a612398cc17a384cb296"},
+    {file = "colorcet-3.1.0.tar.gz", hash = "sha256:2921b3cd81a2288aaf2d63dbc0ce3c26dcd882e8c389cc505d6886bf7aa9a4eb"},
+]
+
+[package.extras]
+all = ["colorcet[doc]", "colorcet[examples]", "colorcet[tests-extra]", "colorcet[tests]"]
+doc = ["colorcet[examples]", "nbsite (>=0.8.4)", "sphinx-copybutton"]
+examples = ["bokeh", "holoviews", "matplotlib", "numpy"]
+tests = ["packaging", "pre-commit", "pytest (>=2.8.5)", "pytest-cov"]
+tests-examples = ["colorcet[examples]", "nbval"]
+tests-extra = ["colorcet[tests]", "pytest-mpl"]
 
 [[package]]
 name = "comm"
@@ -1405,6 +1435,21 @@ files = [
     {file = "docutils-0.16.tar.gz", hash = "sha256:c2de3a60e9e7d07be26b7f2b00ca0309c207e06c100f9cc2a94931fc75a478fc"},
 ]
 markers = {main = "extra == \"docs\""}
+
+[[package]]
+name = "dotenv"
+version = "0.9.9"
+description = "Deprecated package"
+optional = true
+python-versions = "*"
+groups = ["main"]
+markers = "extra == \"solara\""
+files = [
+    {file = "dotenv-0.9.9-py2.py3-none-any.whl", hash = "sha256:29cf74a087b31dafdb5a446b6d7e11cbce8ed2741540e2339c69fbef92c94ce9"},
+]
+
+[package.dependencies]
+python-dotenv = "*"
 
 [[package]]
 name = "echo"
@@ -2518,26 +2563,6 @@ pyside6 = ["pyside6"]
 test = ["flaky", "ipyparallel", "pre-commit", "pytest (>=7.0)", "pytest-asyncio (>=0.23.5)", "pytest-cov", "pytest-timeout"]
 
 [[package]]
-name = "ipyleaflet"
-version = "0.19.1"
-description = "A Jupyter widget for dynamic Leaflet maps"
-optional = true
-python-versions = ">=3.8"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "ipyleaflet-0.19.1-py3-none-any.whl", hash = "sha256:ffb90f67576c22c85438490bb32af1f30de88993bfb5dc167503e3a278252139"},
-    {file = "ipyleaflet-0.19.1.tar.gz", hash = "sha256:3454dbc0d360150516ea2a3ab4109503ceb9b7347fa1746a6cafd889075a0ff8"},
-]
-
-[package.dependencies]
-branca = ">=0.5.0"
-ipywidgets = ">=7.6.0,<9"
-jupyter-leaflet = ">=0.19,<0.20"
-traittypes = ">=0.2.1,<3"
-xyzservices = ">=2021.8.1"
-
-[[package]]
 name = "ipympl"
 version = "0.9.4"
 description = "Matplotlib Jupyter Extension"
@@ -3066,6 +3091,28 @@ files = [
 referencing = ">=0.31.0"
 
 [[package]]
+name = "jupyter-bokeh"
+version = "4.0.5"
+description = "A Jupyter extension for rendering Bokeh content."
+optional = true
+python-versions = ">=3.8"
+groups = ["main"]
+markers = "extra == \"solara\""
+files = [
+    {file = "jupyter_bokeh-4.0.5-py3-none-any.whl", hash = "sha256:1110076c14c779071cf492646a1a871aefa8a477261e4721327a666e65df1a2c"},
+    {file = "jupyter_bokeh-4.0.5.tar.gz", hash = "sha256:a33d6ab85588f13640b30765fa15d1111b055cbe44f67a65ca57d3593af8245d"},
+]
+
+[package.dependencies]
+bokeh = "==3.*"
+ipywidgets = "==8.*"
+
+[package.extras]
+all = ["jupyter-bokeh[build]", "jupyter-bokeh[tests]"]
+build = ["jupyterlab (>=4.0,<5.0)", "setuptools (>=40.8.0)"]
+tests = ["flake8", "pytest"]
+
+[[package]]
 name = "jupyter-client"
 version = "8.6.2"
 description = "Jupyter protocol implementation and client libraries"
@@ -3137,19 +3184,6 @@ traitlets = ">=5.3"
 cli = ["click", "rich"]
 docs = ["jupyterlite-sphinx", "myst-parser", "pydata-sphinx-theme", "sphinxcontrib-spelling"]
 test = ["click", "pre-commit", "pytest (>=7.0)", "pytest-asyncio (>=0.19.0)", "pytest-console-scripts", "rich"]
-
-[[package]]
-name = "jupyter-leaflet"
-version = "0.19.1"
-description = "ipyleaflet extensions for JupyterLab and Jupyter Notebook"
-optional = true
-python-versions = ">=3.8"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "jupyter_leaflet-0.19.1-py3-none-any.whl", hash = "sha256:8001a7304e9262394b8f896003539438467bed712bb9330dd65785bd9a5f8add"},
-    {file = "jupyter_leaflet-0.19.1.tar.gz", hash = "sha256:f4c1ab7a8b2c91d01a0940d1bab6543c57e91dca6425789632780eef7d58b266"},
-]
 
 [[package]]
 name = "jupyter-lsp"
@@ -3539,38 +3573,6 @@ files = [
 ]
 
 [[package]]
-name = "llvmlite"
-version = "0.42.0"
-description = "lightweight wrapper around basic LLVM functionality"
-optional = true
-python-versions = ">=3.9"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "llvmlite-0.42.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:3366938e1bf63d26c34fbfb4c8e8d2ded57d11e0567d5bb243d89aab1eb56098"},
-    {file = "llvmlite-0.42.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:c35da49666a21185d21b551fc3caf46a935d54d66969d32d72af109b5e7d2b6f"},
-    {file = "llvmlite-0.42.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:70f44ccc3c6220bd23e0ba698a63ec2a7d3205da0d848804807f37fc243e3f77"},
-    {file = "llvmlite-0.42.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:763f8d8717a9073b9e0246998de89929071d15b47f254c10eef2310b9aac033d"},
-    {file = "llvmlite-0.42.0-cp310-cp310-win_amd64.whl", hash = "sha256:8d90edf400b4ceb3a0e776b6c6e4656d05c7187c439587e06f86afceb66d2be5"},
-    {file = "llvmlite-0.42.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:ae511caed28beaf1252dbaf5f40e663f533b79ceb408c874c01754cafabb9cbf"},
-    {file = "llvmlite-0.42.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:81e674c2fe85576e6c4474e8c7e7aba7901ac0196e864fe7985492b737dbab65"},
-    {file = "llvmlite-0.42.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:bb3975787f13eb97629052edb5017f6c170eebc1c14a0433e8089e5db43bcce6"},
-    {file = "llvmlite-0.42.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c5bece0cdf77f22379f19b1959ccd7aee518afa4afbd3656c6365865f84903f9"},
-    {file = "llvmlite-0.42.0-cp311-cp311-win_amd64.whl", hash = "sha256:7e0c4c11c8c2aa9b0701f91b799cb9134a6a6de51444eff5a9087fc7c1384275"},
-    {file = "llvmlite-0.42.0-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:08fa9ab02b0d0179c688a4216b8939138266519aaa0aa94f1195a8542faedb56"},
-    {file = "llvmlite-0.42.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b2fce7d355068494d1e42202c7aff25d50c462584233013eb4470c33b995e3ee"},
-    {file = "llvmlite-0.42.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:ebe66a86dc44634b59a3bc860c7b20d26d9aaffcd30364ebe8ba79161a9121f4"},
-    {file = "llvmlite-0.42.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d47494552559e00d81bfb836cf1c4d5a5062e54102cc5767d5aa1e77ccd2505c"},
-    {file = "llvmlite-0.42.0-cp312-cp312-win_amd64.whl", hash = "sha256:05cb7e9b6ce69165ce4d1b994fbdedca0c62492e537b0cc86141b6e2c78d5888"},
-    {file = "llvmlite-0.42.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:bdd3888544538a94d7ec99e7c62a0cdd8833609c85f0c23fcb6c5c591aec60ad"},
-    {file = "llvmlite-0.42.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:d0936c2067a67fb8816c908d5457d63eba3e2b17e515c5fe00e5ee2bace06040"},
-    {file = "llvmlite-0.42.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a78ab89f1924fc11482209f6799a7a3fc74ddc80425a7a3e0e8174af0e9e2301"},
-    {file = "llvmlite-0.42.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d7599b65c7af7abbc978dbf345712c60fd596aa5670496561cc10e8a71cebfb2"},
-    {file = "llvmlite-0.42.0-cp39-cp39-win_amd64.whl", hash = "sha256:43d65cc4e206c2e902c1004dd5418417c4efa6c1d04df05c6c5675a27e8ca90e"},
-    {file = "llvmlite-0.42.0.tar.gz", hash = "sha256:f92b09243c0cc3f457da8b983f67bd8e1295d0f5b3746c7a1861d7a99403854a"},
-]
-
-[[package]]
 name = "locket"
 version = "1.0.0"
 description = "File-based locks for Python on Linux and Windows"
@@ -3845,6 +3847,31 @@ files = [
 ]
 
 [[package]]
+name = "narwhals"
+version = "1.32.0"
+description = "Extremely lightweight compatibility layer between dataframe libraries"
+optional = true
+python-versions = ">=3.8"
+groups = ["main"]
+markers = "extra == \"solara\""
+files = [
+    {file = "narwhals-1.32.0-py3-none-any.whl", hash = "sha256:8bdbf3f76155887412eea04b0b06303856ac1aa3d9e8bda5b5e54612855fa560"},
+    {file = "narwhals-1.32.0.tar.gz", hash = "sha256:bd0aa41434737adb4b26f8593f3559abc7d938730ece010fe727b58bc363580d"},
+]
+
+[package.extras]
+cudf = ["cudf (>=24.10.0)"]
+dask = ["dask[dataframe] (>=2024.8)"]
+duckdb = ["duckdb (>=1.0)"]
+ibis = ["ibis-framework (>=6.0.0)", "packaging", "pyarrow-hotfix", "rich"]
+modin = ["modin"]
+pandas = ["pandas (>=0.25.3)"]
+polars = ["polars (>=0.20.3)"]
+pyarrow = ["pyarrow (>=11.0.0)"]
+pyspark = ["pyspark (>=3.5.0)"]
+sqlframe = ["sqlframe (>=3.22.0)"]
+
+[[package]]
 name = "nbclassic"
 version = "1.1.0"
 description = "Jupyter Notebook as a Jupyter Server extension."
@@ -4056,42 +4083,6 @@ jupyter-server = ">=1.8,<3"
 
 [package.extras]
 test = ["pytest", "pytest-console-scripts", "pytest-jupyter", "pytest-tornasync"]
-
-[[package]]
-name = "numba"
-version = "0.59.1"
-description = "compiling Python code using LLVM"
-optional = true
-python-versions = ">=3.9"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "numba-0.59.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:97385a7f12212c4f4bc28f648720a92514bee79d7063e40ef66c2d30600fd18e"},
-    {file = "numba-0.59.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:0b77aecf52040de2a1eb1d7e314497b9e56fba17466c80b457b971a25bb1576d"},
-    {file = "numba-0.59.1-cp310-cp310-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:3476a4f641bfd58f35ead42f4dcaf5f132569c4647c6f1360ccf18ee4cda3990"},
-    {file = "numba-0.59.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:525ef3f820931bdae95ee5379c670d5c97289c6520726bc6937a4a7d4230ba24"},
-    {file = "numba-0.59.1-cp310-cp310-win_amd64.whl", hash = "sha256:990e395e44d192a12105eca3083b61307db7da10e093972ca285c85bef0963d6"},
-    {file = "numba-0.59.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:43727e7ad20b3ec23ee4fc642f5b61845c71f75dd2825b3c234390c6d8d64051"},
-    {file = "numba-0.59.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:411df625372c77959570050e861981e9d196cc1da9aa62c3d6a836b5cc338966"},
-    {file = "numba-0.59.1-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:2801003caa263d1e8497fb84829a7ecfb61738a95f62bc05693fcf1733e978e4"},
-    {file = "numba-0.59.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:dd2842fac03be4e5324ebbbd4d2d0c8c0fc6e0df75c09477dd45b288a0777389"},
-    {file = "numba-0.59.1-cp311-cp311-win_amd64.whl", hash = "sha256:0594b3dfb369fada1f8bb2e3045cd6c61a564c62e50cf1f86b4666bc721b3450"},
-    {file = "numba-0.59.1-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:1cce206a3b92836cdf26ef39d3a3242fec25e07f020cc4feec4c4a865e340569"},
-    {file = "numba-0.59.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8c8b4477763cb1fbd86a3be7050500229417bf60867c93e131fd2626edb02238"},
-    {file = "numba-0.59.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:7d80bce4ef7e65bf895c29e3889ca75a29ee01da80266a01d34815918e365835"},
-    {file = "numba-0.59.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:f7ad1d217773e89a9845886401eaaab0a156a90aa2f179fdc125261fd1105096"},
-    {file = "numba-0.59.1-cp312-cp312-win_amd64.whl", hash = "sha256:5bf68f4d69dd3a9f26a9b23548fa23e3bcb9042e2935257b471d2a8d3c424b7f"},
-    {file = "numba-0.59.1-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:4e0318ae729de6e5dbe64c75ead1a95eb01fabfe0e2ebed81ebf0344d32db0ae"},
-    {file = "numba-0.59.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:0f68589740a8c38bb7dc1b938b55d1145244c8353078eea23895d4f82c8b9ec1"},
-    {file = "numba-0.59.1-cp39-cp39-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:649913a3758891c77c32e2d2a3bcbedf4a69f5fea276d11f9119677c45a422e8"},
-    {file = "numba-0.59.1-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:9712808e4545270291d76b9a264839ac878c5eb7d8b6e02c970dc0ac29bc8187"},
-    {file = "numba-0.59.1-cp39-cp39-win_amd64.whl", hash = "sha256:8d51ccd7008a83105ad6a0082b6a2b70f1142dc7cfd76deb8c5a862367eb8c86"},
-    {file = "numba-0.59.1.tar.gz", hash = "sha256:76f69132b96028d2774ed20415e8c528a34e3299a40581bae178f0994a2f370b"},
-]
-
-[package.dependencies]
-llvmlite = "==0.42.*"
-numpy = ">=1.22,<1.27"
 
 [[package]]
 name = "numpy"
@@ -4620,23 +4611,6 @@ test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=7.4.3)", "pytest-
 type = ["mypy (>=1.8)"]
 
 [[package]]
-name = "plotly"
-version = "5.22.0"
-description = "An open-source, interactive data visualization library for Python"
-optional = true
-python-versions = ">=3.8"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "plotly-5.22.0-py3-none-any.whl", hash = "sha256:68fc1901f098daeb233cc3dd44ec9dc31fb3ca4f4e53189344199c43496ed006"},
-    {file = "plotly-5.22.0.tar.gz", hash = "sha256:859fdadbd86b5770ae2466e542b761b247d1c6b49daed765b95bb8c7063e7469"},
-]
-
-[package.dependencies]
-packaging = "*"
-tenacity = ">=6.2.0"
-
-[[package]]
 name = "pluggy"
 version = "1.5.0"
 description = "plugin and hook calling mechanisms for python"
@@ -5078,14 +5052,14 @@ python-ulid = ["python-ulid (>=1,<2)", "python-ulid (>=1,<3)"]
 
 [[package]]
 name = "pydantic-settings"
-version = "2.3.2"
+version = "2.8.1"
 description = "Settings management using Pydantic"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
 files = [
-    {file = "pydantic_settings-2.3.2-py3-none-any.whl", hash = "sha256:ae06e44349e4c7bff8d57aff415dfd397ae75c217a098d54e9e6990ad7594ac7"},
-    {file = "pydantic_settings-2.3.2.tar.gz", hash = "sha256:05d33003c74c2cd585de97b59eb17b6ed67181bc8a3ce594d74b5d24e4df7323"},
+    {file = "pydantic_settings-2.8.1-py3-none-any.whl", hash = "sha256:81942d5ac3d905f7f3ee1a70df5dfb62d5569c12f51a5a647defc1c3d9ee2e9c"},
+    {file = "pydantic_settings-2.8.1.tar.gz", hash = "sha256:d5c663dfbe9db9d5e1c646b2e161da12f0d734d422ee56f567d0ea2cee4e8585"},
 ]
 
 [package.dependencies]
@@ -5093,6 +5067,7 @@ pydantic = ">=2.7.0"
 python-dotenv = ">=0.21.0"
 
 [package.extras]
+azure-key-vault = ["azure-identity (>=1.16.0)", "azure-keyvault-secrets (>=4.8.0)"]
 toml = ["tomli (>=2.0.1)"]
 yaml = ["pyyaml (>=6.0.1)"]
 
@@ -6296,27 +6271,39 @@ docs = ["Jinja2 (<=3.0)", "Sphinx (>=7.1.0)", "importlib-metadata (>=1.6.0)", "r
 
 [[package]]
 name = "sdss-explorer"
-version = "0.0.2"
+version = "0.1.0"
 description = ""
 optional = true
-python-versions = ">=3.10"
+python-versions = "<3.11,>=3.10"
 groups = ["main"]
 markers = "extra == \"solara\""
 files = []
 develop = false
 
 [package.dependencies]
+bokeh = ">=3.6.3"
+colorcet = ">=3.1.0"
 diskcache = ">=5.6.3"
-numpy = "*"
-plotly = "*"
-solara = ">=1.40.0"
-vaex = ">=4.17.0"
+dotenv = "*"
+fastapi = "*"
+gunicorn = "20.1.0"
+jupyter-bokeh = ">=4.0.5"
+numpy = "1.26.4"
+pydantic-settings = ">=2.8.0"
+solara = ">=1.40.0,<=1.42.0"
+vaex-core = ">=4.17.0"
+vaex-hdf5 = "*"
+xarray = "*"
+
+[package.extras]
+dev = ["pynvim", "pytest (>=7.0)"]
+docs = ["griffe-pydantic", "mkdocs", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-material", "mkdocs-section-index", "mkdocstrings", "mkdocstrings-python", "pymdown-extensions (>=10.14.3)"]
 
 [package.source]
 type = "git"
 url = "https://github.com/sdss/explorer.git"
 reference = "HEAD"
-resolved_reference = "fea584cdcc2ca6a032100b0f231038e93e0e73cd"
+resolved_reference = "d79fdfccfef7016e96532f8c9a948b8656cc63a2"
 
 [[package]]
 name = "sdss_solara"
@@ -6345,7 +6332,7 @@ test = ["pytest", "pytest-doctestplus"]
 type = "git"
 url = "https://github.com/sdss/sdss_solara.git"
 reference = "main"
-resolved_reference = "5dbc4357a67941e6c35c380f8b1cb09691091bdd"
+resolved_reference = "5ef776c304b552a948a589cc237f6593f7d041d4"
 
 [[package]]
 name = "sdss-tree"
@@ -7099,23 +7086,6 @@ files = [
 widechars = ["wcwidth"]
 
 [[package]]
-name = "tenacity"
-version = "8.3.0"
-description = "Retry code until it succeeds"
-optional = true
-python-versions = ">=3.8"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "tenacity-8.3.0-py3-none-any.whl", hash = "sha256:3649f6443dbc0d9b01b9d8020a9c4ec7a1ff5f6f3c6c8a036ef371f573fe9185"},
-    {file = "tenacity-8.3.0.tar.gz", hash = "sha256:953d4e6ad24357bceffbc9707bc74349aca9d245f68eb65419cf0c249a1949a2"},
-]
-
-[package.extras]
-doc = ["reno", "sphinx"]
-test = ["pytest", "tornado (>=4.5)", "typeguard"]
-
-[[package]]
 name = "termcolor"
 version = "2.4.0"
 description = "ANSI color formatting for output in terminal"
@@ -7556,45 +7526,6 @@ docs = ["Sphinx (>=4.1.2,<4.2.0)", "sphinx-rtd-theme (>=0.5.2,<0.6.0)", "sphinxc
 test = ["Cython (>=0.29.36,<0.30.0)", "aiohttp (==3.9.0b0)", "aiohttp (>=3.8.1)", "flake8 (>=5.0,<6.0)", "mypy (>=0.800)", "psutil", "pyOpenSSL (>=23.0.0,<23.1.0)", "pycodestyle (>=2.9.0,<2.10.0)"]
 
 [[package]]
-name = "vaex"
-version = "4.17.0"
-description = "Out-of-Core DataFrames to visualize and explore big tabular datasets"
-optional = true
-python-versions = "*"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "vaex-4.17.0-py3-none-any.whl", hash = "sha256:b48dafa590028b103d7a21dcf31d0ea511d83714899a97644eca96f3725bf7cc"},
-    {file = "vaex-4.17.0.tar.gz", hash = "sha256:2303a5382f2048f50389bbd2f24c06147599cdc09e585b138c5b52e0369d5787"},
-]
-
-[package.dependencies]
-vaex-astro = ">=0.9.3,<0.10"
-vaex-core = ">=4.17.1,<4.18.0"
-vaex-hdf5 = ">=0.13.0,<0.15"
-vaex-jupyter = ">=0.8.2,<0.9"
-vaex-ml = ">=0.18.3,<0.19"
-vaex-server = ">=0.9.0,<0.10.0"
-vaex-viz = ">=0.5.4,<0.6"
-
-[[package]]
-name = "vaex-astro"
-version = "0.9.3"
-description = "Astronomy related transformations and FITS file support"
-optional = true
-python-versions = "*"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "vaex-astro-0.9.3.tar.gz", hash = "sha256:5474ccf335875a7da9e15bd9acff6c467d551805fafb4c9bdd8e4a06077ef518"},
-    {file = "vaex_astro-0.9.3-py3-none-any.whl", hash = "sha256:44e6b6b51b80b319f1f7eb1a596cb69ab04e5dc54666e6ad3436e3463954e1b7"},
-]
-
-[package.dependencies]
-astropy = "*"
-vaex-core = ">=4.5.0,<5"
-
-[[package]]
 name = "vaex-core"
 version = "4.17.1"
 description = "Core of vaex"
@@ -7667,89 +7598,6 @@ files = [
 
 [package.dependencies]
 h5py = ">=2.9"
-vaex-core = ">=4.0.0,<5"
-
-[[package]]
-name = "vaex-jupyter"
-version = "0.8.2"
-description = "Jupyter notebook and Jupyter lab support for vaex"
-optional = true
-python-versions = "*"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "vaex-jupyter-0.8.2.tar.gz", hash = "sha256:0cf28ea625f39abb5e2cb095e421a538789d62b27400629477d47a2585034964"},
-    {file = "vaex_jupyter-0.8.2-py3-none-any.whl", hash = "sha256:5bce62fe1b9da18ce9848ba6c06639e89119c55cbc63e7faf6f025b91564271a"},
-]
-
-[package.dependencies]
-bqplot = ">=0.10.1"
-ipyleaflet = "*"
-ipympl = "*"
-ipyvolume = ">=0.4"
-ipyvuetify = ">=1.2.2,<2"
-vaex-core = ">=4.7.0,<5"
-vaex-viz = "*"
-xarray = "*"
-
-[[package]]
-name = "vaex-ml"
-version = "0.18.3"
-description = "Machine learning support for vaex"
-optional = true
-python-versions = "*"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "vaex-ml-0.18.3.tar.gz", hash = "sha256:242bbf5403dfa902f1a7548231074d6e5676d1c0652c5c47129256fd6645ed8c"},
-    {file = "vaex_ml-0.18.3-py3-none-any.whl", hash = "sha256:6d0da072f7268f7a6633e049d12d9056b7b5a4cf8c7a1e4fc1797b948ea2cd88"},
-]
-
-[package.dependencies]
-jinja2 = "*"
-numba = "*"
-traitlets = "*"
-vaex-core = ">=4.8.0,<5"
-
-[package.extras]
-all = ["tensorflow (>=2.1.0)", "tensorflow-io (>=0.12.0)"]
-
-[[package]]
-name = "vaex-server"
-version = "0.9.0"
-description = "Webserver and client for vaex for a remote dataset"
-optional = true
-python-versions = "*"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "vaex-server-0.9.0.tar.gz", hash = "sha256:c76f971d3c81d5b42b7e5e02ad8e43cee0f8ea861e0ae24d44fb9d270cd05688"},
-    {file = "vaex_server-0.9.0-py3-none-any.whl", hash = "sha256:11e46056817fc30aaa4a033c24b28066e51707bfa23fe8eca8fe61aca58b83d6"},
-]
-
-[package.dependencies]
-cachetools = "*"
-fastapi = "*"
-tornado = ">4.1"
-uvicorn = {version = "*", extras = ["standard"]}
-vaex-core = ">=4.7.0,<5"
-
-[[package]]
-name = "vaex-viz"
-version = "0.5.4"
-description = "Visualization for vaex"
-optional = true
-python-versions = "*"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "vaex-viz-0.5.4.tar.gz", hash = "sha256:1b3b0b9cccc6c3590f191c674d5b6e03cb9790dea7e9a40a826d61ecc7aacc38"},
-    {file = "vaex_viz-0.5.4-py3-none-any.whl", hash = "sha256:7e8d0cc06ac47e8d00cdb2ac2ea679218afe72200234675f3c9645bbbcf53f40"},
-]
-
-[package.dependencies]
-matplotlib = ">=1.3.1"
-pillow = "*"
 vaex-core = ">=4.0.0,<5"
 
 [[package]]
