@@ -8,11 +8,6 @@ on:
       - main
       - dockerups
 
-permissions:
-  contents: read
-  packages: write
-  actions: read
-
 jobs:
   docker:
     runs-on: ubuntu-latest
