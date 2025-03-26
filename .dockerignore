@@ -1,6 +1,7 @@
 # Ignore .git dirs
 .git
 .github
+.venv
 
 # Ignore tests directory
 **/tests/*
