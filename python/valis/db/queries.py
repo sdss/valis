@@ -98,6 +98,9 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
             )
         )
 
+    # remove SV LCO targets, this is a hack for now
+    qq = qq.where(vizdb.SDSSidToPipes.obs == 'apo', vizdb.SDSSidToPipes.release == 'sdss5')
+
     return qq
 
 
