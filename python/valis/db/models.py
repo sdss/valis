@@ -92,7 +92,7 @@ class SDSSidPipesBase(PeeweeBase):
     def is_observed(cls, v: str, info: FieldValidationInfo) -> str:
         """ validator for when has_been_observed was not available in table """
         if not v:
-            return info.data['in_boss'] or info.data['in_apogee'] or info.data['in_astra']
+            return info.data.get('in_boss') or info.data.get('in_apogee') or info.data.get('in_astra')
         return v
 
 class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):

@@ -27,6 +27,19 @@ from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_pa
 from valis.utils.versions import get_software_tag
 
 
+def lco_hack(query: peewee.ModelSelect, release: str = None) -> peewee.ModelSelect:
+    """ Remove SV-LCO targets from the query """
+
+    # only apply hack for public data releases
+    if release and 'DR' not in release:
+        return query
+
+    return query.where(
+        (vizdb.SDSSidToPipes.obs == 'apo')
+        | ((vizdb.SDSSidToPipes.obs == 'lco') & (vizdb.SDSSidToPipes.release == 'dr17'))
+    )
+
+
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
                  observed: bool = True, release: str = None) -> peewee.ModelSelect:
     """ Joins a query to the SDSSidToPipes table
@@ -98,10 +111,13 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
             )
         )
 
+    # remove SV LCO targets, this is a hack for now
+    qq = lco_hack(qq, release)
+
     return qq
 
 
-def get_pipes(sdss_id: int) -> peewee.ModelSelect:
+def get_pipes(sdss_id: int, release: str) -> peewee.ModelSelect:
     """ Get the pipelines for an sdss_id
 
     Get the table of boolean flags indicating which
@@ -118,9 +134,10 @@ def get_pipes(sdss_id: int) -> peewee.ModelSelect:
     peewee.ModelSelect
         the output query
     """
-    return vizdb.SDSSidToPipes.select(vizdb.SDSSidToPipes).\
-        where(vizdb.SDSSidToPipes.sdss_id == sdss_id).\
-        distinct(vizdb.SDSSidToPipes.sdss_id)
+    qq = vizdb.SDSSidToPipes.select(vizdb.SDSSidToPipes).\
+        where(vizdb.SDSSidToPipes.sdss_id == sdss_id)
+    qq = lco_hack(qq, release)
+    return qq.distinct(vizdb.SDSSidToPipes.sdss_id)
 
 
 def convert_coords(ra: Union[str, float], dec: Union[str, float]) -> tuple:
@@ -513,7 +530,7 @@ def get_target_meta(sdss_id: int, release: str) -> dict:
     """
     # get the id and pipeline flags
     query = get_targets_by_sdss_id(sdss_id)
-    pipes = append_pipes(query, observed=False)
+    pipes = append_pipes(query, observed=False, release=release)
     return pipes.dicts().first()
 
 
@@ -576,13 +593,17 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
         a dictionary of pipeline result data
     """
     # get the pipeline lookup table
-    pipes = get_pipes(sdss_id).dicts().first()
+    pipes = get_pipes(sdss_id, release).dicts().first()
 
     # create initial dict
     data = {'info': {},
             'boss': {}, 'apogee': {}, 'astra': {},
             'files': {'boss': '', 'apogee': '', 'astra': ['']}}
-    data['info'].update(pipes)
+    data['info'].update(pipes or {})
+
+    # if there is no match from vizdb, return nothing
+    if not pipes:
+        return data
 
     # get only a given pipeline data
     if pipeline in {'boss', 'apogee', 'astra'} and pipes[f'in_{pipeline}']:
@@ -724,6 +745,13 @@ def get_a_spectrum(sdss_id: int, product: str, release: str, ext: str = None) ->
     generator
         the extracted spectral data from the file
     """
+
+    # if no pipeline info, return empty generator
+    pipes = get_pipes(sdss_id, release).dicts().first()
+    if not pipes:
+        yield from ()
+        return
+
     model = get_product_model(product)
     if model['pipeline'] == 'boss':
         yield from _yield_boss_spectrum(sdss_id, product, release)
