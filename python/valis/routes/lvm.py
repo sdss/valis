@@ -2,13 +2,12 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import os
-from functools import partial
 import orjson
 from typing import Any, Tuple, List, Dict, Union, Optional, Annotated, Literal
 from enum import Enum
 from fastapi import APIRouter, HTTPException, Query, Path, Depends, Response
 from fastapi_restful.cbv import cbv
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 import numpy as np
 import pandas as pd
 import astropy.units as u
@@ -314,7 +313,7 @@ class LVM(Base):
 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
-            raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
+            raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {version}")
 
         # Check that file exists and return exception if not
         if fiberid < 1 or fiberid > 1801:
@@ -455,7 +454,7 @@ class LVM(Base):
             file = get_SFrame_filename(expnum, drpver)
 
             if not os.path.exists(file):
-                raise HTTPException(status_code=404, detail=f"File {file} does not exist.")
+                raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
 
             # Read data and construct required spectrum to be plotted
             with fits.open(file) as hdul:
@@ -487,8 +486,8 @@ class LVM(Base):
 
         for d in data:
             legend_options = dict(
-                short="expnum: {expnum} fiberid: {fiberid}".format(**d),
-                long="expnum: {expnum} fiberid: {fiberid} drpver: {drpver}".format(**d),
+                short="{expnum} {fiberid} {type}".format(**d),
+                long="expnum: {expnum} fiberid: {fiberid} drpver: {drpver} type: {type}".format(**d),
             )
             label  = legend_options.get(legend, None)
             try:
@@ -699,7 +698,7 @@ class LVM(Base):
 
             Example of spectra retrieved from separate SFrames: one for DRP version 1.0.3 and another for 1.1.0.
 
-            [![Example4](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.0.3/15084;color:red;lw:0.4&l=id:1.1.0/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.0.3/15084;color:red;lw:0.4&l=id:1.1.0/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084)
+            [![Example4](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.0.3/15084;color:red;lw:0.4&l=id:1.1.0/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084 "Click to open image URL")](https://data.sdss5.org/valis-lvmvis-api/lvm/plot_exposure_spectrum/?l=id:1.0.3/15084;color:red;lw=0.4&l=id:1.1.0/15084;color:purple&legend=long&ymin=-2e-13&ymax=2e-13&title=Comparison%20DRP%201.1.0%20vs.%201.0.3%20for%20exposure=15084)
         """
 
         FACTOR = 1
@@ -728,7 +727,7 @@ class LVM(Base):
             file = get_SFrame_filename(expnum, drpver)
 
             if not os.path.exists(file):
-                raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
+                raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
 
             # read data and construct required spectrum to be plotted
 
@@ -860,7 +859,7 @@ class LVM(Base):
 
         # Check that file exists and return exception if not
         if not os.path.exists(file):
-            raise HTTPException(status_code=404, detail=f"File {filename} does not exist.")
+            raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {version}")
 
         # Read parametric emission line
         dap_pm = fits.getdata(file, 'PM_ELINES')
@@ -885,3 +884,21 @@ class LVM(Base):
             output[f"{wl}"] = df_pm_pivot[wl].tolist()
 
         return output
+
+    @router.get('/observed-pointings',
+                summary='Serve static JSON file of observed pointings')
+    async def get_observed_pointings(self,
+                                     drpver: Annotated[str, Query(description='DRP version', example='1.1.1')] = '1.1.1'):
+        json_file_path = f'/data/sdss/sas/sdsswork/data/staging/lco/lvmdb/loads/lvmvis-drpall-{drpver}.json'
+        if not os.path.exists(json_file_path):
+            raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
+        return FileResponse(json_file_path, media_type='application/json')
+
+    @router.get('/planned-tiles',
+                summary='Serve static JSON file of planned tiles')
+    async def get_planned_tiles(self,
+                                drpver: Annotated[str, Query(description='DRP version', example='1.1.1')] = '1.1.1'):
+        json_file_path = f'/data/sdss/sas/sdsswork/data/staging/lco/lvmdb/loads/lvmvis-planned-tiles-after-drpall-{drpver}.json'
+        if not os.path.exists(json_file_path):
+            raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
+        return FileResponse(json_file_path, media_type='application/json')
