@@ -889,7 +889,7 @@ class LVM(Base):
                 summary='Serve static JSON file of observed pointings')
     async def get_observed_pointings(self,
                                      drpver: Annotated[str, Query(description='DRP version', example='1.1.1')] = '1.1.1'):
-        json_file_path = f'/data/sdss/sas/sdsswork/data/staging/lco/lvmdb/loads/lvmvis-drpall-{drpver}.json'
+        json_file_path = f'/data/sdss/sas/sdsswork/lvm/sandbox/lvmvis/lvmvis-drpall-{drpver}.json'
         if not os.path.exists(json_file_path):
             raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
         return FileResponse(json_file_path, media_type='application/json')
@@ -898,7 +898,7 @@ class LVM(Base):
                 summary='Serve static JSON file of planned tiles')
     async def get_planned_tiles(self,
                                 drpver: Annotated[str, Query(description='DRP version', example='1.1.1')] = '1.1.1'):
-        json_file_path = f'/data/sdss/sas/sdsswork/data/staging/lco/lvmdb/loads/lvmvis-planned-tiles-after-drpall-{drpver}.json'
+        json_file_path = f'/data/sdss/sas/sdsswork/lvm/sandbox/lvmvis/lvmvis-planned-tiles-after-drpall-{drpver}.json'
         if not os.path.exists(json_file_path):
             raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
         return FileResponse(json_file_path, media_type='application/json')
