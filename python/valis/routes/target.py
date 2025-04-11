@@ -178,7 +178,10 @@ class Target(Base):
         idtype: Annotated[str, Query(enum=['catalogid', 'gaiaid'], description='For ambiguous integer ids, the type of id, e.g. "catalogid"', example=None)] = None
         ):
         """ Return target metadata for a given sdss_id """
-        query = append_pipes(get_target_by_altid(id, idtype=idtype), observed=False)
+        query = get_target_by_altid(id, idtype=idtype)
+        if not query:
+            return {}
+        query = append_pipes(query, observed=False)
         return query.dicts().first() or {}
 
     @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
