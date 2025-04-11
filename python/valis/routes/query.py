@@ -69,7 +69,7 @@ class AltEnum(str, Enum):
     twomassid = 'twomassid'
 
 class AltIdsModel(BaseModel):
-    """Request body for the endpoint returning targets from an sdss_id list"""
+    """Request body for the endpoint returning targets from an altid list"""
     altid_list: List[str|int] = Field(description='List of altid values', example=['2M10193634+1952122', '2M14030226+5112480'])
     idtype: Optional[AltEnum] = Field(None, description='For ambiguous integer ids, the type of id, e.g. "catalogid"', example=['apogeeid'])
 
