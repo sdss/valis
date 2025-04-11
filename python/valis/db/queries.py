@@ -1011,7 +1011,9 @@ def get_target_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
 def get_targets_by_altid(ids: list, idtype: str = None) -> peewee.ModelSelect:
     """ Get a list of targets by altid
 
-    _extended_summary_
+    Gets targets from a list of alternative identifier.  Iterates
+    to get the sdss_id for each id, then retrieves the list
+    of objects at once.
 
     Parameters
     ----------
