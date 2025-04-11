@@ -67,6 +67,10 @@ class AltEnum(str, Enum):
     gaiaid = 'gaiaid'
     sdssid = 'sdssid'
     twomassid = 'twomassid'
+    specobjid = 'specobjid'
+    platefibermjd = 'platefibermjd'
+    photoobjid = 'photoobjid'
+    fieldmjdcatalogid = 'fieldmjdcatalogid'
 
 class AltIdsModel(BaseModel):
     """Request body for the endpoint returning targets from an altid list"""
