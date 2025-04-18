@@ -4,7 +4,7 @@
 
 from enum import Enum
 from typing import List, Union, Dict, Annotated, Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Body
 from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, Field, BeforeValidator
 
@@ -16,7 +16,7 @@ from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id,
                               get_targets_obs, get_paged_target_list_by_mapper,
-                              get_target_by_altid)
+                              get_target_by_altid, get_targets_by_altid)
 from valis.routes.auth import set_auth
 from sdssdb.peewee.sdss5db import database, catalogdb
 
@@ -59,6 +59,23 @@ class MainSearchResponse(BaseModel):
 class SDSSIdsModel(BaseModel):
     """Request body for the endpoint returning targets from an sdss_id list"""
     sdss_id_list: List[int] = Field(description='List of sdss_id values', example=[67660076, 67151446])
+
+class AltEnum(str, Enum):
+    """ Enum for the alternative id types """
+    apogeeid = 'apogeeid'
+    catalogid = 'catalogid'
+    gaiaid = 'gaiaid'
+    sdssid = 'sdssid'
+    twomassid = 'twomassid'
+    specobjid = 'specobjid'
+    platefibermjd = 'platefibermjd'
+    photoobjid = 'photoobjid'
+    fieldmjdcatalogid = 'fieldmjdcatalogid'
+
+class AltIdsModel(BaseModel):
+    """Request body for the endpoint returning targets from an altid list"""
+    altid_list: List[str|int] = Field(description='List of altid values', example=['2M10193634+1952122', '2M14030226+5112480'])
+    idtype: Optional[AltEnum] = Field(None, description='For ambiguous integer ids, the type of id, e.g. "catalogid"', example=['apogeeid'])
 
 
 router = APIRouter()
@@ -164,11 +181,19 @@ class QueryRoutes(Base):
         return targets or {}
 
     @router.post('/sdssid', summary='Perform a search for SDSS targets based on a list of sdss_id values',
-                response_model=List[SDSSidStackedBase],
+                response_model=List[SDSSModel],
                 dependencies=[Depends(get_pw_db), Depends(set_auth)])
     async def sdss_ids_search(self, body: SDSSIdsModel):
         """ Perform a search for SDSS targets based on a list of input sdss_id values."""
-        return list(get_targets_by_sdss_id(body.sdss_id_list))
+        return list(append_pipes(get_targets_by_sdss_id(body.sdss_id_list), release=self.release).dicts())
+        #return list(get_targets_by_sdss_id(body.sdss_id_list))
+
+    @router.post('/altids', summary='Performa search for SDSS targets based on a list of alternative ids',
+                response_model=List[SDSSModel],
+                dependencies=[Depends(get_pw_db), Depends(set_auth)])
+    async def altids_search(self, body: AltIdsModel):
+        """ Perform a search for SDSS targets based on a list of input altid values."""
+        return list(append_pipes(get_targets_by_altid(body.altid_list, idtype=body.idtype), release=self.release).dicts())
 
     @router.get('/catalogid', summary='Perform a search for SDSS targets based on the catalog_id',
                 response_model=List[SDSSidStackedBase],

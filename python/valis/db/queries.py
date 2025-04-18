@@ -962,6 +962,9 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
         elif idtype == 'gaiaid':
             # gaia dr3 id , e.g. 4110508934728363520
             field = 'gaia_dr3_source_id'
+        elif idtype == 'sdssid':
+            # sdss id, e.g. 23326
+            field = 'sdss_id'
         else:
             field = 'catalogid'
 
@@ -991,6 +994,10 @@ def get_target_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
     peewee.ModelSelect
         the ORM query
     """
+    # if idtype is explicitly sdss_id, return it directly
+    if idtype == 'sdssid':
+        return get_targets_by_sdss_id(id)
+
     # get the sdss_id
     targ = get_sdssid_by_altid(id, idtype=idtype)
     res = targ.get_or_none() if targ else None
@@ -999,6 +1006,29 @@ def get_target_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
 
     # get the sdss_id metadata info
     return get_targets_by_sdss_id(res.sdss_id)
+
+
+def get_targets_by_altid(ids: list, idtype: str = None) -> peewee.ModelSelect:
+    """ Get a list of targets by altid
+
+    Gets targets from a list of alternative identifier.  Iterates
+    to get the sdss_id for each id, then retrieves the list
+    of objects at once.
+
+    Parameters
+    ----------
+    id : str | int
+        the input alternative id
+    idtype : str, optional
+        the type of integer id, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    res = (j.sdss_id for i in ids for j in get_sdssid_by_altid(i, idtype=idtype) if j)
+    return get_targets_by_sdss_id(list(res))
 
 
 def create_temporary_table(query: peewee.ModelSelect,
