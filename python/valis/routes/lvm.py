@@ -2,6 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import os
+from functools import partial
 import orjson
 from typing import Any, Tuple, List, Dict, Union, Optional, Annotated, Literal
 from enum import Enum
