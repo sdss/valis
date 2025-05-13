@@ -2,6 +2,8 @@ from __future__ import print_function, division, absolute_import
 
 import re
 import os
+import asyncio
+import aiofiles
 from functools import partial
 import orjson
 from typing import Any, Tuple, List, Dict, Union, Optional, Annotated, Literal
@@ -181,23 +183,33 @@ def parse_line_query_fiber(line: str) -> Dict[str, Any]:
     return parsed
 
 
-def get_LVM_drpall_record(expnum: int, drpver: int) -> Dict[str, Any]:
-    "Function to get record from drpall file for a given exposure number"
+async def get_LVM_drpall_record(expnum: int, drpver: int) -> Dict[str, Any]:
+    "Async function to get record from drpall file for a given exposure number"
+    loop = asyncio.get_event_loop()
 
     drp_file = f"/data/sdss/sas/sdsswork/lvm/spectro/redux/{drpver}/drpall-{drpver}.fits"
-    if not os.path.exists(drp_file):
+
+    # Check if file exists asynchronously using run_in_executor since aiofiles.os.path.exists is not available
+    file_exists = await loop.run_in_executor(None, os.path.exists, drp_file)
+    if not file_exists:
         drp_file = f"/data/sdss/sas/sdsswork/lvm/spectro/redux/{LAST_DRP_VERSION}/drpall-{LAST_DRP_VERSION}.fits"
+        file_exists = await loop.run_in_executor(None, os.path.exists, drp_file)
+        if not file_exists:
+            raise FileNotFoundError(f"DRPall file not found: {drp_file}")
 
-    drpall = fits.getdata(drp_file)
-    record = drpall[drpall['EXPNUM'] == expnum][0]
+    # Run FITS operations in thread pool
+    def read_fits():
+        drpall = fits.getdata(drp_file)
+        record = drpall[drpall['EXPNUM'] == expnum][0]
+        return {name: record[name] for name in drpall.names}
 
-    return {name: record[name] for name in drpall.names}
+    return await loop.run_in_executor(None, read_fits)
 
 
-def get_SFrame_filename(expnum: int, drpver: int) -> str:
-    "Function to get SFrame filename for a given exposure number"
+async def get_SFrame_filename(expnum: int, drpver: int) -> str:
+    "Async function to get SFrame filename for a given exposure number"
 
-    drp_record = get_LVM_drpall_record(expnum, drpver)
+    drp_record = await get_LVM_drpall_record(expnum, drpver)
     file = f"/data/sdss/sas/" + drp_record['location']
 
     # if drpall.fits file does not exist for the given drpver, it tries to the last version
@@ -208,9 +220,40 @@ def get_SFrame_filename(expnum: int, drpver: int) -> str:
     return file
 
 
+def _extract_fiber_data(hdul: fits.HDUList, fiberid: int, spectrum_type: str = 'flux', factor: float = 1e17) -> np.ndarray:
+    """
+    Extracts a specific type of spectrum array for a given fiber ID from an LVM SFrame FITS HDUList.
+    Assumes basic FITS structure validity and fiber ID bounds are checked by the caller.
+    """
+    ifib = fiberid - 1  # Convert to 0-based index
+
+    # Minimal check: Valid operation type requested?
+    if spectrum_type not in ALLOWED_LINE_TYPES:
+        raise ValueError(f"Invalid spectrum type requested: {spectrum_type}. Allowed: {list(ALLOWED_LINE_TYPES)}")
+
+    # Get wave shape needed for potential NaN array creation in lambdas.
+    # Let KeyError bubble up if WAVE is missing.
+    wave_shape = hdul['WAVE'].data.shape
+
+    # Extractor lambdas attempt calculation. Will raise KeyError/IndexError if hdul is invalid/missing data.
+    extractor = {
+        'flux': lambda h, i: h['FLUX'].data[i, :] * factor,
+        'sky': lambda h, i: h['SKY'].data[i, :] * factor,
+        'skyflux': lambda h, i: (h['SKY'].data[i, :] + h['FLUX'].data[i, :]) * factor,
+        # Still attempt graceful NaN return if IVAR/SKY_IVAR missing or has zeros
+        'err': lambda h, i: np.sqrt(1.0 / h['IVAR'].data[i, :]) * factor if 'IVAR' in h and np.all(h['IVAR'].data[i, :] > 0) else np.full(wave_shape, np.nan),
+        'sky_err': lambda h, i: np.sqrt(1.0 / h['SKY_IVAR'].data[i, :]) * factor if 'SKY_IVAR' in h and np.all(h['SKY_IVAR'].data[i, :] > 0) else np.full(wave_shape, np.nan),
+        'ivar': lambda h, i: h['IVAR'].data[i, :] / factor**2,
+        'sky_ivar': lambda h, i: h['SKY_IVAR'].data[i, :] / factor**2,
+        'lsf': lambda h, i: h['LSF'].data[i, :],
+    }
+
+    return extractor[spectrum_type](hdul, ifib)
+
+
 @cbv(router)
 class LVM(Base):
-    """ Endpoints for dealing with HiPS cutouts """
+    """ Endpoints for dealing with LVM data visualization """
 
     @router.get("/cutout/image/{version}/{hips}", summary='Extract image cutout from HiPS maps')
     async def get_image(self,
@@ -295,43 +338,261 @@ class LVM(Base):
                                  media_type=media_types[format],
                                  headers={'Content-Disposition': f'inline; filename="{filename}"'})
 
-    @router.get('/spectrum_fiber/{tile_id}/{mjd}/{exposure}/{fiberid}',
-                summary='Experimental endpoint to extract LVM fiber spectrum')
-    async def get_spectrum_lvm_fiber(self,
-                               tile_id: Annotated[int, Path(description="The tile_id of the LVM dither", example=1028790)],
-                               mjd: Annotated[int, Path(desciption='The MJD of the observations', example=60314)],
-                               exposure: Annotated[int, Path(desciption='The exposure number', example=10328)],
-                               fiberid: Annotated[int, Path(desciption='Sequential ID of science fiber within Dither (1 to 1801)', example=777)],
-                               version: Annotated[str, Query(description='DRP version', example='1.1.0')] = '1.1.0'):
-        # construct file path for lvmSFrame-*.fits file
-        suffix = str(exposure).zfill(8)
-        if tile_id == 11111:
-            filename = f"lvm/spectro/redux/{version}/0011XX/11111/{mjd}/lvmSFrame-{suffix}.fits"
+    @router.get('/fiber_spectrum/',
+                summary='Get LVM Fiber Spectrum Data by "l" query or explicit parameters.')
+    async def get_fiber_spectrum(self,
+                                 l: List[str] = Query(None, description="One or more spectrum definition strings, e.g., `id:DRPversion/expnum/fiberid;type:flux`", example=['id:1.1.0/7371/532;type:flux', 'id:1.1.0/7371/533;type:sky']),
+                                 expnum_q: Optional[int] = Query(None, alias="expnum", description="Exposure number, used only if `l` is not provided.", example=7371),
+                                 fiberid_q: Optional[int] = Query(None, alias="fiberid", description="FiberID (1-1944, full stack), used only if `l` is not provided.", example=532),
+                                 drpver_q: str = Query(LAST_DRP_VERSION, alias="drpver", description="DRP Version, used only if `l` is not provided.", example=LAST_DRP_VERSION),
+                                 type_q: str = Query(DEFAULTS_FOR_FIBER["type"], alias="type", description=f"Type of spectrum (Allowed: {list(ALLOWED_LINE_TYPES)}), used only if `l` is not provided.", example=DEFAULTS_FOR_FIBER["type"])
+                                ) -> ORJSONResponseCustom:
+        """
+        # Get LVM Fiber Spectrum Data
+
+        Retrieves spectral data for one or more fibers from LVM SFrame files.
+        Fibers and data types can be specified either via one or more composite `l` query parameters
+        or through individual query parameters for a single spectrum request.
+
+        ## Parameters:
+
+        - **l** (query, optional): One or more parameters defining fiber spectra.
+
+          Format: `id:DRPversion/expnum/fiberid[;type:spectrum_type]`
+
+          Example: `l=id:1.1.0/7371/532;type:flux&l=id:1.1.0/7371/533;type:sky`
+
+          If `type` is omitted, it defaults to 'flux'.
+
+          The fiberid in the id corresponds to the SLITMAP fiberid, which is a 1-based index in the full fiber stack (ranging from 1 to 1944).
+
+          If *any* `l` parameter is provided, the individual parameters (`expnum`, `fiberid`, `drpver`, `type`) are ignored.
+
+        - **expnum** (query, optional): Exposure number. Used only if `l` is not provided. Required in that case.
+        - **fiberid** (query, optional): Fiber ID (1-based in the full stack, 1-1944). Used only if `l` is not provided. Required in that case.
+        - **drpver** (query, optional): DRP version. Used only if `l` is not provided. Defaults to `LAST_DRP_VERSION`.
+        - **type** (query, optional): Type of spectrum (e.g., 'flux', 'sky', 'err'). Used only if `l` is not provided.
+          Defaults to 'flux'. See `ALLOWED_LINE_TYPES`.
+
+        ## Response Structure:
+
+        Returns a JSON object:
+        ```json
+        {
+          "wave": [...], // Common wavelength array for all spectra
+          "spectra": [
+            { // Data for Spectrum 1
+              "filename": "...", "drpver": "...", "expnum": ..., "fiberid": ..., "spectrum_type": "flux", "flux": [...]
+            },
+            { // Data for Spectrum 2
+              "filename": "...", "drpver": "...", "expnum": ..., "fiberid": ..., "spectrum_type": "sky", "sky": [...]
+            },
+            ...
+          ]
+        }
+        ```
+        """
+        # Validate input parameters and build the list of spectrum requests
+        spectrum_requests = self._validate_and_build_spectrum_requests(l, expnum_q, fiberid_q, drpver_q, type_q)
+
+        # Process all valid requests asynchronously
+        spectra_data, common_wave = await self._process_spectrum_requests(spectrum_requests)
+
+        # Prepare the final response
+        final_content = {"wave": arr2list(common_wave), "spectra": spectra_data}
+        return ORJSONResponseCustom(content=final_content)
+
+    def _validate_and_build_spectrum_requests(self, l_params, expnum_q, fiberid_q, drpver_q, type_q):
+        """
+        Validates input parameters and builds a list of spectrum requests to process.
+        Returns a list of tuples: (expnum, fiberid, drpver, type)
+        """
+        if not l_params and (expnum_q is None or fiberid_q is None):
+            raise HTTPException(
+                status_code=400,
+                detail="Either one or more 'l' query parameters or both 'expnum' and 'fiberid' query parameters must be provided."
+            )
+
+        spectrum_requests = []
+
+        # Process l parameters if provided
+        if l_params:
+            if not isinstance(l_params, list):
+                l_params = [l_params]
+
+            for l_param in l_params:
+                try:
+                    parsed = parse_line_query_fiber(l_param)
+                    id_parts = parsed['id'].split('/')
+
+                    if len(id_parts) != 3:
+                        raise ValueError("ID must be in the format DRPversion/expnum/fiberid")
+
+                    drpver = id_parts[0]
+                    expnum = int(id_parts[1])
+                    fiberid = int(id_parts[2])
+                    spectrum_type = parsed['type']
+
+                    # Validate fiberid range
+                    if not (1 <= fiberid <= 1944):
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"fiberid ({fiberid}) in 'l' parameter '{l_param}' must be between 1 and 1944."
+                        )
+
+                    # Validate spectrum type
+                    if spectrum_type not in ALLOWED_LINE_TYPES:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Invalid spectrum 'type' ({spectrum_type}) in 'l' parameter '{l_param}'. Allowed: {list(ALLOWED_LINE_TYPES)}"
+                        )
+
+                    spectrum_requests.append((expnum, fiberid, drpver, spectrum_type))
+
+                except ValueError as e:
+                    raise HTTPException(status_code=400, detail=f"Invalid 'l' parameter ('{l_param}'): {e}")
         else:
-            filename = f"lvm/spectro/redux/{version}/{str(tile_id)[:4]}XX/{tile_id}/{mjd}/lvmSFrame-{suffix}.fits"
+            # Validate direct parameters
+            if not (1 <= fiberid_q <= 1944):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"fiberid ({fiberid_q}) must be between 1 and 1944."
+                )
 
-        file = f"/data/sdss/sas/sdsswork/" + filename
+            if type_q not in ALLOWED_LINE_TYPES:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid spectrum 'type': {type_q}. Allowed: {list(ALLOWED_LINE_TYPES)}"
+                )
 
-        # Check that file exists and return exception if not
-        if not os.path.exists(file):
-            raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {version}")
+            spectrum_requests.append((expnum_q, fiberid_q, drpver_q, type_q))
 
-        # Check that file exists and return exception if not
-        if fiberid < 1 or fiberid > 1801:
-            raise HTTPException(status_code=400, detail=f"`fiberid` ({fiberid}) must be between 1 and 1801.")
+        return spectrum_requests
 
-        # Open file and read data
-        with fits.open(file) as hdul:
-            wave = hdul['WAVE'].data
-            targettype = hdul['SLITMAP'].data['targettype']
-            fiberid_in_stack = np.argwhere(targettype == 'science')[fiberid - 1][0]
+    async def _process_spectrum_requests(self, spectrum_requests):
+        """
+        Processes a list of spectrum requests and returns the spectra data and common wavelength array.
+        Asynchronously retrieves and processes FITS data for better performance.
+        """
+        spectra_data = []
+        common_wave = None
+        loop = asyncio.get_event_loop()
 
-            flux = hdul['FLUX'].data[fiberid_in_stack, :] * 1e17
+        for expnum, fiberid, drpver, spectrum_type in spectrum_requests:
+            try:
+                # Get DRP record and file path asynchronously
+                try:
+                    # Use our async functions
+                    full_file_path = await get_SFrame_filename(expnum, drpver)
+                    # The drp_record is obtained inside get_SFrame_filename
+                    drp_record = await get_LVM_drpall_record(expnum, drpver)
+                    relative_sas_path = drp_record['location']
 
-        return dict(filename=filename,
-                    version=version,
-                    wave=arr2list(wave),
-                    flux=arr2list(flux),)
+                    # Update path if DRP version doesn't match
+                    if drp_record['drpver'] != drpver:
+                        relative_sas_path = relative_sas_path.replace(drp_record['drpver'], drpver)
+
+                except IndexError:
+                    error_msg = f"Exposure {expnum} for DRP {drpver} not found in DRPall records."
+                    raise HTTPException(status_code=404, detail=error_msg)
+                except FileNotFoundError as e:
+                    error_msg = f"DRPall file error: {str(e)}"
+                    raise HTTPException(status_code=404, detail=error_msg)
+
+                # Verify file exists asynchronously using run_in_executor
+                exists = await loop.run_in_executor(None, os.path.exists, full_file_path)
+                if not exists:
+                    error_msg = f"SFrame file not found at {full_file_path}"
+                    raise HTTPException(status_code=404, detail=error_msg)
+
+                # Extract data from FITS file (this is CPU-bound, use run_in_executor)
+                def read_fits_data():
+                    with fits.open(full_file_path) as hdul:
+                        wave_data = hdul['WAVE'].data
+                        data_array = self._extract_fiber_data(hdul, fiberid, spectrum_type)
+                        return wave_data, data_array
+
+                wave_data, data_array = await loop.run_in_executor(None, read_fits_data)
+
+                # Update common_wave if not set yet
+                if common_wave is None:
+                    common_wave = wave_data
+
+                # Prepare spectrum data dictionary
+                spectrum_dict = {
+                    'filename': relative_sas_path,
+                    'drpver': drpver,
+                    'expnum': expnum,
+                    'fiberid': fiberid,
+                    'spectrum_type': spectrum_type,
+                    spectrum_type: arr2list(data_array)
+                }
+
+                spectra_data.append(spectrum_dict)
+
+            except HTTPException:
+                # Re-raise HTTP exceptions directly
+                raise
+            except Exception as e:
+                # Catch any other exceptions and convert to HTTP error
+                error_msg = f"Error processing spectrum (expnum={expnum}, fiberid={fiberid}, type={spectrum_type}): {str(e)}"
+                raise HTTPException(status_code=500, detail=error_msg)
+
+        # Final check that we have some data
+        if not spectra_data:
+            raise HTTPException(status_code=400, detail="No valid spectrum data could be retrieved.")
+
+        if common_wave is None:
+            error_msg = "Could not retrieve wavelength data from any requested SFrame."
+            raise HTTPException(status_code=500, detail=error_msg)
+
+        return spectra_data, common_wave
+
+    def _extract_fiber_data(self, hdul, fiberid, spectrum_type, factor=1e17):
+        """
+        Extracts data for a specific fiber and spectrum type from an opened FITS HDUList.
+        """
+        ifib = fiberid - 1  # Convert to 0-based index
+
+        # Validate fiber ID range
+        if not (0 <= ifib < len(hdul['FLUX'].data)):
+            raise ValueError(f"Fiber index {fiberid} is out of range (1-{len(hdul['FLUX'].data)})")
+
+        # Validate spectrum type
+        if spectrum_type not in ALLOWED_LINE_TYPES:
+            raise ValueError(f"Invalid spectrum type: {spectrum_type}. Allowed: {list(ALLOWED_LINE_TYPES)}")
+
+        # Get wave shape for NaN array creation
+        wave_shape = hdul['WAVE'].data.shape
+
+        # Define data extraction based on type
+        if spectrum_type == 'flux':
+            data = hdul['FLUX'].data[ifib, :] * factor
+        elif spectrum_type == 'sky':
+            data = hdul['SKY'].data[ifib, :] * factor
+        elif spectrum_type == 'skyflux':
+            data = (hdul['SKY'].data[ifib, :] + hdul['FLUX'].data[ifib, :]) * factor
+        elif spectrum_type == 'err':
+            if 'IVAR' in hdul and np.all(hdul['IVAR'].data[ifib, :] > 0):
+                data = np.sqrt(1.0 / hdul['IVAR'].data[ifib, :]) * factor
+            else:
+                data = np.full(wave_shape, np.nan)
+        elif spectrum_type == 'sky_err':
+            if 'SKY_IVAR' in hdul and np.all(hdul['SKY_IVAR'].data[ifib, :] > 0):
+                data = np.sqrt(1.0 / hdul['SKY_IVAR'].data[ifib, :]) * factor
+            else:
+                data = np.full(wave_shape, np.nan)
+        elif spectrum_type == 'ivar':
+            data = hdul['IVAR'].data[ifib, :] / factor**2
+        elif spectrum_type == 'sky_ivar':
+            data = hdul['SKY_IVAR'].data[ifib, :] / factor**2
+        elif spectrum_type == 'lsf':
+            data = hdul['LSF'].data[ifib, :]
+        else:
+            # This should never happen due to earlier validation, but just in case
+            raise ValueError(f"Unhandled spectrum type: {spectrum_type}")
+
+        return data
 
     @router.get('/plot_fiber_spectrum/',
                 summary='Endpoint to plot fiber spectra retrieved from LVM SFrame file.')
@@ -448,42 +709,40 @@ class LVM(Base):
 
                 d['drpver'], d['expnum'], d['fiberid'] = drpver, expnum, fiberid
             except ValueError as e:
-                raise HTTPException(status_code=400,
-                                    detail=("Invalid `id` parameter. Must be in the format `DRPversion/expnum/fiberid` "
-                                            "i.e. `id:1.1.0/7371/532`"))
+                raise HTTPException(
+                    status_code=400,
+                    detail=("Invalid `id` parameter. Must be in the format `DRPversion/expnum/fiberid` "
+                            "i.e. `id:1.1.0/7371/532`"))
 
-            file = get_SFrame_filename(expnum, drpver)
+            # Get file path asynchronously
+            file = await get_SFrame_filename(expnum, drpver)
 
-            if not os.path.exists(file):
+            # Check if file exists asynchronously
+            loop = asyncio.get_event_loop()
+            exists = await loop.run_in_executor(None, os.path.exists, file)
+            if not exists:
                 raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
 
-            # Read data and construct required spectrum to be plotted
-            with fits.open(file) as hdul:
-                wave = hdul['WAVE'].data
-                ifib = fiberid - 1
+            # Read data and construct required spectrum to be plotted (CPU-bound, run in executor)
+            def read_fits_data():
+                with fits.open(file) as hdul:
+                    wave = hdul['WAVE'].data
+                    spectrum_array = _extract_fiber_data(hdul, d['fiberid'], d['type'], factor=1.0)
+                    return wave, spectrum_array
 
-                extractor = {
-                    'flux': lambda hdul, ifib: hdul['FLUX'].data[ifib, :],
-                    'sky': lambda hdul, ifib: hdul['SKY'].data[ifib, :],
-                    'skyflux': lambda hdul, ifib: hdul['SKY'].data[ifib, :] + hdul['FLUX'].data[ifib, :],
-                    'err': lambda hdul, ifib: np.sqrt(1 / hdul['IVAR'].data[ifib, :]),
-                    'sky_err': lambda hdul, ifib: np.sqrt(1 / hdul['SKY_IVAR'].data[ifib, :]),
-                    'ivar': lambda hdul, ifib: hdul['IVAR'].data[ifib, :],
-                    'sky_ivar': lambda hdul, ifib: hdul['SKY_IVAR'].data[ifib, :],
-                    'lsf': lambda hdul, ifib: hdul['LSF'].data[ifib, :],
-                }
-
-                try:
-                    d['array'] = extractor[d['type']](hdul, ifib) * FACTOR
-                except KeyError:
-                    raise ValueError(f"Invalid type: {d['type']}")
+            wave, spectrum_array = await loop.run_in_executor(None, read_fits_data)
+            d['array'] = spectrum_array * FACTOR
+            d['wave'] = wave  # Store wave data for each spectrum
 
             # Extract additional plotting kwargs
-            non_plot_keys = {'id', 'drpver', 'expnum', 'fiberid', 'type', 'array'}
+            non_plot_keys = {'id', 'drpver', 'expnum', 'fiberid', 'type', 'array', 'wave'}
             d['plot_kwargs'] = {key: value for key, value in d.items() if key not in non_plot_keys}
 
         # Create a plot
         fig = plt.figure(figsize=(width, height))
+
+        # Use the wave data from the first spectrum
+        wave = data[0]['wave']
 
         for d in data:
             legend_options = dict(
@@ -712,6 +971,10 @@ class LVM(Base):
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+        # Store wave data for later use
+        wave = None
+        loop = asyncio.get_event_loop()
+
         # iterate over spectra to be plotted
         for d in data:
             # parse id into standard LVM id and create full path to SFRame
@@ -725,64 +988,78 @@ class LVM(Base):
                     detail=("Invalid `id` parameter. Must be in the format `DRPversion/expnum` "
                             "i.e. `id:1.1.0/7371`"))
 
-            file = get_SFrame_filename(expnum, drpver)
+            # Get file path asynchronously
+            file = await get_SFrame_filename(expnum, drpver)
 
-            if not os.path.exists(file):
+            # Check if file exists asynchronously
+            exists = await loop.run_in_executor(None, os.path.exists, file)
+            if not exists:
                 raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
 
-            # read data and construct required spectrum to be plotted
+            # read data and construct required spectrum to be plotted (CPU-bound, run in executor)
+            def process_fits_data():
+                with fits.open(file) as hdul:
+                    wave_data = hdul['WAVE'].data
+                    slitmap = hdul['SLITMAP'].data
 
-            with fits.open(file) as hdul:
-                wave = hdul['WAVE'].data
-                slitmap = hdul['SLITMAP'].data
+                    mask = (slitmap['telescope'] == d.get('telescope', 'Sci')) & (slitmap['fibstatus'] == d.get('fibstatus', 0))
 
-                mask = (slitmap['telescope'] == d.get('telescope', 'Sci')) & (slitmap['fibstatus'] == d.get('fibstatus', 0))
+                    aggregation_functions = {
+                        'mean': partial(np.nanmean, axis=0),
+                        'median': partial(np.nanmedian, axis=0),
+                        'std': partial(np.nanstd, axis=0),
+                        'percentile': partial(np.nanpercentile, q=d.get('percentile_value', 50), axis=0)
+                    }
 
-                aggregation_functions = {
-                    'mean': partial(np.nanmean, axis=0),
-                    'median': partial(np.nanmedian, axis=0),
-                    'std': partial(np.nanstd, axis=0),
-                    'percentile': partial(np.nanpercentile, q=d.get('percentile_value', 50), axis=0)
-                }
+                    aggfunc = aggregation_functions[d['method']]
 
-                aggfunc = aggregation_functions[d['method']]
+                    try:
+                        if d['type'] in {'flux', 'sky', 'skyflux', 'lsf'}:
+                            if d['type'] == 'flux':
+                                values = hdul['FLUX'].data[mask, :]
+                            elif d['type'] == 'sky':
+                                values = hdul['SKY'].data[mask, :]
+                            elif d['type'] == 'lsf':
+                                values = hdul['LSF'].data[mask, :]
+                            elif d['type'] == 'skyflux':
+                                values = (hdul['SKY'].data[mask, :] +
+                                          hdul['FLUX'].data[mask, :])
+                            # Directly apply the aggregation function
+                            spectrum_array = aggfunc(values)
 
-                try:
-                    if d['type'] in {'flux', 'sky', 'skyflux', 'lsf'}:
-                        if d['type'] == 'flux':
-                            values = hdul['FLUX'].data[mask, :]
-                        elif d['type'] == 'sky':
-                            values = hdul['SKY'].data[mask, :]
-                        elif d['type'] == 'lsf':
-                            values = hdul['LSF'].data[mask, :]
-                        elif d['type'] == 'skyflux':
-                            values = (hdul['SKY'].data[mask, :] +
-                                      hdul['FLUX'].data[mask, :])
-                        # Directly apply the aggregation function
-                        d['array'] = aggfunc(values) * FACTOR
+                        elif d['type'] in {'err', 'sky_err'}:
+                            if d['type'] == 'err':
+                                ivar = hdul['IVAR'].data[mask, :]
+                            elif d['type'] == 'sky_err':
+                                ivar = hdul['SKY_IVAR'].data[mask, :]
+                            # Convert IVAR to VAR, apply the aggregation function,
+                            # and then convert back to ERR
+                            spectrum_array = np.sqrt(aggfunc(1.0 / ivar))
 
-                    elif d['type'] in {'err', 'sky_err'}:
-                        if d['type'] == 'err':
-                            ivar = hdul['IVAR'].data[mask, :]
-                        elif d['type'] == 'sky_err':
-                            ivar = hdul['SKY_IVAR'].data[mask, :]
-                        # Convert IVAR to VAR, apply the aggregation function,
-                        # and then convert back to ERR
-                        d['array'] = np.sqrt(aggfunc(1.0 / ivar)) * FACTOR
+                        elif d['type'] in {'ivar', 'sky_ivar'}:
+                            if d['type'] == 'ivar':
+                                ivar = hdul['IVAR'].data[mask, :]
+                            elif d['type'] == 'sky_ivar':
+                                ivar = hdul['SKY_IVAR'].data[mask, :]
+                            spectrum_array = aggfunc(ivar)
+                    except ValueError as e:
+                        # this will handle error if percentile value is out of range [0, 100]
+                        raise ValueError(f"Error processing aggregation: {str(e)}")
 
-                    elif d['type'] in {'ivar', 'sky_ivar'}:
-                        if d['type'] == 'ivar':
-                            ivar = hdul['IVAR'].data[mask, :]
-                        elif d['type'] == 'sky_ivar':
-                            ivar = hdul['SKY_IVAR'].data[mask, :]
-                        d['array'] = aggfunc(ivar) * FACTOR
-                except ValueError as e:
-                    # this will handle error if percentile value is out of range [0, 100]
-                    raise HTTPException(status_code=400, detail=str(e))
+                    return wave_data, spectrum_array
+
+            # Run the FITS processing in a thread pool
+            wave_data, spectrum_array = await loop.run_in_executor(None, process_fits_data)
+
+            # Store wave data if not already set
+            if wave is None:
+                wave = wave_data
+
+            d['array'] = spectrum_array * FACTOR
 
             # Extract additional plotting kwargs
             non_plot_keys = {'id', 'drpver', 'tile_id', 'mjd', 'expnum', 'type',
-                             'method', 'telescope', 'fibstatus', 'array', 'percentile_value'}
+                            'method', 'telescope', 'fibstatus', 'array', 'percentile_value'}
             d['plot_kwargs'] = {key: value for key, value in d.items() if key not in non_plot_keys}
 
         # Create a plot
@@ -858,41 +1135,53 @@ class LVM(Base):
 
         file = f"/data/sdss/sas/sdsswork/" + filename
 
-        # Check that file exists and return exception if not
-        if not os.path.exists(file):
+        # Check that file exists asynchronously and return exception if not
+        loop = asyncio.get_event_loop()
+        exists = await loop.run_in_executor(None, os.path.exists, file)
+        if not exists:
             raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {version}")
 
-        # Read parametric emission line
-        dap_pm = fits.getdata(file, 'PM_ELINES')
+        # Read parametric emission line in a thread pool
+        def read_fits_data():
+            dap_pm = fits.getdata(file, 'PM_ELINES')
 
-        # # Create DataFrames
-        df_pm = pd.DataFrame({'id': np.array(dap_pm['id']).byteswap().newbyteorder(),
-                            'wl': np.array(dap_pm['wl']).byteswap().newbyteorder(),
-                            'flux': np.array(dap_pm['flux']).byteswap().newbyteorder()})
+            # Create DataFrames
+            df_pm = pd.DataFrame({'id': np.array(dap_pm['id']).byteswap().newbyteorder(),
+                                  'wl': np.array(dap_pm['wl']).byteswap().newbyteorder(),
+                                  'flux': np.array(dap_pm['flux']).byteswap().newbyteorder()})
 
-        # # extract from id column fiberid part
-        df_pm['fiberid'] = df_pm['id'].str.split('.').str[1].astype(int)
+            # extract from id column fiberid part
+            df_pm['fiberid'] = df_pm['id'].str.split('.').str[1].astype(int)
 
-        wlist = [float(w) for w in wl.split(',')]
+            wlist = [float(w) for w in wl.split(',')]
 
-        masked_lines = df_pm['wl'].isin(wlist)
-        df_pm_sub = df_pm[masked_lines]
+            masked_lines = df_pm['wl'].isin(wlist)
+            df_pm_sub = df_pm[masked_lines]
 
-        df_pm_pivot = df_pm_sub.pivot(index='fiberid', columns='wl', values='flux').reset_index()
+            df_pm_pivot = df_pm_sub.pivot(index='fiberid', columns='wl', values='flux').reset_index()
 
-        output = dict(fiberid=df_pm_pivot['fiberid'].tolist())
-        for wl in wlist:
-            output[f"{wl}"] = df_pm_pivot[wl].tolist()
+            output = dict(fiberid=df_pm_pivot['fiberid'].tolist())
+            for w in wlist:
+                output[f"{w}"] = df_pm_pivot[w].tolist()
 
-        return output
+            return output
+
+        # Process FITS data in a thread pool
+        result = await loop.run_in_executor(None, read_fits_data)
+        return result
 
     @router.get('/observed-pointings',
                 summary='Serve static JSON file of observed pointings')
     async def get_observed_pointings(self,
                                      drpver: Annotated[str, Query(description='DRP version', example='1.1.1')] = '1.1.1'):
         json_file_path = f'/data/sdss/sas/sdsswork/lvm/sandbox/lvmvis/lvmvis-drpall-{drpver}.json'
-        if not os.path.exists(json_file_path):
+
+        # Check if file exists asynchronously
+        loop = asyncio.get_event_loop()
+        exists = await loop.run_in_executor(None, os.path.exists, json_file_path)
+        if not exists:
             raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
+
         return FileResponse(json_file_path, media_type='application/json')
 
     @router.get('/planned-tiles',
@@ -900,6 +1189,11 @@ class LVM(Base):
     async def get_planned_tiles(self,
                                 drpver: Annotated[str, Query(description='DRP version', example='1.1.1')] = '1.1.1'):
         json_file_path = f'/data/sdss/sas/sdsswork/lvm/sandbox/lvmvis/lvmvis-planned-tiles-after-drpall-{drpver}.json'
-        if not os.path.exists(json_file_path):
+
+        # Check if file exists asynchronously
+        loop = asyncio.get_event_loop()
+        exists = await loop.run_in_executor(None, os.path.exists, json_file_path)
+        if not exists:
             raise HTTPException(status_code=404, detail=f"No file available for the requested DRP version: {drpver}")
+
         return FileResponse(json_file_path, media_type='application/json')
