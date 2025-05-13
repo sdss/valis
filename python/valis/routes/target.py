@@ -236,7 +236,7 @@ class Target(Base):
         """
 
         try:
-            result = get_parent_catalog_data(sdss_id, catalog, catalogid=catalogid).dicts()
+            result = list(get_parent_catalog_data(sdss_id, catalog, catalogid=catalogid).dicts())
             if len(result) == 0:
                 raise ValueError(f'No parent catalog data found for sdss_id {sdss_id}')
         except Exception as e:
