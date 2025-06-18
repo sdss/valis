@@ -643,15 +643,15 @@ xyzservices = ">=2021.09.1"
 
 [[package]]
 name = "bqplot"
-version = "0.12.43"
+version = "0.12.45"
 description = "Interactive plotting for the Jupyter notebook, using d3.js and ipywidgets."
 optional = true
 python-versions = ">=3.6"
 groups = ["main"]
 markers = "extra == \"solara\""
 files = [
-    {file = "bqplot-0.12.43-py2.py3-none-any.whl", hash = "sha256:65aa2f10bf2e4b500e628d5c1b876e6d2cdc2b82883200e4b1bb65edc17d111b"},
-    {file = "bqplot-0.12.43.tar.gz", hash = "sha256:f2b469d1f03df4f51873cb0406a24b56cdf4a835fc5aa9560776fc636b8b3449"},
+    {file = "bqplot-0.12.45-py2.py3-none-any.whl", hash = "sha256:cf2e046adb401670902ab53a18d9f63540091279bc45c4ef281bfdadf6e7e92c"},
+    {file = "bqplot-0.12.45.tar.gz", hash = "sha256:ede00e9fdf7d92e43cc2d1b9691c7da176b6216fdd187c8e92f19d7beaca5e2a"},
 ]
 
 [package.dependencies]
@@ -1453,24 +1453,23 @@ python-dotenv = "*"
 
 [[package]]
 name = "echo"
-version = "0.8.0"
+version = "0.11.0"
 description = "Callback Properties in Python"
 optional = true
-python-versions = ">=3.6"
+python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"solara\""
 files = [
-    {file = "echo-0.8.0-py3-none-any.whl", hash = "sha256:cda500e45118cf244c0d6df19b20cdf3e294852a58d19f72102ff2141e4d6bb5"},
-    {file = "echo-0.8.0.tar.gz", hash = "sha256:726fb786d25781e7a4205aa15891e7ceab16141bc0e71ade92ec1557e59b22c3"},
+    {file = "echo-0.11.0-py3-none-any.whl", hash = "sha256:d6b2ab75db5a8c6e42a31692795d68778e92fb97eefcef3995a06c167f1b589f"},
+    {file = "echo-0.11.0.tar.gz", hash = "sha256:85338c5c6a52113875a9c03cddd77e8d2fc000f241e8d4769a627d0b321d973d"},
 ]
 
 [package.dependencies]
 numpy = "*"
-qtpy = "*"
 
 [package.extras]
 docs = ["numpydoc", "sphinx", "sphinx-automodapi", "sphinx-rtd-theme"]
-qt = ["PyQt5 (>=5.9)"]
+qt = ["pyqt5 (>=5.14)", "qtpy"]
 test = ["pytest", "pytest-cov"]
 
 [[package]]
@@ -1956,37 +1955,35 @@ test = ["mock", "pytest", "pytest-astropy", "pytest-cov"]
 
 [[package]]
 name = "glue-core"
-version = "1.21.0"
+version = "1.22.2"
 description = "Core library for the glue multidimensional data visualization project"
 optional = true
-python-versions = ">=3.8"
+python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"solara\""
 files = [
-    {file = "glue_core-1.21.0-py3-none-any.whl", hash = "sha256:be9918dcabca3914e34d030986b3b60f6a8f4b1fc5afeefac461bebd3e9de7c9"},
-    {file = "glue_core-1.21.0.tar.gz", hash = "sha256:d730bcd483eadf58cb566199a2012a95714075fb522077a1ea0420ef388cd45b"},
+    {file = "glue_core-1.22.2-py3-none-any.whl", hash = "sha256:80e171e59513b359baa4f7bdf1421803470ee737a219e0da67306300c5705dc2"},
+    {file = "glue_core-1.22.2.tar.gz", hash = "sha256:2c177daea8b76b62ed9569d146cb8b10bbaaee824944355845270ea6ac1e7b29"},
 ]
 
 [package.dependencies]
 astropy = ">=4.0"
 dill = ">=0.2"
 echo = ">=0.6"
-fast-histogram = ">=0.12"
-h5py = {version = ">=2.10", markers = "python_version < \"3.11\""}
+fast_histogram = ">=0.12"
+h5py = ">=2.10"
 ipython = ">=4.0"
 matplotlib = ">=3.2"
-mpl-scatter-density = ">=0.7"
+mpl-scatter-density = ">=0.8"
 numpy = ">=1.17"
 openpyxl = ">=3.0"
 pandas = ">=1.2"
-pvextractor = ">=0.2"
 scipy = ">=1.1"
-setuptools = ">=30.3.0"
 shapely = ">=2.0"
 xlrd = ">=1.2"
 
 [package.extras]
-all = ["PyAVM", "astrodendro", "h5py (>=2.10)", "pillow (!=7.1.0)", "scikit-image", "scipy", "spectral-cube"]
+all = ["PyAVM", "astrodendro", "pillow (!=7.1.0)", "scikit-image", "scipy", "spectral-cube"]
 astronomy = ["PyAVM", "astrodendro", "spectral-cube"]
 docs = ["numpydoc", "sphinx (<7)", "sphinx-automodapi", "sphinx-book-theme", "sphinxcontrib-spelling"]
 recommended = ["scikit-image"]
@@ -2883,15 +2880,15 @@ testing = ["jaraco.classes", "pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest
 
 [[package]]
 name = "jdaviz"
-version = "4.1.0"
+version = "4.2.3"
 description = "Astronomical data analysis development leveraging the Jupyter platform"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"solara\""
 files = [
-    {file = "jdaviz-4.1.0-py3-none-any.whl", hash = "sha256:a2e83f0c284b430c5e25b57594958163d48552321bcdaf9249e1bc9cadddde1a"},
-    {file = "jdaviz-4.1.0.tar.gz", hash = "sha256:fb676aae845c4ff8920450ef2ba4e26767a668cc16be0e219a1ce6de1d5a9de8"},
+    {file = "jdaviz-4.2.3-py3-none-any.whl", hash = "sha256:f70e282b348ae8512f2f678861a7af9f3ff25fd52d2810d8df8b75fd4a878a76"},
+    {file = "jdaviz-4.2.3.tar.gz", hash = "sha256:b405b943dda9da80a74ec8b27f246a12acf5ac30638d06f8afe7dd2ab32850d8"},
 ]
 
 [package.dependencies]
@@ -2899,10 +2896,10 @@ asdf = ">=2.14.3"
 asteval = ">=0.9.23"
 astropy = ">=6"
 astroquery = "*"
-bqplot = ">=0.12.37"
-echo = ">=0.5.0"
+bqplot = ">=0.12.45"
+echo = ">=0.11.0"
 glue-astronomy = ">=0.10"
-glue-core = ">=1.20.0"
+glue-core = ">=1.22.0"
 glue-jupyter = ">=0.23.0"
 gwcs = ">=0.16.1"
 idna = "*"
@@ -2916,15 +2913,16 @@ ipywidgets = ">=8.0.6"
 matplotlib = ">=3.6"
 nbclassic = "*"
 packaging = "*"
-photutils = ">=1.4"
+photutils = ">=1.12.1"
+pyvo = ">=1.5.3"
 pyyaml = ">=5.4.1"
 regions = ">=0.6"
 requests = "*"
 scikit-image = "*"
 sidecar = ">=0.5.2"
 solara = ">=1.40.0"
-specreduce = ">=1.4.1"
-specutils = ">=1.18"
+specreduce = ">=1.4.1,<1.5"
+specutils = ">=1.18,<2.0"
 stdatamodels = ">=1.3"
 traitlets = ">=5.0.5"
 vispy = ">=0.6.5"
@@ -2932,6 +2930,7 @@ vispy = ">=0.6.5"
 [package.extras]
 all = ["opencv-python", "pysiaf"]
 docs = ["sphinx-astropy[confv2] (>=1.9.1)", "sphinx_design"]
+qt = ["PySide6", "qtpy"]
 roman = ["roman_datamodels (>=0.22.0)"]
 strauss = ["strauss"]
 test = ["pytest", "pytest-astropy", "pytest-tornasync"]
@@ -3815,15 +3814,15 @@ files = [
 
 [[package]]
 name = "mpl-scatter-density"
-version = "0.7"
+version = "0.8"
 description = "Matplotlib helpers to make density scatter plots"
 optional = true
 python-versions = ">=3.6"
 groups = ["main"]
 markers = "extra == \"solara\""
 files = [
-    {file = "mpl-scatter-density-0.7.tar.gz", hash = "sha256:cace750887916d3881b3a42ab5805769cc8d7eb70ef610938cbb57c967277620"},
-    {file = "mpl_scatter_density-0.7-py3-none-any.whl", hash = "sha256:721b4efeafcbc0ba4a5c1ecd8f401dc2d1aa6a372445c5b49e1da34e70a95ead"},
+    {file = "mpl_scatter_density-0.8-py3-none-any.whl", hash = "sha256:0752fe5be86c1334f0be1cb493a15b5c29712c5165d5bbbb975ca7c70614dbd0"},
+    {file = "mpl_scatter_density-0.8.tar.gz", hash = "sha256:2dbabdcc3f98b04af49aa8ac3efa392d9a9fe175b125b31f9d5d4c337398d633"},
 ]
 
 [package.dependencies]
@@ -4817,31 +4816,6 @@ files = [
 tests = ["pytest"]
 
 [[package]]
-name = "pvextractor"
-version = "0.4"
-description = "Position-velocity diagram extractor."
-optional = true
-python-versions = ">=3.8"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "pvextractor-0.4-py3-none-any.whl", hash = "sha256:071e8d961837d9ab2bd619896ad647614c712070069e284f433bf51e8ea0d2d3"},
-    {file = "pvextractor-0.4.tar.gz", hash = "sha256:ed6a115935e83e6faa7727107e961bc49d7914fec85e3326e5adf65cde1e83ce"},
-]
-
-[package.dependencies]
-astropy = ">=5.0"
-matplotlib = ">=3.5"
-numpy = ">=1.22"
-qtpy = ">=2.0"
-scipy = ">=1.8"
-spectral-cube = ">=0.4"
-
-[package.extras]
-docs = ["sphinx-astropy"]
-test = ["pytest-astropy"]
-
-[[package]]
 name = "pyarrow"
 version = "16.1.0"
 description = "Python library for Apache Arrow"
@@ -5450,22 +5424,22 @@ files = [
 
 [[package]]
 name = "pyvo"
-version = "1.5.2"
+version = "1.7"
 description = "Astropy affiliated package for accessing Virtual Observatory data and services"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "pyvo-1.5.2-py3-none-any.whl", hash = "sha256:f4306d4e8f21c604dbd5df65ce101101633d62d854b0fc9c7746f342877e99f6"},
-    {file = "pyvo-1.5.2.tar.gz", hash = "sha256:b8a24c44dace5c607b1d93afd0257d15fa109f1e865772347ea949eea01c8f71"},
+    {file = "pyvo-1.7-py3-none-any.whl", hash = "sha256:f1019a7f62cd0ba8d61908d4cc2b4d2b37410a7d75401ef9cdf7dbc99d232434"},
+    {file = "pyvo-1.7.tar.gz", hash = "sha256:a6fad9efd410732d113e55df43b0201c9acb2e29f27532c71bda56f38ce62320"},
 ]
 
 [package.dependencies]
-astropy = ">=4.1"
+astropy = ">=4.2"
 requests = "*"
 
 [package.extras]
-all = ["pillow"]
+all = ["defusedxml", "pillow"]
 docs = ["sphinx-astropy"]
 test = ["pytest-astropy", "pytest-doctestplus (>=0.13)", "requests-mock"]
 
@@ -5686,25 +5660,6 @@ files = [
 
 [package.dependencies]
 cffi = {version = "*", markers = "implementation_name == \"pypy\""}
-
-[[package]]
-name = "qtpy"
-version = "2.4.1"
-description = "Provides an abstraction layer on top of the various Qt bindings (PyQt5/6 and PySide2/6)."
-optional = true
-python-versions = ">=3.7"
-groups = ["main"]
-markers = "extra == \"solara\""
-files = [
-    {file = "QtPy-2.4.1-py3-none-any.whl", hash = "sha256:1c1d8c4fa2c884ae742b069151b0abe15b3f70491f3972698c683b8e38de839b"},
-    {file = "QtPy-2.4.1.tar.gz", hash = "sha256:a5a15ffd519550a1361bdc56ffc07fda56a6af7292f17c7b395d4083af632987"},
-]
-
-[package.dependencies]
-packaging = "*"
-
-[package.extras]
-test = ["pytest (>=6,!=7.0.0,!=7.0.1)", "pytest-cov (>=3.0.0)", "pytest-qt"]
 
 [[package]]
 name = "radio-beam"
@@ -6303,7 +6258,7 @@ docs = ["griffe-pydantic", "mkdocs", "mkdocs-gen-files", "mkdocs-literate-nav", 
 type = "git"
 url = "https://github.com/sdss/explorer.git"
 reference = "HEAD"
-resolved_reference = "d79fdfccfef7016e96532f8c9a948b8656cc63a2"
+resolved_reference = "a42d626798a8c2dedd0115cbd78326e0b6bc32bd"
 
 [[package]]
 name = "sdss_solara"

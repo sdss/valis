@@ -45,6 +45,7 @@ try:
     os.environ['SOLARA_ROOT_PATH'] = os.getenv("SOLARA_ROOT", '/solara')
     os.environ['SOLARA_APP'] = 'sdss_solara.pages.home'
     os.environ['SOLARA_THEME_VARIANT'] = 'dark'
+    os.environ['SOLARA_THEME_SHOW_BANNER'] = 'False'
     os.environ['EXPLORER_DATAPATH'] = os.getenv('EXPLORER_DATAPATH', os.path.expanduser('~'))
     # this solara import needs to come after the os environ setup
     import solara.server.fastapi as solara_server
