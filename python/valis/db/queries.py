@@ -592,6 +592,10 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
     dict
         a dictionary of pipeline result data
     """
+
+    # spot check on target metadata
+    target = get_target_meta(sdss_id, release=release)
+
     # get the pipeline lookup table
     pipes = get_pipes(sdss_id, release).dicts().first()
 
@@ -602,7 +606,7 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
     data['info'].update(pipes or {})
 
     # if there is no match from vizdb, return nothing
-    if not pipes:
+    if not target or not pipes:
         return data
 
     # get only a given pipeline data
