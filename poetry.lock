@@ -6258,7 +6258,7 @@ docs = ["griffe-pydantic", "mkdocs", "mkdocs-gen-files", "mkdocs-literate-nav", 
 type = "git"
 url = "https://github.com/sdss/explorer.git"
 reference = "HEAD"
-resolved_reference = "a42d626798a8c2dedd0115cbd78326e0b6bc32bd"
+resolved_reference = "685247c8e93a60896490652a79ab4a19d419cc3d"
 
 [[package]]
 name = "sdss_solara"
