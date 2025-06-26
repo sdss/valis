@@ -104,12 +104,12 @@ class PathModel(PathResponse):
 class PathBody(BaseBody):
     """ Body for SDSS access paths post requests """
     kwargs: dict = Field({}, description='The keyword variable arguments defining a path',
-                         examples=[{"run2d": "v5_13_2", "plateid": 3606, "mjd": 55182, "fiberid": 22}])
+                         examples=[{"run2d": "v6_1_3", "fieldid": 112360, "mjd": 60052, "catalogid": 27021598150202075}])
     part: PathPart = Field('full', description='The part of the path to return')
     exists: bool = Field(False, description='Flag to check if the path exists')
 
 
-async def valid_name(name: str = FPath(description='the sdss access path name', example='spec-lite'),
+async def valid_name(name: str = FPath(description='the sdss access path name', example='specLite'),
                      access: Path = Depends(get_access)):
     """ Dependency to validate a path name """
     try:
@@ -122,10 +122,14 @@ async def valid_name(name: str = FPath(description='the sdss access path name', 
 
 key_constr = Annotated[str, StringConstraints(pattern="(?:,|^)((\w+)=(?:([\w\d.]+)))")]
 
+#/Users/brian/Work/sdss/sas/ipl-3/spectro/boss/redux/v6_1_3/spectra/lite/112360/60052/spec-112360-60052-27021598150202075.fits
+# examples
+# DR17 - spec-lite; ["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]
+# DR19 - specLite; ["fieldid=112360", "mjd=60052", "catalogid=27021598150202075", "run2d=v6_1_3"]
 
 async def extract_path(name: str = Depends(valid_name),
                        kwargs: List[key_constr] = Query(None, description='the keyword variable arguments defining a path',
-                                                        example=["plateid=3606", "mjd=55182", "fiberid=22", "run2d=v5_13_2"]),
+                                                        example=["fieldid=112360", "mjd=60052", "catalogid=27021598150202075", "run2d=v6_1_3"]),
                        access: Path = Depends(get_access)) -> Type[PathModel]:
     """ Dependency to extract and parse path name and keyword arguments """
 
@@ -219,7 +223,7 @@ class Paths(Base):
     @router.post("/{name}", summary='Get the template or resolved path for an sdss_access path name.',
                  response_model=PathResponse, response_model_exclude_unset=True)
     async def post_path_name(self, name: str = FPath(description='the sdss access path name',
-                                                     example='spec-lite'),
+                                                     example='specLite'),
                              body: PathBody = None):
         """ Construct an sdss_access path
 
