@@ -6,6 +6,7 @@
 
 import datetime
 import math
+import httpx
 from typing import Optional, Annotated, Any, TypeVar
 from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer, field_validator, FieldValidationInfo
 from enum import Enum
@@ -112,6 +113,30 @@ class BossSpectrum(PeeweeBase):
     firstcarton: str = None
     objtype: str = None
     specobjid: Optional[int] = None
+    z: Optional[float] = None
+    zwarning: Optional[int|str] = None
+    objclass: Optional[str] = None
+    subclass: Optional[str] = None
+    sn_median_all: Optional[float] = None
+    on_target: Optional[bool] = None
+    fiber_ra: Optional[float] = None
+    fiber_dec: Optional[float] = None
+
+    @field_serializer('zwarning')
+    def serialize_zwarning(self, value: Optional[int|str]) -> Optional[str]:
+        """ serialize the zwarning maskbits to their labels
+        TODO - the maskbit endpoint should be a utility function
+        """
+        if value == 0:
+            return ''
+
+        url = f'https://api.sdss.org/valis/maskbits/value/labels?value={value}&release=DR19&schema=ZWARNING'
+        res = httpx.get(url)
+        if res.is_success:
+            return ', '.join(res.json()['labels'])
+        else:
+            return str(value)
+
 
 class AstraSource(PeeweeBase):
     """ Pydantic response model for the MWM Astra source metadata """

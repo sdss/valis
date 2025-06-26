@@ -5,7 +5,7 @@ import pathlib
 import numpy as np
 from typing import List, Union, Dict
 
-from astropy.table import Table
+from astropy.table import Table, Column
 from astropy.utils.data import download_file
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi_restful.cbv import cbv
@@ -208,4 +208,8 @@ class Maskbits(Base):
         except KeyError as e:
             raise HTTPException(status_code=400, detail=f'{e}') from e
         else:
-            return {'labels': labels.tolist()}
+            if isinstance(labels, str):
+                labels = [labels]
+            elif isinstance(labels, Column):
+                labels = labels.tolist()
+            return {'labels': labels}
