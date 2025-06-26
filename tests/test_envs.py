@@ -2,12 +2,22 @@
 #
 
 
-def test_envs_default_dr17(client):
+def test_envs_default(client):
     response = client.get("/envs")
     assert response.status_code == 200
     data = response.json()
 
-    assert 'BHM' not in data['envs']
+    assert 'DATA' in data['envs']
+    assert 'MOS' in data['envs']
+    assert 'SPECTRO' in data['envs']
+    assert 'MANGA' not in data['envs']
+
+def test_envs_dr17(client):
+    response = client.get("/envs?release=DR17")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert 'MOS' not in data['envs']
     assert 'MANGA' in data['envs']
     assert 'APOGEE_THEJOKER' in data['envs']['APOGEE']
 
