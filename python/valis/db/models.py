@@ -6,10 +6,12 @@
 
 import datetime
 import math
-import httpx
 from typing import Optional, Annotated, Any, TypeVar
 from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer, field_validator, FieldValidationInfo
 from enum import Enum
+
+from valis.routes.maskbits import mask_values_to_labels
+from valis.exceptions import ValisError
 
 
 def coerce_nan_to_none(x: Any) -> Any:
@@ -124,18 +126,16 @@ class BossSpectrum(PeeweeBase):
 
     @field_serializer('zwarning')
     def serialize_zwarning(self, value: Optional[int|str]) -> Optional[str]:
-        """ serialize the zwarning maskbits to their labels
-        TODO - the maskbit endpoint should be a utility function
-        """
+        """ serialize the zwarning maskbits to their labels"""
         if value == 0:
             return ''
 
-        url = f'https://api.sdss.org/valis/maskbits/value/labels?value={value}&release=DR19&schema=ZWARNING'
-        res = httpx.get(url)
-        if res.is_success:
-            return ', '.join(res.json()['labels'])
-        else:
+        try:
+            labels = mask_values_to_labels(schema='ZWARNING', value=value)
+        except ValisError:
             return str(value)
+        else:
+            return ', '.join(labels['labels'])
 
 
 class AstraSource(PeeweeBase):
