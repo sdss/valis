@@ -6226,7 +6226,7 @@ docs = ["Jinja2 (<=3.0)", "Sphinx (>=7.0.0,<7.3.0)", "importlib_metadata (>=1.6.
 
 [[package]]
 name = "sdss-explorer"
-version = "0.1.0"
+version = "0.2.1"
 description = ""
 optional = true
 python-versions = "<3.11,>=3.10"
@@ -6258,7 +6258,7 @@ docs = ["griffe-pydantic", "mkdocs", "mkdocs-gen-files", "mkdocs-literate-nav", 
 type = "git"
 url = "https://github.com/sdss/explorer.git"
 reference = "HEAD"
-resolved_reference = "685247c8e93a60896490652a79ab4a19d419cc3d"
+resolved_reference = "7613c6bdfd292f094c3d896b586c5e2b03ec06ec"
 
 [[package]]
 name = "sdss_solara"
