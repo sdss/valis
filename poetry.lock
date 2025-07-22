@@ -6698,15 +6698,15 @@ viz-extra = ["glue-core[qt]", "yt"]
 
 [[package]]
 name = "specutils"
-version = "1.19.0"
+version = "1.20.3"
 description = "Package for spectroscopic astronomical data"
 optional = true
 python-versions = ">=3.10"
 groups = ["main"]
 markers = "extra == \"solara\""
 files = [
-    {file = "specutils-1.19.0-py3-none-any.whl", hash = "sha256:d3e876a2e8014f190f57bd38acb97de000d16d8b2d065852b36b99d851a492b4"},
-    {file = "specutils-1.19.0.tar.gz", hash = "sha256:2228bca73d22ffd703a9f0d1d97ce9d9f91a2d5274e642f9cf1d7d3388ce93c7"},
+    {file = "specutils-1.20.3-py3-none-any.whl", hash = "sha256:f3a99e4822e443f46db03201f8a3af64848b968a6039369aabc7e00d137131f1"},
+    {file = "specutils-1.20.3.tar.gz", hash = "sha256:2c3050e30f7614cb613b60fb97f84f1045f324cc8165ebbcc56560da943b348b"},
 ]
 
 [package.dependencies]
