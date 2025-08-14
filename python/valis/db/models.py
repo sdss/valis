@@ -7,7 +7,9 @@
 import datetime
 import math
 from typing import Optional, Annotated, Any, TypeVar
-from pydantic import ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer, field_validator, FieldValidationInfo
+from pydantic_core import to_jsonable_python
+from pydantic import (ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer,
+                      field_validator, FieldValidationInfo, model_serializer)
 from enum import Enum
 
 from valis.routes.maskbits import mask_values_to_labels
@@ -237,6 +239,12 @@ class ParentCatalogModel(PeeweeBase):
     # catalogue columns so we allow extra fields.
     model_config = ConfigDict(extra='allow')
 
+    @model_serializer(mode='wrap')
+    def _dump(self, handler):
+        # serializer to handle the extra fields that are Decimal
+        # wrap mode wraps the default serialization logic vs replace, pydantic default serializes Decimal to str
+        data = handler(self)  # includes extras in model_extra
+        return to_jsonable_python(data, fallback=str)
 
 class CatalogResponse(CatalogModel, SDSSidFlatBase):
     """ Response model for source catalog and sdss_id information """
@@ -244,7 +252,7 @@ class CatalogResponse(CatalogModel, SDSSidFlatBase):
     parent_catalogs: dict[str, Any] = Field(..., description='The parent catalog associations for a given catalogid')
 
     @field_serializer('parent_catalogs')
-    def serialize_parent_catalogs(v: dict[str, Any], info: FieldSerializationInfo) -> dict[str, Any]:
+    def serialize_parent_catalogs(self, v: dict[str, Any], info: FieldSerializationInfo) -> dict[str, Any]:
         """ Serialize the parent catalogs, excluding None values and trimming strings."""
 
         if info.exclude_none:

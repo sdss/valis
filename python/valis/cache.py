@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import base64
+import decimal
 import hashlib
 import json
 import logging
@@ -77,6 +78,9 @@ def bdefault(obj):
     # handle python memoryview objects
     if isinstance(obj, memoryview):
         return base64.b64encode(obj.tobytes()).decode()
+    elif isinstance(obj, decimal.Decimal):
+        # same as default pydantic
+        return str(obj)
     raise TypeError
 
 
