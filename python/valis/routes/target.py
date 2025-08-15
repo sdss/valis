@@ -175,9 +175,13 @@ class Target(Base):
                 response_model_exclude_unset=True, response_model_exclude_none=True)
     async def get_target_altid(self,
         id: Annotated[int | str, Path(title="The alternative id of the target to get", example="2M23595980+1528407")],
-        idtype: Annotated[str, Query(enum=['catalogid', 'gaiaid'], description='For ambiguous integer ids, the type of id, e.g. "catalogid"', example=None)] = None
+        idtype: Annotated[str, Query(enum=['catalogid', 'gaiaid', 'specobjid'], description='For ambiguous integer ids, the type of id, e.g. "catalogid"', example=None)] = None
         ):
-        """ Return target metadata for a given sdss_id """
+        """ Lookup an sdss_id for a given alternative id.
+
+        Alternative ids can be string ids: plate-mjd-fiberid, field-mjd-catalogid, apogee-id, mangaid, plate-ifu,
+        or integer ids: catalogid, gaiaid, specobjid. For pure integer ids, use the idtype field to specify the type of id
+        """
         query = get_target_by_altid(id, idtype=idtype)
         if not query:
             return {}

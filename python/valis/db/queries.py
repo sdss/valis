@@ -923,11 +923,15 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
      - a (e)BOSS plate-mjd-fiberid, e.g. "10235-58127-0020"
      - a BOSS field-mjd-catalogid, e.g. "101077-59845-27021603187129892"
      - an SDSS-IV APOGEE ID, e.g "2M23595980+1528407"
+     - a MaNGA plate-ifu, e.g. "8485-1901"
+     - an SDSS specobjid, e.g. 3259575414686771200
      - an SDSS-V catalogid, e.g. 2702160318712989
      - a GAIA DR3 ID, e.g. 4110508934728363520
 
-     It queries either the boss_drp.boss_spectrum or astra.source
-     tables for the sdss_id.
+     It queries either the boss_drp.boss_spectrum, astra.source,
+     or vizb.allspec tables for the sdss_id.  For pure integer ids,
+     use the ``idtype`` parameter to specify the type of id
+     (e.g. 'specobjid', 'catalogid', 'gaiaid', 'sdssid').
 
     Parameters
     ----------
