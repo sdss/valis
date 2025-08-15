@@ -15,9 +15,9 @@ from valis.routes.base import Base
 from valis.cache import valis_cache
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
                               get_parent_catalog_data, get_target_cartons,
-                              get_target_pipeline, get_target_by_altid, append_pipes)
+                              get_target_pipeline, get_target_by_altid, append_pipes, get_legacy_allspec)
 from valis.db.db import get_pw_db
-from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel
+from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel, AllSpecModel
 from valis.routes.auth import set_auth
 
 
@@ -264,5 +264,17 @@ class Target(Base):
                                            Query(enum=['all', 'boss', 'apogee', 'astra'],
                                                  description='Specify search on specific pipeline',
                                                  example='boss')] = 'all'):
-
+        """ Return sdss-v pipeline metadata for a given sdss_id """
         return get_target_pipeline(sdss_id, self.release, pipe)
+
+    @router.get('/legacy/{sdss_id}', summary='Retrieve legacy SDSS info for a target sdss_id from the allspec summary table',
+                dependencies=[Depends(get_pw_db), Depends(set_auth)],
+                response_model=List[AllSpecModel],
+                response_model_exclude_unset=True,
+                response_model_exclude_none=True)
+    @valis_cache(namespace='valis-target')
+    async def get_legacy(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=79235253),
+                         phase: Annotated[Optional[int], Query(description='The SDSS phase below which to consider legacy, e.g <5. Set to 0 to return everything.', example=5)] = 5
+                           ):
+        """ Return legacy SDSS information from the allspec table for a given sdss_id """
+        return list(get_legacy_allspec(sdss_id, phase=phase).dicts())

@@ -9,6 +9,7 @@ import itertools
 import packaging
 import uuid
 from typing import Sequence, Union, Generator
+from enum import Enum
 
 import astropy.units as u
 import deepmerge
@@ -21,7 +22,7 @@ from sdssdb.peewee.sdss5db import targetdb, vizdb
 from sdssdb.peewee.sdss5db import catalogdb as cat
 from sdssdb.peewee.sdss5db import astradb as astra
 
-from valis.db.models import MapperName
+#from valis.db.models import MapperName
 from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
 from valis.utils.versions import get_software_tag
@@ -856,6 +857,13 @@ def get_db_metadata(schema: str = None) -> peewee.ModelSelect:
     return query
 
 
+class MapperName(str, Enum):
+    """Mapper names"""
+    MWM: str = 'MWM'
+    BHM: str = 'BHM'
+    LVM: str = 'LVM'
+
+
 def get_paged_target_list_by_mapper(mapper: MapperName = MapperName.MWM, page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
     """ Return a paged list of target rows, based on the mapper.
 
@@ -1053,3 +1061,94 @@ def create_temporary_table(query: peewee.ModelSelect,
     vizdb.database.execute_sql(f'ANALYZE "{table_name}"')
 
     return table
+
+
+def get_legacy_allspec(sdss_id: int, phase: int = 5) -> peewee.ModelSelect:
+    """ Get rows from the allspec table for a given sdss_id
+
+    Get legacy SDSS data from the allspec table for a given sdss_id.  By default
+    it returns legacy rows via a phase < 5, but you can return all rows by
+    setting phase to 0.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+    phase : int, optional
+        the SDSS phase, by default 5
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    # join with releases to get the release name out instead of pk
+    query = vizdb.AllSpec.select(vizdb.AllSpec, vizdb.Releases.release.alias('release')).\
+        join(vizdb.Releases, on=(vizdb.AllSpec.releases_pk == vizdb.Releases.pk))
+
+    # if no phase, return all id matches
+    if not phase:
+        return query.where(vizdb.AllSpec.sdss_id == sdss_id)
+
+    return query.where(vizdb.AllSpec.sdss_id == sdss_id, vizdb.AllSpec.sdss_phase < phase)
+
+
+def get_legacy_catalogs(sdss_id: int) -> dict:
+    """Get legacy catalog info for a given sdss_id
+
+    Returns the legacy SDSS parent catalog info for a given sdss_id. It
+    filters on legacy SDSS parent catalog names from catalogdb, and returns a dict
+    of the catalog name and its primary key lookup value.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+
+    Returns
+    -------
+    dict
+        the legacy catalog info
+    """
+    # create condition
+    legacy = {'mastar_goodstars', 'sdss_dr13_photoobj', 'sdss_dr17_specobj',
+              'mangatarget', 'marvels_dr11_star', 'marvels_dr12_star', 'allstar_dr17_synspec_rev1'}
+    # construct a not null condition for the legacy catalogs
+    cond = None
+    for k in legacy:
+        if cond is None:
+            cond = getattr(cat.SDSS_ID_To_Catalog, k).is_null(False)
+        else:
+            cond = (cond) | (getattr(cat.SDSS_ID_To_Catalog, k).is_null(False))
+
+    # filter out the field names and only include
+    tmp={}
+    for row in cat.SDSS_ID_To_Catalog.select().where(cat.SDSS_ID_To_Catalog.sdss_id == sdss_id, cond).dicts().iterator():
+        cat_data = {k.split('__')[0]: v for k, v in row.items() if '__' in k and v}
+        tt = {k: v for k, v in cat_data.items() if k in legacy and k not in tmp}
+        tmp.update(tt)
+
+    return tmp
+
+
+def has_legacy_data(sdss_id: int, phase: int = 5) -> bool:
+    """ Check if a target has legacy SDSS data
+
+    Checks if a target has legacy SDSS data by looking up valid rows in the
+    allspec table, and checks against the legacy SDSS parent catalogs from catalogdb.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+    phase : int, optional
+        the SDSS phase, by default 5
+
+    Returns
+    -------
+    bool
+        True if the target has legacy SDSS data, False otherwise
+    """
+    in_allspec = get_legacy_allspec(sdss_id, phase).count()
+    has_legcats = get_legacy_catalogs(sdss_id)
+    return in_allspec > 0 or has_legcats != {}

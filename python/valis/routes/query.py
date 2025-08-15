@@ -11,12 +11,12 @@ from pydantic import BaseModel, Field, BeforeValidator
 from valis.cache import valis_cache
 from valis.routes.base import Base
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase, SDSSidPipesBase, MapperName, SDSSModel
+from valis.db.models import SDSSidStackedBase, SDSSidPipesBase, SDSSModel
 from valis.db.queries import (cone_search, append_pipes, carton_program_search,
                               carton_program_list, carton_program_map,
                               get_targets_by_sdss_id, get_targets_by_catalog_id,
                               get_targets_obs, get_paged_target_list_by_mapper,
-                              get_target_by_altid, get_targets_by_altid)
+                              get_target_by_altid, get_targets_by_altid, MapperName)
 from valis.routes.auth import set_auth
 from sdssdb.peewee.sdss5db import database, catalogdb
 
