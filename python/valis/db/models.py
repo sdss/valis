@@ -413,3 +413,9 @@ class AllSpecModel(PeeweeBase):
     def filepath(self) -> str:
         """ The legacy SAS filepath for the SDSS object """
         return build_legacy_path(self.__dict__, release=self.release, ignore_existence=True)
+
+    @computed_field(description='The marvin URL identifier for the SDSS MaNGA target')
+    @property
+    def marvin_url(self) -> str:
+        """ The marvin URL identifier for the SDSS object """
+        return f"https://magrathea.sdss.org/marvin/galaxy/{self.plateifu}/" if self.plateifu else None
