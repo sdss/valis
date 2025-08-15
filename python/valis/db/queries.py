@@ -951,17 +951,28 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
     final = id.rsplit('-', 1)[-1]
     if ndash == 2 and len(final) <= 4 and final.isdigit() and int(final) <= 1000:
         # boss/eboss plate-mjd-fiberid e.g '10235-58127-0020'
-        return
+        plate, mjd, fiberid = id.split('-')
+        targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.plate==int(plate), vizdb.AllSpec.mjd==int(mjd), vizdb.AllSpec.fiberid==int(fiberid))
     elif ndash == 2 and len(final) > 5:
         # field-mjd-catalogid, e.g. '101077-59845-27021603187129892'
         field, mjd, catalogid = id.split('-')
         targ = boss.BossSpectrum.select(boss.BossSpectrum.sdss_id).\
             where(boss.BossSpectrum.catalogid == catalogid,
             boss.BossSpectrum.mjd == mjd, boss.BossSpectrum.field == field)
-    elif ndash == 1:
+    elif ndash == 1 and not id.replace('-', '').isdigit():
         # apogee south, e.g. '2M17282323-2415476'
         targ = astra.Source.select(astra.Source.sdss_id).\
             where(astra.Source.sdss4_apogee_id.in_([id]))
+    elif ndash == 1 and id.replace('-', '').isdigit():
+        # mangaid '3-109500752' or plateifu '8485-1901'
+        prefix = len(id.split('-')[0])
+        if prefix in {4, 5}:
+            # plateifu
+            plate, ifu = id.split('-')
+            targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.plate==int(plate), vizdb.AllSpec.ifudsgn==int(ifu))
+        else:
+            # mangaid
+            targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.mangaid==id)
     elif ndash == 0 and not id.isdigit():
         # apogee obj id
         targ = astra.Source.select(astra.Source.sdss_id).\
