@@ -9,11 +9,12 @@ import math
 from typing import Optional, Annotated, Any, TypeVar
 from pydantic_core import to_jsonable_python
 from pydantic import (ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer,
-                      field_validator, FieldValidationInfo, model_serializer)
-from enum import Enum
+                      field_validator, FieldValidationInfo, model_serializer, computed_field)
 
 from valis.routes.maskbits import mask_values_to_labels
+from valis.db.queries import has_legacy_data
 from valis.exceptions import ValisError
+from valis.utils.paths import build_legacy_path
 
 
 def coerce_nan_to_none(x: Any) -> Any:
@@ -103,6 +104,11 @@ class SDSSidPipesBase(PeeweeBase):
 class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
     """ Main Pydantic response for SDSS id plus Pipes flags """
     distance: Optional[float] = Field(None, description='Separation distance between input target and cone search results, in degrees')
+
+    @computed_field(description='Flag if the target has legacy SDSS data available')
+    @property
+    def has_legacy_data(self) -> bool:
+        return has_legacy_data(self.sdss_id)
 
 
 class BossSpectrum(PeeweeBase):
@@ -303,12 +309,6 @@ class DbMetadata(PeeweeBase):
     sql_type: Optional[str] = Field(None, description='the data type of the column')
 
 
-class MapperName(str, Enum):
-    """Mapper names"""
-    MWM: str = 'MWM'
-    BHM: str = 'BHM'
-    LVM: str = 'LVM'
-
 
 def gen_misc_models():
     """ Generate metadata info for miscellaneous return columns
@@ -326,14 +326,90 @@ def gen_misc_models():
 
     """
     params = [{'SDSSModel.distance': {'display_name': 'Distance [deg]',
-                                      'unit': 'degree', 'sql_type': 'float'}}]
+                                      'unit': 'degree', 'sql_type': 'float'}},
+              {'SDSSModel.has_legacy_data': {'display_name': 'Has Legacy SDSS Data',
+                                      'unit': 'boolean', 'sql_type': 'boolean'}}
+                                      ]
 
     for param in params:
         name, data = param.popitem()
         model, column = name.split('.')
-        col = globals()[model].model_fields[column]
+        mod = globals()[model]
+        # check model fields and computed fields
+        col = mod.model_fields.get(column) or mod.model_computed_fields.get(column)
+        if not col:
+            col = type('Tmp', (), {'description':'no description available'})
 
         yield {"pk": 0, "schema": "miscdb", "table_name": "misctab",
                "column_name": column, "display_name": data["display_name"],
                "description": col.description,
                "unit": data["unit"], "sql_type": data["sql_type"]}
+
+
+class AllSpecModel(PeeweeBase):
+    """ Pydantic response model for all spectra """
+    allspec_id: str = Field(None, description='a unique id for the object')
+    multiplex_id: Optional[str] = Field(None, description='the multiplex id')
+    sdss_id: Optional[int] = Field(None, description='the SDSS identifier')
+    catalogid: Optional[int] = Field(None, description='the SDSS-V catalog id')
+    ra: float = Field(None, description='Right Ascension in decimal degrees')
+    dec: float = Field(None, description='Declination in decimal degrees')
+    sdss_phase: int = Field(None, description='the SDSS phase number of the spectrum')
+    observatory: str = Field(None, description='the observatory, APO or LCO')
+    instrument: str = Field(None, description='the SDSS spectrograph instrument')
+    survey: str = Field(None, description='The SDSS spectroscopic survey or sub-survey')
+    programname: Optional[str] = Field(None, description='the spectroscopic program name')
+    telescope: Optional[str] = Field(None, description='the SDSS telescope')
+    file_spec: Optional[str] = Field(None, description='the data product file species name')
+    cas_url: Optional[str] = Field(None, description='the CAS URL')
+    sas_url: Optional[str] = Field(None, description='the SAS URL')
+    sas_file: Optional[str] = Field(None, description='the SAS file name')
+    plate: Optional[int] = Field(None, description='the legacy plate number')
+    fps_field: Optional[int] = Field(None, description='the FPS field number')
+    plate_or_fps_field: Optional[int] = Field(None, description='the plate or FPS field')
+    mjd: Optional[int] = Field(None, description='the MJD of the observation')
+    run2d: Optional[str] = Field(None, description='the BOSS 2d DRP version')
+    run1d: Optional[str] = Field(None, description='the BOSS 1d DRP version')
+    coadd: Optional[str] = Field(None, description='either epoch, daily, or custom (allepoch)')
+    apred_vers: Optional[str] = Field(None, description='the APOGEE DRP version')
+    drpver: Optional[str] = Field(None, description='the MaNGA DRP version')
+    version: str = Field(..., description='any valid pipeline version')
+    apogee_id: Optional[str] = Field(None, description='the APOGEE object id')
+    apogee_field: Optional[str] = Field(None, description='the APOGEE field, pre-SDSS-V')
+    apstar_id: Optional[str] = Field(None, description='the APOGEE star id')
+    visit_id: Optional[str] = Field(None, description='the APOGEE visit id')
+    mangaid: Optional[str] = Field(None, description='the MaNGA ID')
+    specobjid: Optional[int] = Field(None, description='the spectroscopic object id')
+    fiberid: Optional[int] = Field(None, description='the legacy SDSS fiber id')
+    ifudsgn: Optional[int] = Field(None, description='the MaNGA IFU designation')
+    release: Optional[str] = Field(None, description='the data release, e.g. DR17')
+
+    @computed_field(description='The plate-ifu identifier for MaNGA')
+    @property
+    def plateifu(self) -> str:
+        """ The plate-ifu identifier for MaNGA """
+        return f"{self.plate}-{self.ifudsgn}" if self.plate and self.ifudsgn else None
+
+    @computed_field(description='The plate-mjd-fiberid identifier for legacy SDSS')
+    @property
+    def plate_mjd_fiberid(self) -> str:
+        """ The plate-mjd-fiberid identifier for legacy SDSS """
+        return f"{self.plate}-{self.mjd}-{self.fiberid}" if self.plate and self.mjd and self.fiberid else None
+
+    @computed_field(description='The field-mjd-catalogid identifier for SDSS-V')
+    @property
+    def field_mjd_catalogid(self) -> str:
+        """ The field-mjd-catalogid identifier for SDSS-V """
+        return f"{self.fps_field}-{self.mjd}-{self.catalogid}" if self.fps_field and self.mjd and self.catalogid else None
+
+    @computed_field(description='The target identifier for the SDSS object')
+    @property
+    def id(self) -> str:
+        """ The target identifier for the SDSS object """
+        return self.plateifu or self.plate_mjd_fiberid or self.field_mjd_catalogid or self.apogee_id or self.mangaid or self.apstar_id or self.visit_id or self.specobjid
+
+    @computed_field(description='The legacy SAS filepath for the SDSS object')
+    @property
+    def filepath(self) -> str:
+        """ The legacy SAS filepath for the SDSS object """
+        return build_legacy_path(self.__dict__, release=self.release, ignore_existence=True)
