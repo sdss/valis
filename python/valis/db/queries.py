@@ -977,6 +977,9 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
         # apogee obj id
         targ = astra.Source.select(astra.Source.sdss_id).\
             where(astra.Source.sdss4_apogee_id.in_([id]))
+    elif ndash == 0 and idtype == 'specobjid':
+        # specobjid
+        targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.specobjid.in_([id]))
     elif ndash == 0 and id.isdigit():
         # single integer id
         if idtype == 'catalogid':
