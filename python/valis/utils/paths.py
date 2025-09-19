@@ -181,3 +181,41 @@ def build_astra_path(values: dict, release: str, name: str = 'mwmStar',
     """
     return build_file_path(values, name, release, defaults={'component': ''},
                            ignore_existence=ignore_existence)
+
+
+def build_legacy_path(values: dict, release: str = "DR17", ignore_existence: bool = False) -> str:
+    """ Build a legacy SDSS file path
+
+    Builds a legacy SDSS file path using values from the allspec database table. It remaps various
+    column names to match their path template counterparts, and handles some default keywords.
+    It uses the sas_file to get the apogee N/S prefix, and translates the legacy spec file species name
+    back to its original name.
+
+    Parameters
+    ----------
+    values : dict
+        the input data values to give to the path template
+    release : str, optional
+        the data release, by default "DR17"
+    ignore_existence : bool, optional
+        flag to ignore file existence and return path, by default False
+
+    Returns
+    -------
+    str
+        the output file path
+    """
+    # translate this until we can set up some kind of aliasing
+    if release == 'DR17' and values['file_spec'] in ("specLite", "specFull"):
+        name = 'spec-lite' if values['file_spec'] == 'specLite' else 'spec'
+    else:
+        name = values['file_spec']
+
+    # set prefix for apogee files based on sas_file
+    # manga file have a sas_url but no sas_file???
+    prefix = values['sas_file'][0:2] if values.get('sas_file') else ""
+
+    return build_file_path(values, name, release=release,
+                           remap={'field':'apogee_field', 'apred':'apred_vers', 'obj':'apogee_id', 'ifu':'ifudsgn',
+                                  'plateid':'plate', 'fiber': 'fiberid', 'fieldid': 'fps_field'},
+                           defaults={'prefix': prefix, 'apstar':'stars', 'wave':'LOG'}, ignore_existence=ignore_existence)

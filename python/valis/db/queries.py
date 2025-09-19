@@ -9,6 +9,7 @@ import itertools
 import packaging
 import uuid
 from typing import Sequence, Union, Generator
+from enum import Enum
 
 import astropy.units as u
 import deepmerge
@@ -21,7 +22,7 @@ from sdssdb.peewee.sdss5db import targetdb, vizdb
 from sdssdb.peewee.sdss5db import catalogdb as cat
 from sdssdb.peewee.sdss5db import astradb as astra
 
-from valis.db.models import MapperName
+#from valis.db.models import MapperName
 from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
 from valis.utils.versions import get_software_tag
@@ -856,6 +857,13 @@ def get_db_metadata(schema: str = None) -> peewee.ModelSelect:
     return query
 
 
+class MapperName(str, Enum):
+    """Mapper names"""
+    MWM: str = 'MWM'
+    BHM: str = 'BHM'
+    LVM: str = 'LVM'
+
+
 def get_paged_target_list_by_mapper(mapper: MapperName = MapperName.MWM, page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
     """ Return a paged list of target rows, based on the mapper.
 
@@ -915,11 +923,15 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
      - a (e)BOSS plate-mjd-fiberid, e.g. "10235-58127-0020"
      - a BOSS field-mjd-catalogid, e.g. "101077-59845-27021603187129892"
      - an SDSS-IV APOGEE ID, e.g "2M23595980+1528407"
+     - a MaNGA plate-ifu, e.g. "8485-1901"
+     - an SDSS specobjid, e.g. 3259575414686771200
      - an SDSS-V catalogid, e.g. 2702160318712989
      - a GAIA DR3 ID, e.g. 4110508934728363520
 
-     It queries either the boss_drp.boss_spectrum or astra.source
-     tables for the sdss_id.
+     It queries either the boss_drp.boss_spectrum, astra.source,
+     or vizb.allspec tables for the sdss_id.  For pure integer ids,
+     use the ``idtype`` parameter to specify the type of id
+     (e.g. 'specobjid', 'catalogid', 'gaiaid', 'sdssid').
 
     Parameters
     ----------
@@ -943,21 +955,35 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
     final = id.rsplit('-', 1)[-1]
     if ndash == 2 and len(final) <= 4 and final.isdigit() and int(final) <= 1000:
         # boss/eboss plate-mjd-fiberid e.g '10235-58127-0020'
-        return
+        plate, mjd, fiberid = id.split('-')
+        targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.plate==int(plate), vizdb.AllSpec.mjd==int(mjd), vizdb.AllSpec.fiberid==int(fiberid))
     elif ndash == 2 and len(final) > 5:
         # field-mjd-catalogid, e.g. '101077-59845-27021603187129892'
         field, mjd, catalogid = id.split('-')
         targ = boss.BossSpectrum.select(boss.BossSpectrum.sdss_id).\
             where(boss.BossSpectrum.catalogid == catalogid,
             boss.BossSpectrum.mjd == mjd, boss.BossSpectrum.field == field)
-    elif ndash == 1:
+    elif ndash == 1 and not id.replace('-', '').isdigit():
         # apogee south, e.g. '2M17282323-2415476'
         targ = astra.Source.select(astra.Source.sdss_id).\
             where(astra.Source.sdss4_apogee_id.in_([id]))
+    elif ndash == 1 and id.replace('-', '').isdigit():
+        # mangaid '3-109500752' or plateifu '8485-1901'
+        prefix = len(id.split('-')[0])
+        if prefix in {4, 5}:
+            # plateifu
+            plate, ifu = id.split('-')
+            targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.plate==int(plate), vizdb.AllSpec.ifudsgn==int(ifu))
+        else:
+            # mangaid
+            targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.mangaid==id)
     elif ndash == 0 and not id.isdigit():
         # apogee obj id
         targ = astra.Source.select(astra.Source.sdss_id).\
             where(astra.Source.sdss4_apogee_id.in_([id]))
+    elif ndash == 0 and idtype == 'specobjid':
+        # specobjid
+        targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.specobjid.in_([id]))
     elif ndash == 0 and id.isdigit():
         # single integer id
         if idtype == 'catalogid':
@@ -1053,3 +1079,94 @@ def create_temporary_table(query: peewee.ModelSelect,
     vizdb.database.execute_sql(f'ANALYZE "{table_name}"')
 
     return table
+
+
+def get_legacy_allspec(sdss_id: int, phase: int = 5) -> peewee.ModelSelect:
+    """ Get rows from the allspec table for a given sdss_id
+
+    Get legacy SDSS data from the allspec table for a given sdss_id.  By default
+    it returns legacy rows via a phase < 5, but you can return all rows by
+    setting phase to 0.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+    phase : int, optional
+        the SDSS phase, by default 5
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    # join with releases to get the release name out instead of pk
+    query = vizdb.AllSpec.select(vizdb.AllSpec, vizdb.Releases.release.alias('release')).\
+        join(vizdb.Releases, on=(vizdb.AllSpec.releases_pk == vizdb.Releases.pk))
+
+    # if no phase, return all id matches
+    if not phase:
+        return query.where(vizdb.AllSpec.sdss_id == sdss_id)
+
+    return query.where(vizdb.AllSpec.sdss_id == sdss_id, vizdb.AllSpec.sdss_phase < phase)
+
+
+def get_legacy_catalogs(sdss_id: int) -> dict:
+    """Get legacy catalog info for a given sdss_id
+
+    Returns the legacy SDSS parent catalog info for a given sdss_id. It
+    filters on legacy SDSS parent catalog names from catalogdb, and returns a dict
+    of the catalog name and its primary key lookup value.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+
+    Returns
+    -------
+    dict
+        the legacy catalog info
+    """
+    # create condition
+    legacy = {'mastar_goodstars', 'sdss_dr13_photoobj', 'sdss_dr17_specobj',
+              'mangatarget', 'marvels_dr11_star', 'marvels_dr12_star', 'allstar_dr17_synspec_rev1'}
+    # construct a not null condition for the legacy catalogs
+    cond = None
+    for k in legacy:
+        if cond is None:
+            cond = getattr(cat.SDSS_ID_To_Catalog, k).is_null(False)
+        else:
+            cond = (cond) | (getattr(cat.SDSS_ID_To_Catalog, k).is_null(False))
+
+    # filter out the field names and only include
+    tmp={}
+    for row in cat.SDSS_ID_To_Catalog.select().where(cat.SDSS_ID_To_Catalog.sdss_id == sdss_id, cond).dicts().iterator():
+        cat_data = {k.split('__')[0]: v for k, v in row.items() if '__' in k and v}
+        tt = {k: v for k, v in cat_data.items() if k in legacy and k not in tmp}
+        tmp.update(tt)
+
+    return tmp
+
+
+def has_legacy_data(sdss_id: int, phase: int = 5) -> bool:
+    """ Check if a target has legacy SDSS data
+
+    Checks if a target has legacy SDSS data by looking up valid rows in the
+    allspec table, and checks against the legacy SDSS parent catalogs from catalogdb.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+    phase : int, optional
+        the SDSS phase, by default 5
+
+    Returns
+    -------
+    bool
+        True if the target has legacy SDSS data, False otherwise
+    """
+    in_allspec = get_legacy_allspec(sdss_id, phase).count()
+    has_legcats = get_legacy_catalogs(sdss_id)
+    return in_allspec > 0 or has_legcats != {}
