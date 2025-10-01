@@ -468,41 +468,63 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
     return query
 
 
-def get_apogee_target(sdss_id: int, release: str, fields: list = None):
-    """ temporary placeholder for apogee """
+def get_apogee_target(sdss_id: int, release: str, fields: list = None) -> peewee.ModelSelect:
+    """Get the Apogee target metadata for an sdss_id
+
+    Retrieves the apogee pipeline data from the apogee_drp.star table
+    for the given sdss_id and data release.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the data release to look up
+    fields : list, optional
+        a list of fields to retrieve from the database, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
     # get the relevant software tag
     apred = get_software_tag(release, 'apred_vers')
 
     # create apogee version conditions
     if isinstance(apred, list):
         vercond = apo.Star.apred_vers.in_(apred)
-        avsver = astra.ApogeeVisitSpectrum.apred.in_(apred)
     else:
         vercond = apo.Star.apred_vers == apred
-        avsver = astra.ApogeeVisitSpectrum.apred == apred
 
     # check fields
     fields = fields or [apo.Star]
     if fields and isinstance(fields[0], str):
         fields = (getattr(apo.Star, i) for i in fields)
 
-    # get the astra source for the sdss_id
-    s = get_astra_target(sdss_id, release)
-    if not s:
-        return
-
-    # get the astra apogee visit spectrum
-    a = s.first().apogee_visit_spectrum.where(avsver).first()
-    if not a:
-        return
-
     # get the apogee star data
-    return apo.Star.select(*fields).where(apo.Star.pk == a.star_pk, vercond)
+    return apo.Star.select(*fields).where(apo.Star.sdss_id == sdss_id, vercond)
 
+def get_astra_target(sdss_id: int, release: str, fields: list = None) -> peewee.ModelSelect:
+    """Get the Astra target metadata for an sdss_id
 
-def get_astra_target(sdss_id: int, release: str, fields: list = None):
-    """ temporary placeholder for astra """
+    Retrieves the astra source data from the astra.source table
+    for the given sdss_id and data release.
 
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the data release to look up
+    fields : list, optional
+        a list of fields to retrieve from the database, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
     # check the astra version against the assigned schema
     vastra = get_software_tag(release, 'v_astra')
     vastra = "0.5.0" if vastra in ("0.5.0", "0.6.0") else vastra
