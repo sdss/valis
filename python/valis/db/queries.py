@@ -4,11 +4,10 @@
 
 # all resuable queries go here
 
-from contextlib import contextmanager
 import itertools
 import packaging
 import uuid
-from typing import Sequence, Union, Generator
+from typing import Union, Generator
 from enum import Enum
 
 import astropy.units as u
@@ -72,6 +71,10 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
     """
     if table not in {'stacked', 'flat'}:
         raise ValueError('table must be either "stacked" or "flat"')
+
+    # cannot create temp table if query is None
+    if query is None:
+        return query
 
     # Run initial query as a temporary table.
     temp = create_temporary_table(query, indices=['sdss_id'])
@@ -412,6 +415,7 @@ def get_targets_obs(release: str, obs: str, spectrograph: str) -> peewee.ModelSe
 
 # test sdss ids
 # 23326 - boss/astra
+# 25739 in astra 0.8.0 but not 0.5.0 sources
 # 3350466 - apogee/astra
 # 54392544 - all true
 # 10 - all false
@@ -499,9 +503,11 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None):
 def get_astra_target(sdss_id: int, release: str, fields: list = None):
     """ temporary placeholder for astra """
 
+    # check the astra version against the assigned schema
     vastra = get_software_tag(release, 'v_astra')
-    if not vastra or vastra not in ("0.5.0", "0.6.0"):
-        print('astra only supports DR19 / IPL3 = version 0.5.0, 0.6.0')
+    vastra = "0.5.0" if vastra in ("0.5.0", "0.6.0") else vastra
+    if vastra.replace('.', '') not in astra.Source._meta.schema:
+        print(f"warning: astra version for current release {release} does not match assigned astra schema {astra.Source._meta.schema}")
         return None
 
     # check fields
