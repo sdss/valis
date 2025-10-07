@@ -32,9 +32,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        poetry install  # --no-interaction --no-ansi -vvv  # add this for local debugs with "act"
+        uv pip install  # --no-interaction --no-ansi -vvv  # add this for local debugs with "act"
       if: steps.cache.outputs.cache-hit != 'true'
 
     - name: Test with pytest
       run: |
-        poetry run pytest tests
+        uv run pytest tests
