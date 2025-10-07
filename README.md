@@ -7,38 +7,44 @@
 
 the SDSS API for delivering and accessing remote information.
 
-This API is built using the [FastAPI](https://fastapi.tiangolo.com/) web server.  Python depdendices are managed with [poetry](https://python-poetry.org/).
+This API is built using the [FastAPI](https://fastapi.tiangolo.com/) web server.  Python depdendices are managed with [uv](https://docs.astral.sh/uv/).
+
+See [uv Features](https://docs.astral.sh/uv/getting-started/features/) for what can be done with `uv`.  See their [Project Guide](https://docs.astral.sh/uv/guides/projects/) for an intro to working on python projects.
 
 ## Installation
+First, follow the [uv installation instructions](https://docs.astral.sh/uv/getting-started/installation/).
+
+It is recommended to work within an isolated virtual environment like `conda` or `venv`.  You can create a uv venv with `uv venv valis --python 3.12`.  See [uv Environments](https://docs.astral.sh/uv/pip/environments/) for more info.
+
 ### Developer Install
 ```
 git clone https://github.com/sdss/valis valis
 cd valis
-poetry install
+uv pip install
 ```
 
 ### Solara Dependencies
 
 The default install does not install any of the Solara dependencies for Jdaviz and the SDSS DataView Explorer.  To install these dependencies, run
 ```
-poetry install -E solara
+uv pip install --extra solara
 ```
 
-### Updating Dependencies with Poetry
-To update poetry itself, run
+### Updating Dependencies with uv
+To update uv itself, run
 ```
-poetry self update
+uv self update
 ```
 
 To update the package dependencies for `valis`, run
 ```
-poetry update [package]
+uv lock --upgrade-package [package]
 ```
-This will update all the packages, or the specified `[package]`, resolve all dependencies, and update the `poetry.lock` file.
+This will update all the packages, or the specified `[package]`, resolve all dependencies, and update the `uv.lock` file.
 
-To install new packages and add them to the `pyproject.toml` and `poetry.lock` files, run
+To install new packages and add them to the `pyproject.toml` and `uv.lock` files, run
 ```
-poetry install [package]
+uv add [package]
 ```
 
 ### Local Development

@@ -70,6 +70,9 @@ dev = [
     "setuptools>=80.9.0",
 ]
 
+[tool.uv.sources]
+sdss-solara = { git = "https://github.com/sdss/sdss_solara", rev = "main" }
+
 [tool.setuptools]
 zip-safe = false
 package-dir = {"" = "python"}
@@ -89,5 +92,31 @@ testpaths = [
   "tests",
 ]
 
-[tool.uv.sources]
-sdss-solara = { git = "https://github.com/sdss/sdss_solara", rev = "main" }
+[tool.coverage.run]
+branch = true
+include = ["python/valis/*"]
+omit = [
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+]
+
+[tool.ruff]
+line-length = 120
+target-version = 'py312'
+exclude = ["typings/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+unfixable = ["F841"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["valis"]
+lines-after-imports = 2
+section-order = ["future", "standard-library", "typing", "third-party", "sdss", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+typing = ["typing"]
+sdss = ["sdsstools"]
