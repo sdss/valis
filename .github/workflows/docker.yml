@@ -6,6 +6,8 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+' # Exclude pre-releases
     branches:
       - main
+      - py12bump
+  workflow_dispatch:
 
 jobs:
   docker:
