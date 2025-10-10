@@ -19,31 +19,12 @@ jobs:
       with:
         python-version: "3.12"
 
-    # - name: Install Poetry
-    #   uses: snok/install-poetry@v1
-    #   with:
-    #     virtualenvs-path: ~/.virtualenvs
-
     - name: Install uv
       uses: astral-sh/setup-uv@v6
       with:
         # Install a specific version of uv.
         version: "0.8.24"
         enable-cache: true
-
-    # - name: Cache Poetry virtualenv
-    #   uses: actions/cache@v4
-    #   id: cache
-    #   with:
-    #     path: ~/.virtualenvs
-    #     key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-    #     restore-keys: |
-    #       venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('**/poetry.lock') }}
-
-    # - name: Install dependencies
-    #   run: |
-    #     uv pip install  # --no-interaction --no-ansi -vvv  # add this for local debugs with "act"
-    #   if: steps.cache.outputs.cache-hit != 'true'
 
     - name: Install the project
       run: uv sync --locked --all-extras --dev
