@@ -1,11 +1,16 @@
 # Stage 1: Development stage for Python dependencies
-FROM python:3.10-slim AS dep-stage
+FROM python:3.12-slim AS dep-stage
+
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_PYTHON_DOWNLOADS=0
+ENV VIRTUAL_ENV=/app/venv
 
 # Set up app dir
 WORKDIR /tmp
 
 # Copy project files over
-COPY ./pyproject.toml ./poetry.lock ./
+COPY ./pyproject.toml ./uv.lock ./
 
 # Install system prereq packages
 RUN apt-get update && \
@@ -15,7 +20,7 @@ RUN apt-get update && \
         # these are for h5py in sdss_explorer
         curl libhdf5-dev pkg-config \
         # these are for vaex
-        libpcre3 libpcre3-dev gcc g++ libboost-all-dev \
+        gcc g++ libboost-all-dev \
         libffi-dev python3-dev libxml2-dev libxslt-dev \
         libpq-dev zlib1g-dev \
     && apt-get clean \
@@ -35,18 +40,20 @@ ENV PIP_FIND_LINKS=https://github.com/ddelange/vaex/releases/expanded_assets/cor
 RUN pip install --force-reinstall vaex
 ENV PIP_FIND_LINKS=
 
-# Install poetry and project dependencies
-RUN pip install poetry && \
-    poetry config virtualenvs.create false && \
-    poetry install -E solara --no-root && \
-    rm -rf ~/.cache
+# Installing uv and then project dependencies
+RUN pip install uv
+RUN uv venv /app/venv # make venv
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev --extra solara
+
 
 # Stage 2: Development stage for the project
 FROM dep-stage AS dev-stage
 
 # Copy the main project files over and install
 COPY ./ ./
-RUN poetry install -E solara --only main
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra solara
 
 # Create dir for socket and logs
 RUN mkdir -p /tmp/webapp
@@ -72,4 +79,4 @@ LABEL org.opencontainers.image.description="valis production image"
 EXPOSE 8000
 
 # Start the FastAPI app for production
-CMD ["poetry", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
+CMD ["uv", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
