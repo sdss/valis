@@ -40,18 +40,10 @@ ENV PIP_FIND_LINKS=https://github.com/ddelange/vaex/releases/expanded_assets/cor
 RUN pip install --force-reinstall vaex
 ENV PIP_FIND_LINKS=
 
-# # Install poetry and project dependencies
-# RUN pip install poetry && \
-#     poetry config virtualenvs.create false && \
-#     poetry install -E solara --no-root && \
-#     rm -rf ~/.cache
-
 # Installing uv and then project dependencies
 RUN pip install uv
 RUN uv venv /app/venv # make venv
 RUN --mount=type=cache,target=/root/.cache/uv \
-    #--mount=type=bind,source=uv.lock,target=uv.lock \
-    #--mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --frozen --no-install-project --no-dev --extra solara
 
 
@@ -60,7 +52,6 @@ FROM dep-stage AS dev-stage
 
 # Copy the main project files over and install
 COPY ./ ./
-#RUN poetry install -E solara --only main
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --extra solara
 
@@ -88,5 +79,4 @@ LABEL org.opencontainers.image.description="valis production image"
 EXPOSE 8000
 
 # Start the FastAPI app for production
-#CMD ["poetry", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
 CMD ["uv", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
