@@ -155,7 +155,7 @@ class AstraSource(PeeweeBase):
     gaia_dr3_source_id: Optional[int] = None
     tic_v8_id: Optional[int] = None
     healpix: int = None
-    n_associated: int = None
+    n_associated: Optional[int] = None
     n_neighborhood: int = None
     sdss4_apogee_target1_flags: int = None
     sdss4_apogee_target2_flags: int = None
@@ -170,8 +170,8 @@ class AstraSource(PeeweeBase):
     n_apogee_visits: Optional[int] = None
     l: float = None
     b: float = None
-    ebv: float = None
-    e_ebv: float = None
+    ebv: Optional[float] = None
+    e_ebv: Optional[float] = None
     gaia_v_rad: FloatNaN[float] = None
     gaia_e_v_rad: FloatNaN[float] = None
     g_mag: FloatNaN[float] = None

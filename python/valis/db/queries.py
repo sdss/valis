@@ -4,11 +4,10 @@
 
 # all resuable queries go here
 
-from contextlib import contextmanager
 import itertools
 import packaging
 import uuid
-from typing import Sequence, Union, Generator
+from typing import Union, Generator
 from enum import Enum
 
 import astropy.units as u
@@ -72,6 +71,10 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
     """
     if table not in {'stacked', 'flat'}:
         raise ValueError('table must be either "stacked" or "flat"')
+
+    # cannot create temp table if query is None
+    if query is None:
+        return query
 
     # Run initial query as a temporary table.
     temp = create_temporary_table(query, indices=['sdss_id'])
@@ -412,6 +415,7 @@ def get_targets_obs(release: str, obs: str, spectrograph: str) -> peewee.ModelSe
 
 # test sdss ids
 # 23326 - boss/astra
+# 25739 in astra 0.8.0 but not 0.5.0 sources
 # 3350466 - apogee/astra
 # 54392544 - all true
 # 10 - all false
@@ -464,44 +468,68 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
     return query
 
 
-def get_apogee_target(sdss_id: int, release: str, fields: list = None):
-    """ temporary placeholder for apogee """
+def get_apogee_target(sdss_id: int, release: str, fields: list = None) -> peewee.ModelSelect:
+    """Get the Apogee target metadata for an sdss_id
+
+    Retrieves the apogee pipeline data from the apogee_drp.star table
+    for the given sdss_id and data release.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the data release to look up
+    fields : list, optional
+        a list of fields to retrieve from the database, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
     # get the relevant software tag
     apred = get_software_tag(release, 'apred_vers')
 
     # create apogee version conditions
     if isinstance(apred, list):
         vercond = apo.Star.apred_vers.in_(apred)
-        avsver = astra.ApogeeVisitSpectrum.apred.in_(apred)
     else:
         vercond = apo.Star.apred_vers == apred
-        avsver = astra.ApogeeVisitSpectrum.apred == apred
 
     # check fields
     fields = fields or [apo.Star]
     if fields and isinstance(fields[0], str):
         fields = (getattr(apo.Star, i) for i in fields)
 
-    # get the astra source for the sdss_id
-    s = get_astra_target(sdss_id, release)
-    if not s:
-        return
-
-    # get the astra apogee visit spectrum
-    a = s.first().apogee_visit_spectrum.where(avsver).first()
-    if not a:
-        return
-
     # get the apogee star data
-    return apo.Star.select(*fields).where(apo.Star.pk == a.star_pk, vercond)
+    return apo.Star.select(*fields).where(apo.Star.sdss_id == sdss_id, vercond)
 
+def get_astra_target(sdss_id: int, release: str, fields: list = None) -> peewee.ModelSelect:
+    """Get the Astra target metadata for an sdss_id
 
-def get_astra_target(sdss_id: int, release: str, fields: list = None):
-    """ temporary placeholder for astra """
+    Retrieves the astra source data from the astra.source table
+    for the given sdss_id and data release.
 
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the data release to look up
+    fields : list, optional
+        a list of fields to retrieve from the database, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
+    # check the astra version against the assigned schema
     vastra = get_software_tag(release, 'v_astra')
-    if not vastra or vastra not in ("0.5.0", "0.6.0"):
-        print('astra only supports DR19 / IPL3 = version 0.5.0, 0.6.0')
+    vastra = "0.5.0" if vastra in ("0.5.0", "0.6.0") else vastra
+    if vastra.replace('.', '') not in astra.Source._meta.schema:
+        print(f"warning: astra version for current release {release} does not match assigned astra schema {astra.Source._meta.schema}")
         return None
 
     # check fields
