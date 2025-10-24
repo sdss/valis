@@ -302,7 +302,7 @@ def carton_program_map(key: str = 'program') -> dict:
     mapping = {}
     kk = 'program' if key == 'carton' else 'carton'
     for k, g in itertools.groupby(sorted(model, key=lambda x: x[key]), key=lambda x: x[key]):
-        mapping[k] = set(i[kk] for i in g)
+        mapping[k] = list(set(i[kk] for i in g))
     return mapping
 
 
