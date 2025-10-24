@@ -50,6 +50,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Stage 2: Development stage for the project
 FROM dep-stage AS dev-stage
 
+ARG VALIS_ENV="production"
+
 # Copy the main project files over and install
 COPY ./ ./
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -65,7 +67,7 @@ ENV VALIS_SOCKET_DIR='/tmp/webapp'
 ENV VALIS_LOGS_DIR='/tmp/webapp'
 ENV VALIS_ALLOW_ORIGIN="https://data.sdss5.org/zora/"
 ENV VALIS_DB_REMOTE=True
-ENV VALIS_ENV="production"
+ENV VALIS_ENV=$VALIS_ENV
 ENV SOLARA_CHECK_HOOKS="off"
 
 # Stage 3: Build stage (inherits from dev-stage)
@@ -73,7 +75,7 @@ FROM dev-stage AS build-stage
 
 # Set a label
 LABEL org.opencontainers.image.source=https://github.com/sdss/valis
-LABEL org.opencontainers.image.description="valis production image"
+LABEL org.opencontainers.image.description="valis ${VALIS_ENV} image"
 
 # Expose the port
 EXPOSE 8000
