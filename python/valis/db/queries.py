@@ -528,7 +528,7 @@ def get_astra_target(sdss_id: int, release: str, fields: list = None) -> peewee.
     # check the astra version against the assigned schema
     vastra = get_software_tag(release, 'v_astra')
     vastra = "0.5.0" if vastra in ("0.5.0", "0.6.0") else vastra
-    if vastra.replace('.', '') not in astra.Source._meta.schema:
+    if vastra is None or vastra.replace('.', '') not in astra.Source._meta.schema:
         print(f"warning: astra version for current release {release} does not match assigned astra schema {astra.Source._meta.schema}")
         return None
 
