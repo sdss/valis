@@ -10,6 +10,7 @@ from fastapi import HTTPException, Depends
 from sdssdb.peewee.sdss5db import database as pdb
 from sdssdb.sqlalchemy.sdss5db import database as sdb
 
+from valis.utils.versions import get_software_tag
 
 # To make Peewee async-compatible, we need to hack the peewee connection state
 # See FastAPI/Peewee docs at https://fastapi.tiangolo.com/how-to/sql-databases-peewee/
@@ -69,17 +70,33 @@ def connect_db(db, orm: str = 'peewee'):
 
     return db
 
-async def get_pw_db(db_state=Depends(reset_db_state)):
-    """ Dependency to connect a database with peewee """
+async def get_pw_db(db_state=Depends(reset_db_state), release: str | None = None):
+    """ Dependency to connect a database with peewee
+
+    dependency inputs act as query parameters, release input comes from the
+    release qp dependency in routes/base.py
+    """
 
     from valis.main import settings
-
     # connect to the db, yield None since we don't need the db in peewee
     if settings.db_reset:
         db = connect_db(pdb, orm='peewee')
     else:
         async with asyncio.Lock():
             db = connect_db(pdb, orm='peewee')
+
+    # set the correct astra schema if needed
+    try:
+        vastra = get_software_tag(release, 'v_astra')
+    except AttributeError:
+        # case when release is None or invalid
+        # uses default set astra schema defined in sdssdb
+        pass
+    else:
+        # for dr19 or ipl3 set schema to 0.5.0 ; ipl4=0.8.0
+        vastra = "0.5.0" if vastra in ("0.5.0", "0.6.0") else vastra
+        schema = f"astra_{vastra.replace('.', '')}"
+        pdb.set_astra_schema(schema)
 
     try:
         yield db
