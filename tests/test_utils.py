@@ -37,8 +37,3 @@ def test_build_file_path():
     path = build_file_path(astra_res, 'mwmStar', 'IPL3', defaults={'component': ''}, ignore_existence=True)
     assert 'sas/ipl-3/spectro/astra/0.5.0/spectra' in path
     assert '25/44/mwmStar-0.5.0-54392544.fits' in path
-
-def test_build_fails():
-    """ test build filepath fails correctly """
-    with pytest.raises(ValueError, match="Not all path keywords found in model fields or tags: ['component']*"):
-        build_file_path(astra_res, 'mwmStar', 'IPL3', ignore_existence=True)

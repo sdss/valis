@@ -1,31 +1,39 @@
 # Stage 1: Development stage for Python dependencies
-FROM python:3.10-slim as dep-stage
+FROM python:3.12-slim as dep-stage
 
 # Set up app dir
 WORKDIR /tmp
 
 # Copy project files over
-COPY ./pyproject.toml ./poetry.lock ./
+COPY ./pyproject.toml ./uv.lock ./
 
-# Install build-essential package
+# Install system prereq packages
 RUN apt-get update && \
     apt-get install -y \
         build-essential \
+        git \
+        # these are for h5py in sdss_explorer
+        curl libhdf5-dev pkg-config \
+        # these are for vaex
+        gcc g++ libboost-all-dev \
+        libffi-dev python3-dev libxml2-dev libxslt-dev \
+        libpq-dev zlib1g-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install poetry and project dependencies
-RUN pip install poetry && \
-    poetry config virtualenvs.create false && \
-    poetry install -E solara --no-root && \
-    rm -rf ~/.cache
+# Installing uv and then project dependencies
+RUN pip install uv
+RUN uv venv /app/venv # make venv
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev --extra solara
 
 # Stage 2: Development stage for the project
 FROM dep-stage as dev-stage
 
 # Copy the main project files over and install
 COPY ./ ./
-RUN poetry install -E solara --only main
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra solara
 
 # setting environment variables
 # these can be manually overridden

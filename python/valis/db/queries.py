@@ -4,11 +4,11 @@
 
 # all resuable queries go here
 
-from contextlib import contextmanager
 import itertools
 import packaging
 import uuid
-from typing import Sequence, Union, Generator
+from typing import Union, Generator
+from enum import Enum
 
 import astropy.units as u
 import deepmerge
@@ -21,10 +21,23 @@ from sdssdb.peewee.sdss5db import targetdb, vizdb
 from sdssdb.peewee.sdss5db import catalogdb as cat
 from sdssdb.peewee.sdss5db import astradb as astra
 
-from valis.db.models import MapperName
+#from valis.db.models import MapperName
 from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
 from valis.utils.versions import get_software_tag
+
+
+def lco_hack(query: peewee.ModelSelect, release: str = None) -> peewee.ModelSelect:
+    """ Remove SV-LCO targets from the query """
+
+    # only apply hack for public data releases
+    if release and 'DR' not in release:
+        return query
+
+    return query.where(
+        (vizdb.SDSSidToPipes.obs == 'apo')
+        | ((vizdb.SDSSidToPipes.obs == 'lco') & (vizdb.SDSSidToPipes.release == 'dr17'))
+    )
 
 
 def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
@@ -58,6 +71,10 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
     """
     if table not in {'stacked', 'flat'}:
         raise ValueError('table must be either "stacked" or "flat"')
+
+    # cannot create temp table if query is None
+    if query is None:
+        return query
 
     # Run initial query as a temporary table.
     temp = create_temporary_table(query, indices=['sdss_id'])
@@ -98,10 +115,13 @@ def append_pipes(query: peewee.ModelSelect, table: str = 'stacked',
             )
         )
 
+    # remove SV LCO targets, this is a hack for now
+    qq = lco_hack(qq, release)
+
     return qq
 
 
-def get_pipes(sdss_id: int) -> peewee.ModelSelect:
+def get_pipes(sdss_id: int, release: str) -> peewee.ModelSelect:
     """ Get the pipelines for an sdss_id
 
     Get the table of boolean flags indicating which
@@ -118,9 +138,10 @@ def get_pipes(sdss_id: int) -> peewee.ModelSelect:
     peewee.ModelSelect
         the output query
     """
-    return vizdb.SDSSidToPipes.select(vizdb.SDSSidToPipes).\
-        where(vizdb.SDSSidToPipes.sdss_id == sdss_id).\
-        distinct(vizdb.SDSSidToPipes.sdss_id)
+    qq = vizdb.SDSSidToPipes.select(vizdb.SDSSidToPipes).\
+        where(vizdb.SDSSidToPipes.sdss_id == sdss_id)
+    qq = lco_hack(qq, release)
+    return qq.distinct(vizdb.SDSSidToPipes.sdss_id)
 
 
 def convert_coords(ra: Union[str, float], dec: Union[str, float]) -> tuple:
@@ -284,7 +305,7 @@ def carton_program_map(key: str = 'program') -> dict:
     mapping = {}
     kk = 'program' if key == 'carton' else 'carton'
     for k, g in itertools.groupby(sorted(model, key=lambda x: x[key]), key=lambda x: x[key]):
-        mapping[k] = set(i[kk] for i in g)
+        mapping[k] = list(set(i[kk] for i in g))
     return mapping
 
 
@@ -394,6 +415,7 @@ def get_targets_obs(release: str, obs: str, spectrograph: str) -> peewee.ModelSe
 
 # test sdss ids
 # 23326 - boss/astra
+# 25739 in astra 0.8.0 but not 0.5.0 sources
 # 3350466 - apogee/astra
 # 54392544 - all true
 # 10 - all false
@@ -446,44 +468,68 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
     return query
 
 
-def get_apogee_target(sdss_id: int, release: str, fields: list = None):
-    """ temporary placeholder for apogee """
+def get_apogee_target(sdss_id: int, release: str, fields: list = None) -> peewee.ModelSelect:
+    """Get the Apogee target metadata for an sdss_id
+
+    Retrieves the apogee pipeline data from the apogee_drp.star table
+    for the given sdss_id and data release.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the data release to look up
+    fields : list, optional
+        a list of fields to retrieve from the database, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
     # get the relevant software tag
     apred = get_software_tag(release, 'apred_vers')
 
     # create apogee version conditions
     if isinstance(apred, list):
         vercond = apo.Star.apred_vers.in_(apred)
-        avsver = astra.ApogeeVisitSpectrum.apred.in_(apred)
     else:
         vercond = apo.Star.apred_vers == apred
-        avsver = astra.ApogeeVisitSpectrum.apred == apred
 
     # check fields
     fields = fields or [apo.Star]
     if fields and isinstance(fields[0], str):
         fields = (getattr(apo.Star, i) for i in fields)
 
-    # get the astra source for the sdss_id
-    s = get_astra_target(sdss_id, release)
-    if not s:
-        return
-
-    # get the astra apogee visit spectrum
-    a = s.first().apogee_visit_spectrum.where(avsver).first()
-    if not a:
-        return
-
     # get the apogee star data
-    return apo.Star.select(*fields).where(apo.Star.pk == a.star_pk, vercond)
+    return apo.Star.select(*fields).where(apo.Star.sdss_id == sdss_id, vercond)
 
+def get_astra_target(sdss_id: int, release: str, fields: list = None) -> peewee.ModelSelect:
+    """Get the Astra target metadata for an sdss_id
 
-def get_astra_target(sdss_id: int, release: str, fields: list = None):
-    """ temporary placeholder for astra """
+    Retrieves the astra source data from the astra.source table
+    for the given sdss_id and data release.
 
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the data release to look up
+    fields : list, optional
+        a list of fields to retrieve from the database, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
+    # check the astra version against the assigned schema
     vastra = get_software_tag(release, 'v_astra')
-    if not vastra or vastra not in ("0.5.0", "0.6.0"):
-        print('astra only supports DR19 / IPL3 = version 0.5.0, 0.6.0')
+    vastra = "0.5.0" if vastra in ("0.5.0", "0.6.0") else vastra
+    if vastra is None or vastra.replace('.', '') not in astra.Source._meta.schema:
+        print(f"warning: astra version for current release {release} does not match assigned astra schema {astra.Source._meta.schema}")
         return None
 
     # check fields
@@ -513,7 +559,7 @@ def get_target_meta(sdss_id: int, release: str) -> dict:
     """
     # get the id and pipeline flags
     query = get_targets_by_sdss_id(sdss_id)
-    pipes = append_pipes(query, observed=False)
+    pipes = append_pipes(query, observed=False, release=release)
     return pipes.dicts().first()
 
 
@@ -575,14 +621,22 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
     dict
         a dictionary of pipeline result data
     """
+
+    # spot check on target metadata
+    target = get_target_meta(sdss_id, release=release)
+
     # get the pipeline lookup table
-    pipes = get_pipes(sdss_id).dicts().first()
+    pipes = get_pipes(sdss_id, release).dicts().first()
 
     # create initial dict
     data = {'info': {},
             'boss': {}, 'apogee': {}, 'astra': {},
             'files': {'boss': '', 'apogee': '', 'astra': ['']}}
-    data['info'].update(pipes)
+    data['info'].update(pipes or {})
+
+    # if there is no match from vizdb, return nothing
+    if not target or not pipes:
+        return data
 
     # get only a given pipeline data
     if pipeline in {'boss', 'apogee', 'astra'} and pipes[f'in_{pipeline}']:
@@ -724,6 +778,13 @@ def get_a_spectrum(sdss_id: int, product: str, release: str, ext: str = None) ->
     generator
         the extracted spectral data from the file
     """
+
+    # if no pipeline info, return empty generator
+    pipes = get_pipes(sdss_id, release).dicts().first()
+    if not pipes:
+        yield from ()
+        return
+
     model = get_product_model(product)
     if model['pipeline'] == 'boss':
         yield from _yield_boss_spectrum(sdss_id, product, release)
@@ -824,6 +885,13 @@ def get_db_metadata(schema: str = None) -> peewee.ModelSelect:
     return query
 
 
+class MapperName(str, Enum):
+    """Mapper names"""
+    MWM: str = 'MWM'
+    BHM: str = 'BHM'
+    LVM: str = 'LVM'
+
+
 def get_paged_target_list_by_mapper(mapper: MapperName = MapperName.MWM, page_number: int = 1, items_per_page: int = 10) -> peewee.ModelSelect:
     """ Return a paged list of target rows, based on the mapper.
 
@@ -883,11 +951,15 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
      - a (e)BOSS plate-mjd-fiberid, e.g. "10235-58127-0020"
      - a BOSS field-mjd-catalogid, e.g. "101077-59845-27021603187129892"
      - an SDSS-IV APOGEE ID, e.g "2M23595980+1528407"
+     - a MaNGA plate-ifu, e.g. "8485-1901"
+     - an SDSS specobjid, e.g. 3259575414686771200
      - an SDSS-V catalogid, e.g. 2702160318712989
      - a GAIA DR3 ID, e.g. 4110508934728363520
 
-     It queries either the boss_drp.boss_spectrum or astra.source
-     tables for the sdss_id.
+     It queries either the boss_drp.boss_spectrum, astra.source,
+     or vizb.allspec tables for the sdss_id.  For pure integer ids,
+     use the ``idtype`` parameter to specify the type of id
+     (e.g. 'specobjid', 'catalogid', 'gaiaid', 'sdssid').
 
     Parameters
     ----------
@@ -911,21 +983,35 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
     final = id.rsplit('-', 1)[-1]
     if ndash == 2 and len(final) <= 4 and final.isdigit() and int(final) <= 1000:
         # boss/eboss plate-mjd-fiberid e.g '10235-58127-0020'
-        return
+        plate, mjd, fiberid = id.split('-')
+        targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.plate==int(plate), vizdb.AllSpec.mjd==int(mjd), vizdb.AllSpec.fiberid==int(fiberid))
     elif ndash == 2 and len(final) > 5:
         # field-mjd-catalogid, e.g. '101077-59845-27021603187129892'
         field, mjd, catalogid = id.split('-')
         targ = boss.BossSpectrum.select(boss.BossSpectrum.sdss_id).\
             where(boss.BossSpectrum.catalogid == catalogid,
             boss.BossSpectrum.mjd == mjd, boss.BossSpectrum.field == field)
-    elif ndash == 1:
+    elif ndash == 1 and not id.replace('-', '').isdigit():
         # apogee south, e.g. '2M17282323-2415476'
         targ = astra.Source.select(astra.Source.sdss_id).\
             where(astra.Source.sdss4_apogee_id.in_([id]))
+    elif ndash == 1 and id.replace('-', '').isdigit():
+        # mangaid '3-109500752' or plateifu '8485-1901'
+        prefix = len(id.split('-')[0])
+        if prefix in {4, 5}:
+            # plateifu
+            plate, ifu = id.split('-')
+            targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.plate==int(plate), vizdb.AllSpec.ifudsgn==int(ifu))
+        else:
+            # mangaid
+            targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.mangaid==id)
     elif ndash == 0 and not id.isdigit():
         # apogee obj id
         targ = astra.Source.select(astra.Source.sdss_id).\
             where(astra.Source.sdss4_apogee_id.in_([id]))
+    elif ndash == 0 and idtype == 'specobjid':
+        # specobjid
+        targ = vizdb.AllSpec.select(vizdb.AllSpec.sdss_id).where(vizdb.AllSpec.specobjid.in_([id]))
     elif ndash == 0 and id.isdigit():
         # single integer id
         if idtype == 'catalogid':
@@ -934,6 +1020,9 @@ def get_sdssid_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
         elif idtype == 'gaiaid':
             # gaia dr3 id , e.g. 4110508934728363520
             field = 'gaia_dr3_source_id'
+        elif idtype == 'sdssid':
+            # sdss id, e.g. 23326
+            field = 'sdss_id'
         else:
             field = 'catalogid'
 
@@ -963,6 +1052,10 @@ def get_target_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
     peewee.ModelSelect
         the ORM query
     """
+    # if idtype is explicitly sdss_id, return it directly
+    if idtype == 'sdssid':
+        return get_targets_by_sdss_id(id)
+
     # get the sdss_id
     targ = get_sdssid_by_altid(id, idtype=idtype)
     res = targ.get_or_none() if targ else None
@@ -971,6 +1064,29 @@ def get_target_by_altid(id: str | int, idtype: str = None) -> peewee.ModelSelect
 
     # get the sdss_id metadata info
     return get_targets_by_sdss_id(res.sdss_id)
+
+
+def get_targets_by_altid(ids: list, idtype: str = None) -> peewee.ModelSelect:
+    """ Get a list of targets by altid
+
+    Gets targets from a list of alternative identifier.  Iterates
+    to get the sdss_id for each id, then retrieves the list
+    of objects at once.
+
+    Parameters
+    ----------
+    id : str | int
+        the input alternative id
+    idtype : str, optional
+        the type of integer id, by default None
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    res = (j.sdss_id for i in ids for j in get_sdssid_by_altid(i, idtype=idtype) if j)
+    return get_targets_by_sdss_id(list(res))
 
 
 def create_temporary_table(query: peewee.ModelSelect,
@@ -991,3 +1107,94 @@ def create_temporary_table(query: peewee.ModelSelect,
     vizdb.database.execute_sql(f'ANALYZE "{table_name}"')
 
     return table
+
+
+def get_legacy_allspec(sdss_id: int, phase: int = 5) -> peewee.ModelSelect:
+    """ Get rows from the allspec table for a given sdss_id
+
+    Get legacy SDSS data from the allspec table for a given sdss_id.  By default
+    it returns legacy rows via a phase < 5, but you can return all rows by
+    setting phase to 0.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+    phase : int, optional
+        the SDSS phase, by default 5
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    # join with releases to get the release name out instead of pk
+    query = vizdb.AllSpec.select(vizdb.AllSpec, vizdb.Releases.release.alias('release')).\
+        join(vizdb.Releases, on=(vizdb.AllSpec.releases_pk == vizdb.Releases.pk))
+
+    # if no phase, return all id matches
+    if not phase:
+        return query.where(vizdb.AllSpec.sdss_id == sdss_id)
+
+    return query.where(vizdb.AllSpec.sdss_id == sdss_id, vizdb.AllSpec.sdss_phase < phase)
+
+
+def get_legacy_catalogs(sdss_id: int) -> dict:
+    """Get legacy catalog info for a given sdss_id
+
+    Returns the legacy SDSS parent catalog info for a given sdss_id. It
+    filters on legacy SDSS parent catalog names from catalogdb, and returns a dict
+    of the catalog name and its primary key lookup value.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+
+    Returns
+    -------
+    dict
+        the legacy catalog info
+    """
+    # create condition
+    legacy = {'mastar_goodstars', 'sdss_dr13_photoobj', 'sdss_dr17_specobj',
+              'mangatarget', 'marvels_dr11_star', 'marvels_dr12_star', 'allstar_dr17_synspec_rev1'}
+    # construct a not null condition for the legacy catalogs
+    cond = None
+    for k in legacy:
+        if cond is None:
+            cond = getattr(cat.SDSS_ID_To_Catalog, k).is_null(False)
+        else:
+            cond = (cond) | (getattr(cat.SDSS_ID_To_Catalog, k).is_null(False))
+
+    # filter out the field names and only include
+    tmp={}
+    for row in cat.SDSS_ID_To_Catalog.select().where(cat.SDSS_ID_To_Catalog.sdss_id == sdss_id, cond).dicts().iterator():
+        cat_data = {k.split('__')[0]: v for k, v in row.items() if '__' in k and v}
+        tt = {k: v for k, v in cat_data.items() if k in legacy and k not in tmp}
+        tmp.update(tt)
+
+    return tmp
+
+
+def has_legacy_data(sdss_id: int, phase: int = 5) -> bool:
+    """ Check if a target has legacy SDSS data
+
+    Checks if a target has legacy SDSS data by looking up valid rows in the
+    allspec table, and checks against the legacy SDSS parent catalogs from catalogdb.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the sdss_id to look up
+    phase : int, optional
+        the SDSS phase, by default 5
+
+    Returns
+    -------
+    bool
+        True if the target has legacy SDSS data, False otherwise
+    """
+    in_allspec = get_legacy_allspec(sdss_id, phase).count()
+    has_legcats = get_legacy_catalogs(sdss_id)
+    return in_allspec > 0 or has_legcats != {}

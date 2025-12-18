@@ -1,11 +1,16 @@
 # Stage 1: Development stage for Python dependencies
-FROM python:3.10-slim as dep-stage
+FROM python:3.12-slim AS dep-stage
+
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV UV_PYTHON_DOWNLOADS=0
+ENV VIRTUAL_ENV=/app/venv
 
 # Set up app dir
 WORKDIR /tmp
 
 # Copy project files over
-COPY ./pyproject.toml ./poetry.lock ./
+COPY ./pyproject.toml ./uv.lock ./
 
 # Install system prereq packages
 RUN apt-get update && \
@@ -15,7 +20,7 @@ RUN apt-get update && \
         # these are for h5py in sdss_explorer
         curl libhdf5-dev pkg-config \
         # these are for vaex
-        libpcre3 libpcre3-dev gcc g++ libboost-all-dev \
+        gcc g++ libboost-all-dev \
         libffi-dev python3-dev libxml2-dev libxslt-dev \
         libpq-dev zlib1g-dev \
     && apt-get clean \
@@ -35,39 +40,30 @@ ENV PIP_FIND_LINKS=https://github.com/ddelange/vaex/releases/expanded_assets/cor
 RUN pip install --force-reinstall vaex
 ENV PIP_FIND_LINKS=
 
-# need github creds for install of private sdss_explorer
-# Arguments to pass credentials
-ARG GITHUB_TOKEN
-ARG GITHUB_USER
+# Installing uv and then project dependencies
+RUN pip install uv
+RUN uv venv /app/venv # make venv
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev --extra solara
 
-# Configure git to use the token
-RUN git config --global credential.helper 'store --file=/root/.git-credentials' && \
-    echo "https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com" > /root/.git-credentials
-
-# Install poetry and project dependencies
-RUN pip install poetry && \
-    poetry config virtualenvs.create false && \
-    poetry install -E solara --no-root && \
-    rm -rf ~/.cache
-
-# Remove credentials after use
-RUN rm /root/.git-credentials && \
-    git config --global --unset credential.helper
 
 # Stage 2: Development stage for the project
-FROM dep-stage as dev-stage
+FROM dep-stage AS dev-stage
+
+ARG VALIS_ENV="production"
 
 # Copy the main project files over and install
 COPY ./ ./
-RUN poetry install -E solara --only main
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra solara
 
 # Create dir for socket and logs
 RUN mkdir -p /tmp/webapp
 
-# Install hips2fits_cutout script
+# Install hips2fits_cutout script dependencies
 # It is not installable via packager managers (pip, poetry) since there is no setup.py
 # Therefore install it manually and not through pyproject.toml dependancies.
-RUN poetry add cdshealpix@^0.7.0
+RUN uv pip install --python .venv/bin/python "cdshealpix>=0.7.0" "numba>=0.59.1"
 RUN git clone https://github.com/cds-astro/hips2fits-cutout.git /usr/lib/hips2fits-cutout
 ENV PYTHONPATH=/usr/lib/hips2fits-cutout:$PYTHONPATH
 
@@ -78,18 +74,18 @@ ENV VALIS_SOCKET_DIR='/tmp/webapp'
 ENV VALIS_LOGS_DIR='/tmp/webapp'
 ENV VALIS_ALLOW_ORIGIN="https://data.sdss5.org/zora/"
 ENV VALIS_DB_REMOTE=True
-ENV VALIS_ENV="production"
+ENV VALIS_ENV=$VALIS_ENV
 ENV SOLARA_CHECK_HOOKS="off"
 
 # Stage 3: Build stage (inherits from dev-stage)
-FROM dev-stage as build-stage
+FROM dev-stage AS build-stage
 
 # Set a label
-LABEL org.opencontainers.image.source https://github.com/sdss/valis
-LABEL org.opencontainers.image.description "valis production image"
+LABEL org.opencontainers.image.source=https://github.com/sdss/valis
+LABEL org.opencontainers.image.description="valis ${VALIS_ENV} image"
 
 # Expose the port
 EXPOSE 8000
 
 # Start the FastAPI app for production
-CMD ["poetry", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
+CMD ["uv", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]

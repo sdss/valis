@@ -17,14 +17,14 @@ def validate_release(value: str) -> str:
 
 
 class BaseBody(BaseModel):
-    release: Optional[str] = Field(None, example='DR17', description='The SDSS data release')
+    release: Optional[str] = Field(None, example='DR19', description='The SDSS data release')
 
 
-async def release(release: str = Query(None, example='DR17', description='The SDSS data release'),
+async def release(release: str = Query(None, example='DR19', description='The SDSS data release'),
                   body: BaseBody = None) -> str:
     """ Dependency to specify a release query or body parameter """
     try:
-        final = validate_release(release or (body.release if body else None) or 'DR17')
+        final = validate_release(release or (body.release if body else None) or 'DR19')
     except ValueError as ee:
         raise HTTPException(status_code=422, detail=f'Validation Error: {ee}') from ee
     return final
