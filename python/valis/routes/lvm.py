@@ -96,6 +96,10 @@ DEFAULTS_FOR_EXPOSURE = {
 DEFAULTS_FOR_FIBER = {
     "type": "flux",
 }
+ALLOWED_DAP_COMPONENTS = {
+    'observed', 'stellar_continuum', 'emission_np', 'emission_pm',
+    'full_model_pm', 'full_model_np', 'residual_np', 'all'
+}
 
 
 def convert_to_number(value: str):
@@ -183,6 +187,40 @@ def parse_line_query_fiber(line: str) -> Dict[str, Any]:
     return parsed
 
 
+def parse_line_query_dap_fiber(line: str) -> Dict[str, Any]:
+    """
+    Parse and validate a single `l` query string for DAP fiber output endpoint.
+    """
+    components = line.split(";")
+    parsed = {}
+
+    for component in components:
+        if ":" not in component:
+            raise ValueError(f"Invalid component: {component}. Must be in 'key:value' format.")
+        key, value = component.split(":", 1)
+
+        if key == 'components':
+            parsed['components'] = [c.strip() for c in value.split(',')]
+        else:
+            parsed[key] = convert_to_number(value)
+
+    if 'id' not in parsed:
+        raise ValueError("'id' must be provided in format: DAPversion/expnum/fiberid")
+
+    id_parts = parsed['id'].split('/')
+    if len(id_parts) != 3:
+        raise ValueError("ID must be in format: DAPversion/expnum/fiberid (e.g., 1.2.0/43064/532)")
+
+    if 'components' not in parsed:
+        parsed['components'] = ['all']
+
+    for comp in parsed['components']:
+        if comp not in ALLOWED_DAP_COMPONENTS:
+            raise ValueError(f"Invalid component '{comp}'. Allowed: {ALLOWED_DAP_COMPONENTS}")
+
+    return parsed
+
+
 async def get_LVM_drpall_record(expnum: int, drpver: int) -> Dict[str, Any]:
     "Async function to get record from drpall file for a given exposure number"
     loop = asyncio.get_event_loop()
@@ -220,6 +258,41 @@ async def get_SFrame_filename(expnum: int, drpver: int) -> str:
     return file
 
 
+async def get_DAP_filenames(expnum: int, dapver: str) -> tuple:
+    """
+    Async function to get DAP filenames for a given exposure number.
+    Returns: (dap_file, output_file, relative_path)
+    Validates file existence and handles both .fits and .fits.gz extensions.
+    """
+    drp_record = await get_LVM_drpall_record(expnum, dapver)
+
+    tile_id = int(drp_record['tileid'])
+    mjd = int(drp_record['mjd'])
+
+    suffix = str(expnum).zfill(8)
+    tile_prefix = f"{str(tile_id)[:4]}XX" if tile_id != 11111 else "0011XX"
+
+    base_path = f"/data/sdss/sas/sdsswork/lvm/spectro/analysis/{dapver}/{tile_prefix}/{tile_id}/{mjd}/{suffix}"
+    relative_base = f"sdsswork/lvm/spectro/analysis/{dapver}/{tile_prefix}/{tile_id}/{mjd}/{suffix}"
+
+    # Check for both .fits and .fits.gz extensions
+    loop = asyncio.get_event_loop()
+
+    # Helper to check file existence
+    async def find_file(base_name: str) -> str:
+        for ext in ['.fits', '.fits.gz']:
+            filepath = f"{base_name}{ext}"
+            if await loop.run_in_executor(None, os.path.exists, filepath):
+                return filepath
+        raise FileNotFoundError(f"Neither {base_name}.fits nor {base_name}.fits.gz exists")
+
+    dap_file = await find_file(f"{base_path}/dap-rsp108-sn20-{suffix}.dap")
+    output_file = await find_file(f"{base_path}/dap-rsp108-sn20-{suffix}.output")
+    relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.output.fits.gz"
+
+    return dap_file, output_file, relative_path
+
+
 def _extract_fiber_data(hdul: fits.HDUList, fiberid: int, spectrum_type: str = 'flux', factor: float = 1e17) -> np.ndarray:
     """
     Extracts a specific type of spectrum array for a given fiber ID from an LVM SFrame FITS HDUList.
@@ -249,6 +322,54 @@ def _extract_fiber_data(hdul: fits.HDUList, fiberid: int, spectrum_type: str = '
     }
 
     return extractor[spectrum_type](hdul, ifib)
+
+
+def _extract_dap_fiber_data(dap_file: str, output_file: str, fiberid: int, component_names: List[str]) -> Dict[str, Any]:
+    """
+    Extract DAP data for specific fiber.
+    Returns: dict with wave, components, and fiber metadata
+    """
+    with fits.open(dap_file) as dap_hdul:
+        pt_table = dap_hdul['PT'].data
+        fiber_mask = pt_table['fiberid'] == fiberid
+
+        if not np.any(fiber_mask):
+            raise ValueError(f"Fiber {fiberid} not found in DAP PT table")
+
+        fiber_idx = np.where(fiber_mask)[0][0]
+        fiber_info = pt_table[fiber_idx]
+
+    with fits.open(output_file) as output_hdul:
+        data = output_hdul[0].data[:, fiber_idx, :]
+        hdr = output_hdul[0].header
+
+        crval, cdelt, crpix = hdr['CRVAL1'], hdr['CDELT1'], hdr['CRPIX1']
+        nx = data.shape[1]
+        wave = crval + cdelt * (np.arange(0, nx) - (crpix - 1))
+
+        component_extractors = {
+            'observed': lambda d: d[0, :],
+            'stellar_continuum': lambda d: d[8, :] - d[7, :],
+            'emission_np': lambda d: d[6, :],
+            'emission_pm': lambda d: d[7, :],
+            'full_model_pm': lambda d: d[8, :],
+            'full_model_np': lambda d: d[8, :] - d[7, :] + d[6, :],
+            'residual_np': lambda d: d[0, :] - (d[8, :] - d[7, :] + d[6, :])
+        }
+
+        if 'all' in component_names:
+            component_names = list(component_extractors.keys())
+
+        valid_components = set(component_names) & component_extractors.keys()
+        components = {comp: component_extractors[comp](data) for comp in valid_components}
+
+    return {
+        'wave': wave,
+        'components': components,
+        'ra': float(fiber_info['ra']),
+        'dec': float(fiber_info['dec']),
+        'mask': bool(fiber_info['mask'])
+    }
 
 
 @cbv(router)
@@ -593,6 +714,129 @@ class LVM(Base):
             raise ValueError(f"Unhandled spectrum type: {spectrum_type}")
 
         return data
+
+    @router.get('/dap_fiber_output/',
+                summary='Get LVM DAP Fiber Output Data')
+    async def get_dap_fiber_output(
+        self,
+        l: List[str] = Query(..., description="DAP fiber spectrum definition")
+    ) -> ORJSONResponseCustom:
+        """
+        # Get LVM DAP Fiber Output Data
+
+        Retrieves DAP analysis results for individual fibers from LVM DAP output files.
+
+        ## Parameters:
+
+        - **l** (mandatory): Defines DAP fiber data to retrieve.
+
+          Format: `id:DAPversion/expnum/fiberid[;components:comp1,comp2,...]`
+
+          **Available Components** (optional, default: all):
+          - `observed` - Observed spectrum
+          - `stellar_continuum` - Stellar continuum model
+          - `emission_np` - Non-parametric emission lines
+          - `emission_pm` - Parametric emission lines
+          - `full_model_pm` - Full model with parametric emissions
+          - `full_model_np` - Full model with non-parametric emissions
+          - `residual_np` - Residual spectrum
+          - `all` - All components (default)
+
+        ## Response Structure:
+
+        Returns a JSON object:
+        ```json
+        {
+          "wave": [3600.0, 3600.5, 3601.0, ...],  // Common wavelength array (Angstroms)
+          "spectra": [
+            {
+              "filename": "sdsswork/lvm/spectro/analysis/1.2.0/.../dap-rsp108-sn20-00043064.output.fits.gz",
+              "dapver": "1.2.0",
+              "expnum": 43064,
+              "fiberid": 532,
+              "ra": 261.72696665,      // Right Ascension (degrees)
+              "dec": -29.90380743,     // Declination (degrees)
+              "mask": true,            // Fiber mask status
+              "components": {
+                "observed": [...],           // Raw observed spectrum
+                "stellar_continuum": [...],  // Stellar continuum model
+                "emission_np": [...],        // Non-parametric emission lines
+                "emission_pm": [...],        // Parametric emission lines
+                "full_model_pm": [...],      // Full model (stellar + parametric emissions)
+                "full_model_np": [...],      // Full model (stellar + non-parametric emissions)
+                "residual_np": [...]         // Residual (observed - full_model_np)
+              }
+            }
+          ]
+        }
+        ```
+
+        **Notes:**
+        - All flux values are raw values from DAP output files
+        - Wavelength array is in Angstroms
+        - Component arrays contain null values for invalid/masked pixels
+        - Only requested components are included in the response
+
+        ## Examples:
+
+        1. Single fiber, all components:
+
+           `/lvm/dap_fiber_output/?l=id:1.2.0/43064/532`
+
+        2. Single fiber, specific components:
+
+           `/lvm/dap_fiber_output/?l=id:1.2.0/43064/532;components:observed,stellar_continuum`
+
+        3. Multiple fibers:
+
+           `/lvm/dap_fiber_output/?l=id:1.2.0/43064/532&l=id:1.2.0/43064/533`
+        """
+
+        if not l:
+            raise HTTPException(status_code=400, detail="Query parameter 'l' is mandatory.")
+
+        try:
+            parsed_data = [parse_line_query_dap_fiber(line) for line in l]
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        spectra_data = []
+        common_wave = None
+        loop = asyncio.get_event_loop()
+
+        for d in parsed_data:
+            try:
+                dapver, expnum, fiberid = d['id'].split('/')
+                expnum, fiberid = int(expnum), int(fiberid)
+
+                dap_file, output_file, relative_path = await get_DAP_filenames(expnum, dapver)
+
+                result = await loop.run_in_executor(
+                    None, _extract_dap_fiber_data, dap_file, output_file, fiberid, d['components']
+                )
+
+                if common_wave is None:
+                    common_wave = result['wave']
+
+                spectrum_dict = {
+                    'filename': relative_path,
+                    'dapver': dapver,
+                    'expnum': expnum,
+                    'fiberid': fiberid,
+                    'ra': result['ra'],
+                    'dec': result['dec'],
+                    'mask': result['mask'],
+                    'components': {name: arr2list(arr) for name, arr in result['components'].items()}
+                }
+
+                spectra_data.append(spectrum_dict)
+
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Error processing DAP data: {str(e)}")
+
+        return ORJSONResponseCustom(content={'wave': arr2list(common_wave), 'spectra': spectra_data})
 
     @router.get('/plot_fiber_spectrum/',
                 summary='Endpoint to plot fiber spectra retrieved from LVM SFrame file.')
