@@ -150,3 +150,207 @@ class MockPath(Path):
     def __init__(self, *args, **kwargs):
         super(MockPath, self).__init__(*args, **kwargs)
         self.templates.update({'test': '$TEST_REDUX/{ver}/testfile_{id}.fits'})
+
+
+# LVM Test Fixtures
+
+def create_mock_sframe(n_wave=100, n_fibers=20, expnum=43064):
+    """Create minimal SFrame FITS for testing (DRP output)"""
+    primary_hdr = fits.Header([
+        ('EXPNUM', expnum, 'Exposure number'),
+        ('MJD', 60859, 'Modified Julian Date'),
+        ('TILEID', 1048982, 'Tile ID'),
+    ])
+    primary = fits.PrimaryHDU(header=primary_hdr)
+
+    wave = np.linspace(3600, 9800, n_wave).astype(np.float32)
+    flux = np.random.rand(n_fibers, n_wave).astype(np.float32) * 1e-17
+    ivar = np.ones((n_fibers, n_wave), dtype=np.float32) * 1e34
+    sky = np.random.rand(n_fibers, n_wave).astype(np.float32) * 1e-18
+    lsf = np.ones((n_fibers, n_wave), dtype=np.float32) * 2.5
+
+    # SLITMAP table with essential columns
+    slitmap_cols = [
+        fits.Column('fiberid', 'K', array=np.arange(1, n_fibers+1)),
+        fits.Column('telescope', '5A', array=['Sci'] * (n_fibers-4) + ['SkyE', 'SkyW', 'Spec', 'Spec']),
+        fits.Column('fibstatus', 'K', array=np.zeros(n_fibers, dtype=int)),
+        fits.Column('ra', 'D', array=np.random.uniform(0, 360, n_fibers)),
+        fits.Column('dec', 'D', array=np.random.uniform(-90, 90, n_fibers)),
+    ]
+
+    return fits.HDUList([
+        primary,
+        fits.ImageHDU(flux, name='FLUX'),
+        fits.ImageHDU(ivar, name='IVAR'),
+        fits.ImageHDU(wave, name='WAVE'),
+        fits.ImageHDU(sky, name='SKY'),
+        fits.ImageHDU(ivar.copy(), name='SKY_IVAR'),
+        fits.ImageHDU(lsf, name='LSF'),
+        fits.BinTableHDU.from_columns(slitmap_cols, name='SLITMAP'),
+    ])
+
+
+def create_mock_dap_output(n_wave=100, n_fibers=10):
+    """Create minimal DAP output FITS"""
+    # Shape: (n_components=9, n_fibers, n_wave)
+    data = np.random.rand(9, n_fibers, n_wave).astype(np.float32) * 1e-17
+
+    hdu = fits.PrimaryHDU(data)
+    hdu.header['CRVAL1'] = 3600.0
+    hdu.header['CDELT1'] = 0.5
+    hdu.header['CRPIX1'] = 1
+
+    return fits.HDUList([hdu])
+
+
+def create_mock_dap_main(n_fibers=10, expnum=43064):
+    """Create minimal DAP main FITS with PT table"""
+    pt_cols = [
+        fits.Column('id', '10A', array=[f'{expnum}.{i}' for i in range(3, 3+n_fibers)]),
+        fits.Column('ra', 'D', array=np.random.uniform(0, 360, n_fibers)),
+        fits.Column('dec', 'D', array=np.random.uniform(-90, 90, n_fibers)),
+        fits.Column('mask', 'L', array=[True] * n_fibers),
+        fits.Column('fiberid', 'K', array=np.arange(3, 3+n_fibers)),
+        fits.Column('exposure', 'K', array=[expnum] * n_fibers),
+    ]
+
+    return fits.HDUList([
+        fits.PrimaryHDU(),
+        fits.BinTableHDU.from_columns(pt_cols, name='PT'),
+    ])
+
+
+def create_mock_drpall(expnum=43064, drpver='1.2.0'):
+    """Create minimal drpall FITS file"""
+    cols = [
+        fits.Column('EXPNUM', 'K', array=[expnum]),
+        fits.Column('MJD', 'K', array=[60859]),
+        fits.Column('TILEID', 'K', array=[1048982]),
+        fits.Column('location', '120A', array=[f'sdsswork/lvm/spectro/redux/{drpver}/1048XX/1048982/60859/lvmSFrame-{str(expnum).zfill(8)}.fits']),
+        fits.Column('drpver', '10A', array=[drpver]),
+    ]
+
+    return fits.HDUList([
+        fits.PrimaryHDU(),
+        fits.BinTableHDU.from_columns(cols),
+    ])
+
+
+@pytest.fixture()
+def setup_lvm_sas(monkeypatch, tmp_path):
+    """Create mock LVM directory structure for testing"""
+    # Create mock SAS structure inside tmp_path
+    sas_root = tmp_path / 'sas'
+    sas_base = sas_root / 'sdsswork'
+    
+    drpver = '1.2.0'
+    expnum = 43064
+    tile_id = 1048982
+    mjd = 60859
+
+    # Create drpall
+    drpall_dir = sas_base / 'lvm' / 'spectro' / 'redux' / drpver
+    drpall_dir.mkdir(parents=True)
+    drpall_file = drpall_dir / f'drpall-{drpver}.fits'
+    create_mock_drpall(expnum, drpver).writeto(drpall_file)
+
+    # Create SFrame (DRP output)
+    sframe_dir = sas_base / 'lvm' / 'spectro' / 'redux' / drpver / f'{str(tile_id)[:4]}XX' / str(tile_id) / str(mjd)
+    sframe_dir.mkdir(parents=True)
+    sframe_file = sframe_dir / f'lvmSFrame-{str(expnum).zfill(8)}.fits'
+    create_mock_sframe(n_wave=100, n_fibers=20, expnum=expnum).writeto(sframe_file)
+
+    # Create DAP files
+    dap_dir = sas_base / 'lvm' / 'spectro' / 'analysis' / drpver / f'{str(tile_id)[:4]}XX' / str(tile_id) / str(mjd) / str(expnum).zfill(8)
+    dap_dir.mkdir(parents=True)
+
+    dap_output_file = dap_dir / f'dap-rsp108-sn20-{str(expnum).zfill(8)}.output.fits'
+    create_mock_dap_output(n_wave=100, n_fibers=10).writeto(dap_output_file)
+
+    dap_main_file = dap_dir / f'dap-rsp108-sn20-{str(expnum).zfill(8)}.dap.fits.gz'
+    create_mock_dap_main(n_fibers=10, expnum=expnum).writeto(dap_main_file)
+
+    # Set SAS_BASE_DIR environment variable to point to mock directory
+    # The lvm.py code constructs paths as: /data/sdss/sas/sdsswork/...
+    # We need to replace /data/sdss/sas with our tmp_path/sas
+    monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
+    
+    # Monkeypatch the hardcoded /data/sdss/sas path in lvm.py
+    import valis.routes.lvm as lvm_module
+    
+    original_get_drpall = lvm_module.get_LVM_drpall_record
+    original_get_sframe = lvm_module.get_SFrame_filename
+    original_get_dap = lvm_module.get_DAP_filenames
+    
+    async def patched_get_drpall(expnum, drpver):
+        import asyncio
+        from astropy.io import fits
+        loop = asyncio.get_event_loop()
+        
+        drp_file = str(sas_root / f"sdsswork/lvm/spectro/redux/{drpver}/drpall-{drpver}.fits")
+        
+        file_exists = await loop.run_in_executor(None, os.path.exists, drp_file)
+        if not file_exists:
+            drp_file = str(sas_root / f"sdsswork/lvm/spectro/redux/{lvm_module.LAST_DRP_VERSION}/drpall-{lvm_module.LAST_DRP_VERSION}.fits")
+            file_exists = await loop.run_in_executor(None, os.path.exists, drp_file)
+            if not file_exists:
+                raise FileNotFoundError(f"DRPall file not found: {drp_file}")
+        
+        def read_fits():
+            drpall = fits.getdata(drp_file)
+            record = drpall[drpall['EXPNUM'] == expnum][0]
+            # Return lowercase keys for consistency with real FITS behavior
+            return {name.lower() if name.isupper() else name: record[name] for name in drpall.names}
+        
+        return await loop.run_in_executor(None, read_fits)
+    
+    async def patched_get_sframe(expnum, drpver):
+        drp_record = await patched_get_drpall(expnum, drpver)
+        location = drp_record['location'].decode() if isinstance(drp_record['location'], bytes) else drp_record['location']
+        file = str(sas_root / location)
+        
+        if drp_record['drpver'] != drpver:
+            file = file.replace(drp_record['drpver'], drpver)
+        
+        return file
+    
+    async def patched_get_dap(expnum, dapver):
+        import asyncio
+        drp_record = await patched_get_drpall(expnum, dapver)
+        
+        tile_id = int(drp_record['tileid'])
+        mjd = int(drp_record['mjd'])
+        suffix = str(expnum).zfill(8)
+        tile_prefix = f"{str(tile_id)[:4]}XX" if tile_id != 11111 else "0011XX"
+        
+        base_path = sas_root / 'sdsswork' / 'lvm' / 'spectro' / 'analysis' / dapver / tile_prefix / str(tile_id) / str(mjd) / suffix
+        relative_base = f"sdsswork/lvm/spectro/analysis/{dapver}/{tile_prefix}/{tile_id}/{mjd}/{suffix}"
+        
+        loop = asyncio.get_event_loop()
+        
+        async def find_file(base_name):
+            for ext in ['.fits', '.fits.gz']:
+                filepath = f"{base_name}{ext}"
+                if await loop.run_in_executor(None, os.path.exists, filepath):
+                    return filepath
+            raise FileNotFoundError(f"Neither {base_name}.fits nor {base_name}.fits.gz exists")
+        
+        dap_file = await find_file(str(base_path / f'dap-rsp108-sn20-{suffix}.dap'))
+        output_file = await find_file(str(base_path / f'dap-rsp108-sn20-{suffix}.output'))
+        relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.output.fits.gz"
+        
+        return dap_file, output_file, relative_path
+    
+    monkeypatch.setattr(lvm_module, 'get_LVM_drpall_record', patched_get_drpall)
+    monkeypatch.setattr(lvm_module, 'get_SFrame_filename', patched_get_sframe)
+    monkeypatch.setattr(lvm_module, 'get_DAP_filenames', patched_get_dap)
+
+    return {
+        'sas_base': sas_base,
+        'sas_root': sas_root,
+        'drpver': drpver,
+        'expnum': expnum,
+        'tile_id': tile_id,
+        'mjd': mjd,
+        'tmp_path': tmp_path,
+    }
