@@ -275,23 +275,25 @@ def setup_lvm_sas(monkeypatch, tmp_path):
     # We need to replace /data/sdss/sas with our tmp_path/sas
     monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
     
-    # Monkeypatch the hardcoded /data/sdss/sas path in lvm.py
-    import valis.routes.lvm as lvm_module
-    
-    original_get_drpall = lvm_module.get_LVM_drpall_record
-    original_get_sframe = lvm_module.get_SFrame_filename
-    original_get_dap = lvm_module.get_DAP_filenames
+    # Monkeypatch LVM I/O functions to use mock data
+    from valis.routes.lvm import io as lvm_io_module
+
+    original_get_drpall = lvm_io_module.get_LVM_drpall_record
+    original_get_sframe = lvm_io_module.get_SFrame_filename
+    original_get_dap = lvm_io_module.get_DAP_filenames
     
     async def patched_get_drpall(expnum, drpver):
         import asyncio
         from astropy.io import fits
         loop = asyncio.get_event_loop()
         
+        from valis.routes.lvm.common import LAST_DRP_VERSION
+
         drp_file = str(sas_root / f"sdsswork/lvm/spectro/redux/{drpver}/drpall-{drpver}.fits")
-        
+
         file_exists = await loop.run_in_executor(None, os.path.exists, drp_file)
         if not file_exists:
-            drp_file = str(sas_root / f"sdsswork/lvm/spectro/redux/{lvm_module.LAST_DRP_VERSION}/drpall-{lvm_module.LAST_DRP_VERSION}.fits")
+            drp_file = str(sas_root / f"sdsswork/lvm/spectro/redux/{LAST_DRP_VERSION}/drpall-{LAST_DRP_VERSION}.fits")
             file_exists = await loop.run_in_executor(None, os.path.exists, drp_file)
             if not file_exists:
                 raise FileNotFoundError(f"DRPall file not found: {drp_file}")
@@ -341,9 +343,9 @@ def setup_lvm_sas(monkeypatch, tmp_path):
         
         return dap_file, output_file, relative_path
     
-    monkeypatch.setattr(lvm_module, 'get_LVM_drpall_record', patched_get_drpall)
-    monkeypatch.setattr(lvm_module, 'get_SFrame_filename', patched_get_sframe)
-    monkeypatch.setattr(lvm_module, 'get_DAP_filenames', patched_get_dap)
+    monkeypatch.setattr(lvm_io_module, 'get_LVM_drpall_record', patched_get_drpall)
+    monkeypatch.setattr(lvm_io_module, 'get_SFrame_filename', patched_get_sframe)
+    monkeypatch.setattr(lvm_io_module, 'get_DAP_filenames', patched_get_dap)
 
     return {
         'sas_base': sas_base,

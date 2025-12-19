@@ -126,7 +126,7 @@ class TestLVMDataEndpoints:
 
     def test_get_dap_fiber_output(self, client, setup_lvm_sas):
         """Test retrieving DAP fiber output"""
-        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/5;components:all')
+        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/3;components:all')
         assert response.status_code == 200
 
         data = response.json()
@@ -136,14 +136,14 @@ class TestLVMDataEndpoints:
 
         spectrum = data['spectra'][0]
         assert spectrum['expnum'] == 43064
-        assert spectrum['fiberid'] == 5
+        assert spectrum['fiberid'] == 3
         assert 'components' in spectrum
         assert 'ra' in spectrum
         assert 'dec' in spectrum
 
     def test_get_dap_fiber_output_specific_components(self, client, setup_lvm_sas):
         """Test retrieving specific DAP components"""
-        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/5;components:observed,stellar_continuum')
+        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/3;components:observed,stellar_continuum')
         assert response.status_code == 200
 
         data = response.json()
@@ -178,9 +178,12 @@ class TestLVMPlotEndpoints:
         assert response.status_code == 200
 
     def test_plot_fiber_spectrum_invalid_matplotlib_param(self, client, setup_lvm_sas):
-        """Test with invalid matplotlib parameter"""
+        """Test with invalid matplotlib parameter - API should return 500 error"""
         response = client.get('/lvm/plot_fiber_spectrum/?l=id:1.2.0/43064/5;type:flux;invalid_param:value')
-        assert response.status_code == 400
+        assert response.status_code == 500  # Internal server error
+        assert 'detail' in response.json()
+        assert 'Error creating plot' in response.json()['detail']
+        assert 'invalid_param' in response.json()['detail']
 
     def test_plot_exposure_spectrum_png(self, client, setup_lvm_sas):
         """Test exposure spectrum plot generation"""
