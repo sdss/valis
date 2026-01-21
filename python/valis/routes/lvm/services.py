@@ -135,21 +135,23 @@ def extract_dap_fiber_data(dap_file: str,
         wave = crval + cdelt * (np.arange(0, nx) - (crpix - 1))
         wave = wave.astype(np.float32)
 
+        # Order defines plotting sequence (first = bottom, last = top)
         component_extractors = {
             'observed': lambda d: d[0, :],
-            'stellar_continuum': lambda d: d[8, :] - d[7, :],
+            'residual_np': lambda d: d[0, :] - (d[8, :] - d[7, :] + d[6, :]),
+            'residual_pm': lambda d: d[0, :] - d[8, :],
             'emission_np': lambda d: d[6, :],
             'emission_pm': lambda d: d[7, :],
-            'full_model_pm': lambda d: d[8, :],
+            'stellar_continuum': lambda d: d[8, :] - d[7, :],
             'full_model_np': lambda d: d[8, :] - d[7, :] + d[6, :],
-            'residual_pm': lambda d: d[0, :] - d[8, :],
-            'residual_np': lambda d: d[0, :] - (d[8, :] - d[7, :] + d[6, :])
+            'full_model_pm': lambda d: d[8, :],
         }
 
         if 'all' in component_names:
             component_names = list(component_extractors.keys())
 
-        valid_components = set(component_names) & component_extractors.keys()
+        # Preserve requested order using list comprehension
+        valid_components = [c for c in component_names if c in component_extractors]
         components = {comp: component_extractors[comp](data) for comp in valid_components}
 
     return {

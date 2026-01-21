@@ -15,8 +15,8 @@ from valis.routes.base import Base
 from hips2fits_cutout import _create_wcs_object, generate_from_wcs
 
 from ..common import (
-    VALID_MATPLOTLIB_CMAPS, CoordinateSystem, WCSProjection,
-    ImageFormat, ImageStretch, PROJECTION_DESCRIPTIONS
+    VALID_MATPLOTLIB_CMAPS, CoordinateSystemLiteral, WCSProjectionLiteral,
+    ImageFormatLiteral, ImageStretchLiteral, PROJECTION_DESCRIPTIONS
 )
 
 router = APIRouter()
@@ -31,18 +31,18 @@ class Cutout(Base):
         self,
         version: str = Path(..., enum=['1.2.0', '1.1.1', '1.1.0', '1.0.3', '1.0.3b'], description="DRP/DAP version", example='1.2.0'),
         hips: str = Path(..., description="HiPS name. Available at https://data.sdss5.org/sas/sdsswork/sandbox/data-viz/hips/sdsswork/lvm", example='hips_flx_Halpha'),
-        format: ImageFormat = Query('png', description='Output format', example='png'),
+        format: ImageFormatLiteral = Query('png', description='Output format', example='png'),
         ra: float = Query(..., description="RA (ICRS) or Galactic l if coordsys=galactic", example=13.14033),
         dec: float = Query(..., description="Dec (ICRS) or Galactic b if coordsys=galactic", example=-72.79495),
-        coordsys: Optional[CoordinateSystem] = Query('icrs', description="Coordinate system", example='icrs'),
-        projection: Optional[WCSProjection] = Query('SIN', description=f"WCS projection: {PROJECTION_DESCRIPTIONS}", example='SIN'),
+        coordsys: CoordinateSystemLiteral = Query('icrs', description="Coordinate system", example='icrs'),
+        projection: WCSProjectionLiteral = Query('SIN', description=f"WCS projection: {PROJECTION_DESCRIPTIONS}", example='SIN'),
         pa: float = Query(0.0, description="Position angle (deg)", example=45),
         fov: float = Query(1.0, gt=0, description="Field of view (deg)", example=1.0),
         width: int = Query(300, gt=1, description="Width (px)", example=300),
         height: int = Query(300, gt=1, description="Height (px). Max: 5000x5000", example=300),
         min: Optional[float] = Query(None, description="Min cut value (jpg/png)", example=0),
         max: Optional[float] = Query(None, description="Max cut value (jpg/png)", example=10000),
-        stretch: Optional[ImageStretch] = Query('linear', description="Image stretch (jpg/png)", example='linear'),
+        stretch: ImageStretchLiteral = Query('linear', description="Image stretch (jpg/png)", example='linear'),
         cmap: Optional[str] = Query('magma', description="Matplotlib colormap (jpg/png)", example='Greys_r'),
     ) -> Response:
         """
@@ -68,6 +68,7 @@ class Cutout(Base):
             raise HTTPException(status_code=400, detail=f"Invalid colormap '{cmap}'")
 
         image_data = BytesIO()
+
         sc = SkyCoord(ra, dec, frame=coordsys, unit='deg')
         wcs = _create_wcs_object(sc, width, height, fov, coordsys=coordsys, projection=projection, rotation_angle=pa)
         generate_from_wcs(wcs, hips_path, image_data, format=format, min_cut=min, max_cut=max, stretch=stretch, cmap=cmap)

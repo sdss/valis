@@ -112,7 +112,7 @@ class DAP(Base):
         height: float = Query(6.0, description="Figure height (inches)", example=6.0),
         dpi: int = Query(100, description="DPI", example=100),
         xlabel: str = Query('Wavelength [Å]', description="X-axis label"),
-        ylabel: str = Query('Flux [10e-17 erg/s/cm2/A]', description="Y-axis label"),
+        ylabel: str = Query('Flux [10⁻¹⁷ erg/s/cm²/Å]', description="Y-axis label"),
         title: Optional[str] = Query(None, description="Plot title"),
         legend: Optional[str] = Query(None, description="Legend: short, long, component"),
         xmin: Optional[float] = Query(None, description="X-axis min"),

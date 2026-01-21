@@ -5,8 +5,7 @@ from __future__ import annotations
 
 import re
 import numpy as np
-from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, Literal, get_args
 
 import matplotlib.pyplot as plt
 
@@ -35,50 +34,35 @@ DEFAULTS_FOR_FIBER = {
 }
 
 
-# Enums
-class CoordinateSystem(str, Enum):
-    icrs = "icrs"
-    galactic = "galactic"
+# Literal types for FastAPI query parameters (strings used directly, no .value needed)
+CoordinateSystemLiteral = Literal['icrs', 'galactic']
 
+WCSProjectionLiteral = Literal[
+    'CAR',  # Plate Carrée
+    'CEA',  # Cylindrical Equal Area
+    'MER',  # Mercator
+    'SFL',  # Sanson-Flamsteed (Global Sinusoidal)
+    'COE',  # Conic Equal Area
+    'AZP',  # Perspective Zenithal
+    'SZP',  # Slant Zenithal Perspective
+    'TAN',  # Gnomonic
+    'STG',  # Stereographic
+    'SIN',  # Orthographic
+    'ARC',  # Zenithal Equidistant
+    'ZEA',  # Equal Area
+    'MOL',  # Mollweide
+    'AIT',  # Hammer-Aitoff
+    'CSC',  # COBE Quadrilateralized Spherical Cube
+    'HPX',  # HEALPix
+    'XPH',  # HEALPix Polar
+]
 
-class WCSProjection(str, Enum):
-    """All WCS Projection types compatible with hips2fits_cutout script"""
-    car = "CAR"  # Plate Carrée
-    cea = "CEA"  # Cylindrical Equal Area
-    mer = "MER"  # Mercator
-    sfl = "SFL"  # Sanson-Flamsteed (Global Sinusoidal)
-    coe = "COE"  # Conic Equal Area
-    azp = "AZP"  # Perspective Zenithal
-    szp = "SZP"  # Slant Zenithal Perspective
-    tan = "TAN"  # Gnomonic
-    stg = "STG"  # Stereographic
-    sin = "SIN"  # Orthographic
-    arc = "ARC"  # Zenithal Equidistant
-    zea = "ZEA"  # Equal Area
-    mol = "MOL"  # Mollweide
-    ait = "AIT"  # Hammer-Aitoff
-    csc = "CSC"  # COBE Quadrilateralized Spherical Cube
-    hpx = "HPX"  # HEALPix
-    xph = "XPH"  # HEALPix Polar
+ImageFormatLiteral = Literal['png', 'jpg', 'jpeg', 'fits']
 
+ImageStretchLiteral = Literal['linear', 'sqrt', 'power', 'log', 'asinh', 'sinh']
 
-PROJECTION_DESCRIPTIONS = ", ".join([proj.value for proj in WCSProjection])
-
-
-class ImageFormat(str, Enum):
-    png = "png"
-    jpg = "jpg"
-    jpeg = "jpeg"
-    fits = "fits"
-
-
-class ImageStretch(str, Enum):
-    linear = "linear"
-    sqrt = "sqrt"
-    power = "power"
-    log = "log"
-    asinh = "asinh"
-    sinh = "sinh"
+# Derive descriptions from Literal types (single source of truth)
+PROJECTION_DESCRIPTIONS = ", ".join(get_args(WCSProjectionLiteral))
 
 
 # Helper Functions
