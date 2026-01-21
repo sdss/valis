@@ -319,28 +319,31 @@ def setup_lvm_sas(monkeypatch, tmp_path):
     async def patched_get_dap(expnum, dapver):
         import asyncio
         drp_record = await patched_get_drpall(expnum, dapver)
-        
+
         tile_id = int(drp_record['tileid'])
         mjd = int(drp_record['mjd'])
         suffix = str(expnum).zfill(8)
         tile_prefix = f"{str(tile_id)[:4]}XX" if tile_id != 11111 else "0011XX"
-        
+
         base_path = sas_root / 'sdsswork' / 'lvm' / 'spectro' / 'analysis' / dapver / tile_prefix / str(tile_id) / str(mjd) / suffix
         relative_base = f"sdsswork/lvm/spectro/analysis/{dapver}/{tile_prefix}/{tile_id}/{mjd}/{suffix}"
-        
+
         loop = asyncio.get_event_loop()
-        
+
         async def find_file(base_name):
             for ext in ['.fits', '.fits.gz']:
                 filepath = f"{base_name}{ext}"
                 if await loop.run_in_executor(None, os.path.exists, filepath):
                     return filepath
             raise FileNotFoundError(f"Neither {base_name}.fits nor {base_name}.fits.gz exists")
-        
+
         dap_file = await find_file(str(base_path / f'dap-rsp108-sn20-{suffix}.dap'))
         output_file = await find_file(str(base_path / f'dap-rsp108-sn20-{suffix}.output'))
-        relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.output.fits.gz"
-        
+
+        # Build relative_path matching the actual extension found
+        output_ext = '.fits.gz' if output_file.endswith('.gz') else '.fits'
+        relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.output{output_ext}"
+
         return dap_file, output_file, relative_path
     
     monkeypatch.setattr(lvm_io_module, 'get_LVM_drpall_record', patched_get_drpall)

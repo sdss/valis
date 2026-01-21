@@ -70,7 +70,7 @@ async def get_DAP_filenames(expnum: int, dapver: str) -> Tuple[str, str, str]:
     loop = asyncio.get_event_loop()
 
     async def find_file(base_name: str) -> str:
-        """Helper to check file existence with .fits or .fits.gz extension"""
+        """Find file with .fits or .fits.gz extension, preferring uncompressed."""
         for ext in ['.fits', '.fits.gz']:
             filepath = f"{base_name}{ext}"
             if await loop.run_in_executor(None, os.path.exists, filepath):
@@ -79,7 +79,10 @@ async def get_DAP_filenames(expnum: int, dapver: str) -> Tuple[str, str, str]:
 
     dap_file = await find_file(f"{base_path}/dap-rsp108-sn20-{suffix}.dap")
     output_file = await find_file(f"{base_path}/dap-rsp108-sn20-{suffix}.output")
-    relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.output.fits.gz"
+
+    # Build relative_path matching the actual extension found
+    output_ext = '.fits.gz' if output_file.endswith('.gz') else '.fits'
+    relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.output{output_ext}"
 
     return dap_file, output_file, relative_path
 

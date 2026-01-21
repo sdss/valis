@@ -10,6 +10,7 @@ import pytest
 import numpy as np
 from io import BytesIO
 from PIL import Image
+from astropy.io import fits
 
 
 class TestLVMParsers:
@@ -365,4 +366,293 @@ class TestLVMHelperFunctions:
         assert result[0] == 1.0
         assert result[1] is None
         assert result[2] == 3.0
+
+
+class TestDAPComponentExtraction:
+    """Test DAP component extraction formulas"""
+
+    def test_extract_dap_components_formulas(self, tmp_path):
+        """Test that DAP component formulas match reference implementation"""
+        from valis.routes.lvm.services import extract_dap_fiber_data
+
+        # Create test data with known values
+        n_wave = 50
+        n_fibers = 5
+        fiberid = 3
+        fiber_idx = 0  # fiberid 3 is at index 0 in PT table
+
+        # Create mock output data with predictable values
+        # Shape: (9, n_fibers, n_wave)
+        data = np.zeros((9, n_fibers, n_wave), dtype=np.float32)
+        data[0, fiber_idx, :] = 10.0  # observed
+        data[6, fiber_idx, :] = 1.0   # emission_np
+        data[7, fiber_idx, :] = 2.0   # emission_pm
+        data[8, fiber_idx, :] = 8.0   # full_model_pm (stellar + pm_emission)
+
+        output_hdu = fits.PrimaryHDU(data)
+        output_hdu.header['CRVAL1'] = 3600.0
+        output_hdu.header['CDELT1'] = 1.0
+        output_hdu.header['CRPIX1'] = 1
+
+        output_file = tmp_path / 'test.output.fits'
+        fits.HDUList([output_hdu]).writeto(output_file)
+
+        # Create mock DAP file with PT table
+        pt_cols = [
+            fits.Column('fiberid', 'K', array=[3, 4, 5, 6, 7]),
+            fits.Column('ra', 'D', array=[100.0] * n_fibers),
+            fits.Column('dec', 'D', array=[20.0] * n_fibers),
+            fits.Column('mask', 'L', array=[True] * n_fibers),
+        ]
+        dap_file = tmp_path / 'test.dap.fits'
+        fits.HDUList([
+            fits.PrimaryHDU(),
+            fits.BinTableHDU.from_columns(pt_cols, name='PT'),
+        ]).writeto(dap_file)
+
+        # Extract with factor=1 for easier verification
+        result = extract_dap_fiber_data(
+            str(dap_file), str(output_file), fiberid, ['all'], factor=1.0
+        )
+
+        components = result['components']
+
+        # Verify formulas (without factor scaling)
+        np.testing.assert_array_almost_equal(components['observed'], 10.0)
+        np.testing.assert_array_almost_equal(components['emission_np'], 1.0)
+        np.testing.assert_array_almost_equal(components['emission_pm'], 2.0)
+        np.testing.assert_array_almost_equal(components['full_model_pm'], 8.0)
+
+        # stellar_continuum = d[8] - d[7] = 8 - 2 = 6
+        np.testing.assert_array_almost_equal(components['stellar_continuum'], 6.0)
+
+        # full_model_np = d[8] - d[7] + d[6] = 8 - 2 + 1 = 7
+        np.testing.assert_array_almost_equal(components['full_model_np'], 7.0)
+
+        # residual_pm = d[0] - d[8] = 10 - 8 = 2
+        np.testing.assert_array_almost_equal(components['residual_pm'], 2.0)
+
+        # residual_np = d[0] - (d[8] - d[7] + d[6]) = 10 - 7 = 3
+        np.testing.assert_array_almost_equal(components['residual_np'], 3.0)
+
+    def test_extract_dap_float32_output(self, tmp_path):
+        """Test that DAP extraction returns float32 arrays"""
+        from valis.routes.lvm.services import extract_dap_fiber_data
+
+        n_wave = 50
+        n_fibers = 3
+
+        # Create output with float64 to verify conversion
+        data = np.random.rand(9, n_fibers, n_wave).astype(np.float64) * 1e-17
+
+        output_hdu = fits.PrimaryHDU(data)
+        output_hdu.header['CRVAL1'] = 3600.0
+        output_hdu.header['CDELT1'] = 1.0
+        output_hdu.header['CRPIX1'] = 1
+
+        output_file = tmp_path / 'test.output.fits'
+        fits.HDUList([output_hdu]).writeto(output_file)
+
+        pt_cols = [
+            fits.Column('fiberid', 'K', array=[1, 2, 3]),
+            fits.Column('ra', 'D', array=[100.0] * n_fibers),
+            fits.Column('dec', 'D', array=[20.0] * n_fibers),
+            fits.Column('mask', 'L', array=[True] * n_fibers),
+        ]
+        dap_file = tmp_path / 'test.dap.fits'
+        fits.HDUList([
+            fits.PrimaryHDU(),
+            fits.BinTableHDU.from_columns(pt_cols, name='PT'),
+        ]).writeto(dap_file)
+
+        result = extract_dap_fiber_data(
+            str(dap_file), str(output_file), 1, ['all']
+        )
+
+        # Verify wave is float32
+        assert result['wave'].dtype == np.float32
+
+        # Verify all components are float32
+        for comp_name, comp_data in result['components'].items():
+            assert comp_data.dtype == np.float32, f"{comp_name} is not float32"
+
+    def test_extract_dap_factor_scaling(self, tmp_path):
+        """Test that factor scaling is applied correctly"""
+        from valis.routes.lvm.services import extract_dap_fiber_data
+
+        n_wave = 10
+        n_fibers = 2
+        raw_value = 1e-17  # typical flux value
+
+        data = np.full((9, n_fibers, n_wave), raw_value, dtype=np.float32)
+
+        output_hdu = fits.PrimaryHDU(data)
+        output_hdu.header['CRVAL1'] = 3600.0
+        output_hdu.header['CDELT1'] = 1.0
+        output_hdu.header['CRPIX1'] = 1
+
+        output_file = tmp_path / 'test.output.fits'
+        fits.HDUList([output_hdu]).writeto(output_file)
+
+        pt_cols = [
+            fits.Column('fiberid', 'K', array=[1, 2]),
+            fits.Column('ra', 'D', array=[100.0, 100.0]),
+            fits.Column('dec', 'D', array=[20.0, 20.0]),
+            fits.Column('mask', 'L', array=[True, True]),
+        ]
+        dap_file = tmp_path / 'test.dap.fits'
+        fits.HDUList([
+            fits.PrimaryHDU(),
+            fits.BinTableHDU.from_columns(pt_cols, name='PT'),
+        ]).writeto(dap_file)
+
+        # Test with default factor=1e17
+        result = extract_dap_fiber_data(
+            str(dap_file), str(output_file), 1, ['observed']
+        )
+
+        # raw_value * 1e17 = 1e-17 * 1e17 = 1.0
+        expected = raw_value * 1e17
+        np.testing.assert_array_almost_equal(result['components']['observed'], expected)
+
+
+class TestDAPFileResolution:
+    """Test DAP file resolution with .fits/.fits.gz priority"""
+
+    def _create_mock_drpall(self, drpall_dir, drpver, expnum, tile_id, mjd):
+        """Helper to create mock drpall with lowercase column names (as io.py expects)."""
+        cols = [
+            fits.Column('EXPNUM', 'K', array=[expnum]),
+            fits.Column('mjd', 'K', array=[mjd]),
+            fits.Column('tileid', 'K', array=[tile_id]),
+            fits.Column('location', '120A', array=[f'sdsswork/lvm/spectro/redux/{drpver}/1048XX/{tile_id}/{mjd}/lvmSFrame-{str(expnum).zfill(8)}.fits']),
+            fits.Column('drpver', '10A', array=[drpver]),
+        ]
+        fits.HDUList([
+            fits.PrimaryHDU(),
+            fits.BinTableHDU.from_columns(cols),
+        ]).writeto(drpall_dir / f'drpall-{drpver}.fits')
+
+    def test_dap_prefers_uncompressed(self, tmp_path, monkeypatch):
+        """Test that .fits is preferred over .fits.gz"""
+        import asyncio
+        from valis.routes.lvm.io import get_DAP_filenames
+
+        sas_root = tmp_path / 'sas'
+        drpver = '1.2.0'
+        expnum = 99999
+        tile_id = 1048982
+        mjd = 60859
+
+        drpall_dir = sas_root / 'sdsswork/lvm/spectro/redux' / drpver
+        drpall_dir.mkdir(parents=True)
+        self._create_mock_drpall(drpall_dir, drpver, expnum, tile_id, mjd)
+
+        suffix = str(expnum).zfill(8)
+        dap_dir = sas_root / 'sdsswork/lvm/spectro/analysis' / drpver / '1048XX' / str(tile_id) / str(mjd) / suffix
+        dap_dir.mkdir(parents=True)
+
+        # Create BOTH .fits and .fits.gz
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.dap.fits').touch()
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.dap.fits.gz').touch()
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.output.fits').touch()
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.output.fits.gz').touch()
+
+        monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
+
+        dap_file, output_file, relative_path = asyncio.run(get_DAP_filenames(expnum, drpver))
+
+        # Should prefer .fits over .fits.gz
+        assert dap_file.endswith('.fits')
+        assert not dap_file.endswith('.fits.gz')
+        assert output_file.endswith('.fits')
+        assert not output_file.endswith('.fits.gz')
+        assert relative_path.endswith('.fits')
+
+    def test_dap_falls_back_to_gz(self, tmp_path, monkeypatch):
+        """Test fallback to .fits.gz when .fits not available"""
+        import asyncio
+        from valis.routes.lvm.io import get_DAP_filenames
+
+        sas_root = tmp_path / 'sas'
+        drpver = '1.2.0'
+        expnum = 99998
+        tile_id = 1048982
+        mjd = 60859
+
+        drpall_dir = sas_root / 'sdsswork/lvm/spectro/redux' / drpver
+        drpall_dir.mkdir(parents=True)
+        self._create_mock_drpall(drpall_dir, drpver, expnum, tile_id, mjd)
+
+        suffix = str(expnum).zfill(8)
+        dap_dir = sas_root / 'sdsswork/lvm/spectro/analysis' / drpver / '1048XX' / str(tile_id) / str(mjd) / suffix
+        dap_dir.mkdir(parents=True)
+
+        # Only create .fits.gz files
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.dap.fits.gz').touch()
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.output.fits.gz').touch()
+
+        monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
+
+        dap_file, output_file, relative_path = asyncio.run(get_DAP_filenames(expnum, drpver))
+
+        assert dap_file.endswith('.fits.gz')
+        assert output_file.endswith('.fits.gz')
+        assert relative_path.endswith('.fits.gz')
+
+    def test_dap_file_not_found(self, tmp_path, monkeypatch):
+        """Test error when neither .fits nor .fits.gz exists"""
+        import asyncio
+        from valis.routes.lvm.io import get_DAP_filenames
+
+        sas_root = tmp_path / 'sas'
+        drpver = '1.2.0'
+        expnum = 99997
+        tile_id = 1048982
+        mjd = 60859
+
+        drpall_dir = sas_root / 'sdsswork/lvm/spectro/redux' / drpver
+        drpall_dir.mkdir(parents=True)
+        self._create_mock_drpall(drpall_dir, drpver, expnum, tile_id, mjd)
+
+        suffix = str(expnum).zfill(8)
+        dap_dir = sas_root / 'sdsswork/lvm/spectro/analysis' / drpver / '1048XX' / str(tile_id) / str(mjd) / suffix
+        dap_dir.mkdir(parents=True)
+        # Don't create any files
+
+        monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
+
+        with pytest.raises(FileNotFoundError, match="Neither .* nor .* exists"):
+            asyncio.run(get_DAP_filenames(expnum, drpver))
+
+
+class TestDAPEndpointResidualPM:
+    """Test DAP endpoints with residual_pm component"""
+
+    def test_dap_fiber_output_residual_pm(self, client, setup_lvm_sas):
+        """Test retrieving residual_pm component"""
+        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/3;components:residual_pm')
+        assert response.status_code == 200
+
+        data = response.json()
+        components = data['spectra'][0]['components']
+        assert 'residual_pm' in components
+        assert len(components) == 1
+
+    def test_dap_fiber_output_both_residuals(self, client, setup_lvm_sas):
+        """Test retrieving both residual components"""
+        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/3;components:residual_pm,residual_np')
+        assert response.status_code == 200
+
+        data = response.json()
+        components = data['spectra'][0]['components']
+        assert 'residual_pm' in components
+        assert 'residual_np' in components
+        assert len(components) == 2
+
+    def test_plot_dap_residual_np_component(self, client, setup_lvm_sas):
+        """Test DAP plot with residual_np component"""
+        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,residual_np')
+        assert response.status_code == 200
+        assert response.headers['content-type'] == 'image/png'
 
