@@ -3,13 +3,10 @@ LVM DRP endpoints: fiber spectrum data and plots
 """
 from __future__ import annotations
 
-import os
-from io import BytesIO
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_restful.cbv import cbv
 from fastapi.responses import StreamingResponse
-import matplotlib.pyplot as plt
 from astropy.io import fits
 
 from valis.routes.base import Base
@@ -23,7 +20,7 @@ from ..common import (
 from ..io import get_LVM_drpall_record, get_SFrame_filename, async_file_exists, run_in_executor
 from ..services import (
     extract_fiber_data, aggregate_exposure_spectrum, create_spectrum_plot,
-    process_spectrum_requests
+    process_spectrum_requests, figure_response
 )
 
 router = APIRouter()
@@ -134,7 +131,7 @@ class DRP(Base):
         except ValueError as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-        return _figure_response(fig, format, dpi)
+        return figure_response(fig, format, dpi)
 
     @router.get('/plot_exposure_spectrum/', summary='Plot LVM DRP Exposure Aggregate Spectrum')
     async def plot_exposure_spectrum(
@@ -207,15 +204,5 @@ class DRP(Base):
         except ValueError as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-        return _figure_response(fig, format, dpi)
-
-
-def _figure_response(fig, format: str, dpi: int) -> StreamingResponse:
-    """Save figure to buffer and return as streaming response."""
-    buffer = BytesIO()
-    fig.savefig(buffer, format=format, dpi=dpi, bbox_inches='tight')
-    plt.close(fig)
-    buffer.seek(0)
-    media_types = {'png': 'image/png', 'jpg': 'image/jpeg', 'pdf': 'application/pdf', 'svg': 'image/svg+xml'}
-    return StreamingResponse(buffer, media_type=media_types.get(format, 'image/png'))
+        return figure_response(fig, format, dpi)
 

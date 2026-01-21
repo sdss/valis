@@ -20,7 +20,7 @@ ALLOWED_LINE_METHODS = {'mean', 'median', 'std'}
 ALLOWED_LINE_TELESCOPES = {'Sci', 'SkyE', 'SkyW', 'Spec'}
 ALLOWED_DAP_COMPONENTS = {
     'observed', 'stellar_continuum', 'emission_np', 'emission_pm',
-    'full_model_pm', 'full_model_np', 'residual_np', 'all'
+    'full_model_pm', 'full_model_np', 'residual_pm', 'residual_np', 'all'
 }
 
 DEFAULTS_FOR_EXPOSURE = {

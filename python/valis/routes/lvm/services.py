@@ -5,10 +5,12 @@ from __future__ import annotations
 
 import os
 import asyncio
+from io import BytesIO
 from functools import partial
 from typing import Dict, Any, List, Tuple
 import numpy as np
 from astropy.io import fits
+from fastapi.responses import StreamingResponse
 
 from .common import ALLOWED_LINE_TYPES, arr2list
 
@@ -108,7 +110,8 @@ def aggregate_exposure_spectrum(hdul: fits.HDUList,
 def extract_dap_fiber_data(dap_file: str,
                            output_file: str,
                            fiberid: int,
-                           component_names: List[str]) -> Dict[str, Any]:
+                           component_names: List[str],
+                           factor: float = 1e17) -> Dict[str, Any]:
     """
     Extract DAP data for specific fiber.
     """
@@ -123,12 +126,14 @@ def extract_dap_fiber_data(dap_file: str,
         fiber_info = pt_table[fiber_idx]
 
     with fits.open(output_file) as output_hdul:
-        data = output_hdul[0].data[:, fiber_idx, :]
+        data = output_hdul[0].data[:, fiber_idx, :] * factor
+        data = data.astype(np.float32)
         hdr = output_hdul[0].header
 
         crval, cdelt, crpix = hdr['CRVAL1'], hdr['CDELT1'], hdr['CRPIX1']
         nx = data.shape[1]
         wave = crval + cdelt * (np.arange(0, nx) - (crpix - 1))
+        wave = wave.astype(np.float32)
 
         component_extractors = {
             'observed': lambda d: d[0, :],
@@ -137,6 +142,7 @@ def extract_dap_fiber_data(dap_file: str,
             'emission_pm': lambda d: d[7, :],
             'full_model_pm': lambda d: d[8, :],
             'full_model_np': lambda d: d[8, :] - d[7, :] + d[6, :],
+            'residual_pm': lambda d: d[0, :] - d[8, :],
             'residual_np': lambda d: d[0, :] - (d[8, :] - d[7, :] + d[6, :])
         }
 
@@ -177,16 +183,27 @@ def create_spectrum_plot(wave: np.ndarray,
 
     fig = plt.figure(figsize=(width, height))
 
+    has_labels = False
     for d in data:
-        label = None
-        if legend and 'expnum' in d:
-            if legend == 'short':
-                label = "{expnum} {method}({type})".format(**d)
-            elif legend == 'long':
-                label = "{expnum} {method}({type}) {telescope} {drpver}".format(**d)
+        plot_kwargs = d.get('plot_kwargs', {})
+
+        # Check if label already exists and has a value in plot_kwargs
+        if plot_kwargs.get('label'):
+            has_labels = True
+        else:
+            # Create label for DRP data if legend parameter is set
+            label = None
+            if legend and 'expnum' in d:
+                if legend == 'short':
+                    label = "{expnum} {method}({type})".format(**d)
+                elif legend == 'long':
+                    label = "{expnum} {method}({type}) {telescope} {drpver}".format(**d)
+                has_labels = True
+            if label:
+                plot_kwargs = {'label': label, **plot_kwargs}
 
         try:
-            plt.plot(wave, d['array'], label=label, **d.get('plot_kwargs', {}))
+            plt.plot(wave, d['array'], **plot_kwargs)
         except Exception as e:
             raise ValueError(f"Error creating plot: {str(e)}")
 
@@ -207,7 +224,7 @@ def create_spectrum_plot(wave: np.ndarray,
     if log:
         plt.yscale('log')
 
-    if legend is not None:
+    if has_labels:
         plt.legend()
 
     return fig
@@ -269,4 +286,21 @@ async def process_spectrum_requests(spectrum_requests: List[Tuple[int, int, str,
         raise ValueError("Could not retrieve wavelength data")
 
     return spectra_data, common_wave
+
+
+def figure_response(fig, format: str, dpi: int) -> StreamingResponse:
+    """Save matplotlib figure to buffer and return as streaming response."""
+    import matplotlib.pyplot as plt
+
+    buffer = BytesIO()
+    fig.savefig(buffer, format=format, dpi=dpi, bbox_inches='tight')
+    plt.close(fig)
+    buffer.seek(0)
+    media_types = {
+        'png': 'image/png',
+        'jpg': 'image/jpeg',
+        'pdf': 'application/pdf',
+        'svg': 'image/svg+xml'
+    }
+    return StreamingResponse(buffer, media_type=media_types.get(format, 'image/png'))
 

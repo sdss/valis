@@ -18,6 +18,7 @@ Route Structure:
         │                     # GET /plot_fiber_spectrum/
         │                     # GET /plot_exposure_spectrum/
         ├── dap.py            # GET /dap_fiber_output/
+        │                     # GET /plot_dap_fiber_spectrum/
         │                     # GET /dap_lines/{tile_id}/{mjd}/{exposure}
         └── static.py         # GET /observed-pointings
                               # GET /planned-tiles
@@ -49,7 +50,10 @@ from .common import (
     build_spectrum_requests
 )
 from .io import get_LVM_drpall_record, get_SFrame_filename, get_DAP_filenames
-from .services import extract_fiber_data, extract_dap_fiber_data, process_spectrum_requests
+from .services import (
+    extract_fiber_data, extract_dap_fiber_data, process_spectrum_requests,
+    create_spectrum_plot, figure_response
+)
 
 __all__ = [
     'router',
@@ -66,4 +70,6 @@ __all__ = [
     'extract_fiber_data',
     'extract_dap_fiber_data',
     'process_spectrum_requests',
+    'create_spectrum_plot',
+    'figure_response',
 ]

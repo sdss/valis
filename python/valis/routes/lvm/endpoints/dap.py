@@ -1,12 +1,13 @@
 """
-LVM DAP endpoints: fiber output data and emission line fluxes
+LVM DAP endpoints: fiber output data, emission line fluxes, and plots
 """
 from __future__ import annotations
 
 import os
-from typing import List, Annotated
+from typing import List, Annotated, Optional
 from fastapi import APIRouter, HTTPException, Query, Path
 from fastapi_restful.cbv import cbv
+from fastapi.responses import StreamingResponse
 import numpy as np
 import pandas as pd
 from astropy.io import fits
@@ -16,7 +17,19 @@ from valis.routes.files import ORJSONResponseCustom
 
 from ..common import arr2list, parse_line_query_dap_fiber, validate_fiberid
 from ..io import get_DAP_filenames, async_file_exists, run_in_executor
-from ..services import extract_dap_fiber_data
+from ..services import extract_dap_fiber_data, create_spectrum_plot, figure_response
+
+# Default colors for DAP components when not specified
+DAP_COMPONENT_COLORS = {
+    'observed': '#1f77b4',
+    'stellar_continuum': '#ff7f0e',
+    'emission_np': '#2ca02c',
+    'emission_pm': '#d62728',
+    'full_model_pm': '#9467bd',
+    'full_model_np': '#8c564b',
+    'residual_pm': '#7f7f7f',
+    'residual_np': '#e377c2',
+}
 
 router = APIRouter()
 
@@ -35,9 +48,16 @@ class DAP(Base):
 
         **Format:** `l=id:DAPversion/expnum/fiberid[;components:observed,stellar_continuum,...]`
 
-        **Components:** observed, stellar_continuum, emission_np, emission_pm, full_model_pm, full_model_np, residual_np, all
+        **Components:** observed, stellar_continuum, emission_np, emission_pm, full_model_pm, full_model_np, residual_pm, residual_np, all
+
+        Use `show_residual=true` in plot endpoint to show offset residual visualization.
 
         Returns `{wave: [...], spectra: [{filename, dapver, expnum, fiberid, ra, dec, mask, components: {...}}]}`
+
+        **Example:**
+        ```
+        /lvm/dap_fiber_output/?l=id:1.2.0/43064/123
+        ```
         """
         if not l:
             raise HTTPException(status_code=400, detail="Query parameter 'l' is mandatory")
@@ -82,6 +102,246 @@ class DAP(Base):
             })
 
         return ORJSONResponseCustom(content={'wave': arr2list(common_wave), 'spectra': spectra_results})
+
+    @router.get('/plot_dap_fiber_spectrum/', summary='Plot LVM DAP Fiber Spectrum')
+    async def plot_dap_fiber_spectrum(
+        self,
+        l: List[str] = Query(..., description="DAP fiber definitions with plot kwargs"),
+        format: str = Query('png', description="Output: png, jpg, pdf, svg", example='png'),
+        width: float = Query(10.0, description="Figure width (inches)", example=10.0),
+        height: float = Query(6.0, description="Figure height (inches)", example=6.0),
+        dpi: int = Query(100, description="DPI", example=100),
+        xlabel: str = Query('Wavelength [Å]', description="X-axis label"),
+        ylabel: str = Query('Flux [10e-17 erg/s/cm2/A]', description="Y-axis label"),
+        title: Optional[str] = Query(None, description="Plot title"),
+        legend: Optional[str] = Query(None, description="Legend: short, long, component"),
+        xmin: Optional[float] = Query(None, description="X-axis min"),
+        xmax: Optional[float] = Query(None, description="X-axis max"),
+        ymin: Optional[float] = Query(None, description="Y-axis min"),
+        ymax: Optional[float] = Query(None, description="Y-axis max"),
+        ypmin: float = Query(1.0, description="Y percentile min"),
+        ypmax: float = Query(99.0, description="Y percentile max"),
+        log: bool = Query(False, description="Log y-axis"),
+        show_residual: bool = Query(False, description="Show offset residual (observed - full_model_pm)"),
+        residual_scale: float = Query(3.0, description="Residual offset: min(model) - scale * rms(residual)"),
+        residual_color: str = Query('#7f7f7f', description="Color for residual line"),
+        residual_lw: float = Query(0.5, description="Line width for residual"),
+        residual_alpha: float = Query(1.0, description="Alpha (opacity) for residual line"),
+        residual_linestyle: str = Query('-', description="Line style for residual: -, --, -., :"),
+        refline_color: Optional[str] = Query(None, description="Reference line color (default: same as residual)"),
+        refline_lw: float = Query(0.8, description="Reference line width"),
+        refline_linestyle: str = Query('--', description="Reference line style: -, --, -., :")
+    ) -> StreamingResponse:
+        """
+        # Plot LVM DAP Fiber Spectrum
+
+        Plots all DAP components for specified fibers with optional offset residual visualization.
+
+        ## Query Format
+
+        `l=id:DAPversion/expnum/fiberid[;components:...][;color:red][;lw:1.5][;alpha:0.8]`
+
+        ## Components
+
+        - `observed` - Observed spectrum
+        - `stellar_continuum` - Stellar continuum model
+        - `emission_np` - Non-parametric emission lines
+        - `emission_pm` - Parametric emission lines
+        - `full_model_pm` - Full model (parametric)
+        - `full_model_np` - Full model (non-parametric)
+        - `residual_pm` - Residual (observed - full_model_pm)
+        - `residual_np` - Residual (observed - full_model_np)
+        - `all` - All components
+
+        Note: Use `show_residual=true` parameter to display offset residual visualization.
+
+        ## Styling Options (per line)
+
+        Any matplotlib plot kwargs can be passed: `color`, `lw`, `alpha`, `linestyle`, `zorder`, etc.
+
+        ## Legend Options
+
+        - `short` - fiberid + component name
+        - `long` - expnum + fiberid + component + dapver
+        - `component` - component name only
+
+        ## Offset Residual
+
+        When `show_residual=true`, displays offset residual (observed - full_model_pm) with a reference line.
+        Offset calculated as: `min(model) - residual_scale × rms(residual)`
+
+        ## Examples
+
+        **Basic plot with all components:**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:all
+        ```
+
+        **Observed vs model comparison:**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed,full_model_pm&legend=component
+        ```
+
+        **Per-component custom colors and styles (use multiple l params):**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed;color:black;lw:1&l=id:1.2.0/43064/532;components:full_model_pm;color:red;lw:2&legend=component
+        ```
+
+        **Custom styling for each component:**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed;color:black&l=id:1.2.0/43064/532;components:stellar_continuum;color:green;linestyle:--&l=id:1.2.0/43064/532;components:emission_pm;color:cyan&legend=component
+        ```
+
+        **With offset residual visualization:**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed,full_model_pm&show_residual=true&legend=component
+        ```
+
+        **Model + emission lines + residual:**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed,stellar_continuum,emission_pm&show_residual=true&residual_scale=5
+        ```
+
+        **Full custom styling with residual:**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed;color:black;lw:0.8&l=id:1.2.0/43064/532;components:full_model_pm;color:red;lw:1.5&show_residual=true&residual_color:gray&legend=component
+        ```
+
+        **PDF output with axis limits:**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:all&xmin=4000&xmax=7000&format=pdf
+        ```
+
+        **Multiple fibers comparison:**
+        ```
+        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed;color:blue&l=id:1.2.0/43064/533;components:observed;color:red&legend=short
+        ```
+        """
+        if not l:
+            raise HTTPException(status_code=400, detail="'l' parameter required")
+
+        try:
+            parsed_lines = [parse_line_query_dap_fiber(line) for line in l]
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+        data, wave = [], None
+
+        for parsed in parsed_lines:
+            id_parts = parsed['id'].split('/')
+            dapver, expnum, fiberid = id_parts[0], int(id_parts[1]), int(id_parts[2])
+
+            try:
+                validate_fiberid(fiberid)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
+            try:
+                dap_file, output_file, _ = await get_DAP_filenames(expnum, dapver)
+            except FileNotFoundError as e:
+                raise HTTPException(status_code=404, detail=str(e))
+
+            try:
+                result = await run_in_executor(
+                    extract_dap_fiber_data, dap_file, output_file, fiberid, parsed['components']
+                )
+            except ValueError as e:
+                raise HTTPException(status_code=404, detail=str(e))
+
+            if wave is None:
+                wave = result['wave']
+
+            # Extract plot kwargs (exclude DAP-specific keys)
+            exclude_keys = {'id', 'components', 'dapver', 'expnum', 'fiberid'}
+            base_plot_kwargs = {k: v for k, v in parsed.items() if k not in exclude_keys}
+
+            # Create plot entry for each component
+            for comp_name, comp_data in result['components'].items():
+                plot_kwargs = base_plot_kwargs.copy()
+                if 'color' not in plot_kwargs:
+                    plot_kwargs['color'] = DAP_COMPONENT_COLORS.get(comp_name, '#333333')
+
+                label = None
+                if legend == 'short':
+                    label = f"{fiberid} {comp_name}"
+                elif legend == 'long':
+                    label = f"{expnum} {fiberid} {comp_name} {dapver}"
+                elif legend == 'component':
+                    label = comp_name
+
+                data.append({
+                    'array': comp_data,
+                    'expnum': expnum,
+                    'fiberid': fiberid,
+                    'dapver': dapver,
+                    'component': comp_name,
+                    'plot_kwargs': {'label': label, **plot_kwargs} if label else plot_kwargs
+                })
+
+        if wave is None:
+            raise HTTPException(status_code=404, detail="No valid DAP data found")
+
+        # Calculate offset residual if requested
+        residual_info = None
+        if show_residual:
+            # Find observed and full_model_pm from the extracted data
+            observed_arr = None
+            model_arr = None
+            for d in data:
+                if d['component'] == 'observed':
+                    observed_arr = d['array']
+                elif d['component'] == 'full_model_pm':
+                    model_arr = d['array']
+
+            if observed_arr is not None and model_arr is not None:
+                residual = observed_arr - model_arr
+                rms = np.sqrt(np.nanmean(residual**2))
+                model_min = np.nanmin(model_arr)
+                offset_level = model_min - residual_scale * rms
+                offset_residual = residual + offset_level
+
+                residual_label = 'residual (offset)' if legend else None
+                data.append({
+                    'array': offset_residual,
+                    'component': 'residual_offset',
+                    'plot_kwargs': {
+                        'color': residual_color,
+                        'lw': residual_lw,
+                        'alpha': residual_alpha,
+                        'linestyle': residual_linestyle,
+                        'label': residual_label,
+                        'zorder': 1
+                    }
+                })
+                residual_info = {
+                    'offset_level': offset_level,
+                    'color': refline_color or residual_color,
+                    'lw': refline_lw,
+                    'linestyle': refline_linestyle
+                }
+
+        try:
+            fig = create_spectrum_plot(
+                wave, data, width, height, xlabel, ylabel, title, legend,
+                xmin, xmax, ymin, ymax, ypmin, ypmax, log
+            )
+
+            # Add horizontal reference line for residual zero level
+            if residual_info is not None:
+                import matplotlib.pyplot as plt
+                plt.axhline(
+                    y=residual_info['offset_level'],
+                    color=residual_info['color'],
+                    linestyle=residual_info['linestyle'],
+                    lw=residual_info['lw'],
+                    alpha=0.7,
+                    zorder=0
+                )
+
+        except ValueError as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+        return figure_response(fig, format, dpi)
 
     @router.get('/dap_lines/{tile_id}/{mjd}/{exposure}', summary='Extract LVM DAP emission line fluxes')
     async def get_dap_fluxes(
