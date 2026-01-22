@@ -30,26 +30,27 @@ def extract_fiber_data(hdul: fits.HDUList,
 
     wave_shape = hdul['WAVE'].data.shape
 
+    def err_from_ivar(ivar, shape):
+        err = np.full(shape, np.nan)
+        if ivar is None:
+            return err
+        valid = np.isfinite(ivar) & (ivar > 0)
+        err[valid] = np.sqrt(1.0 / ivar[valid]) * factor
+        return err
+
     extractors = {
         'flux': lambda h, i: h['FLUX'].data[i, :] * factor,
         'sky': lambda h, i: h['SKY'].data[i, :] * factor,
         'skyflux': lambda h, i: (h['SKY'].data[i, :] + h['FLUX'].data[i, :]) * factor,
-        'err': lambda h, i: (
-            np.sqrt(1.0 / h['IVAR'].data[i, :]) * factor
-            if 'IVAR' in h and np.all(h['IVAR'].data[i, :] > 0)
-            else np.full(wave_shape, np.nan)
-        ),
-        'sky_err': lambda h, i: (
-            np.sqrt(1.0 / h['SKY_IVAR'].data[i, :]) * factor
-            if 'SKY_IVAR' in h and np.all(h['SKY_IVAR'].data[i, :] > 0)
-            else np.full(wave_shape, np.nan)
-        ),
+        'err': lambda h, i: err_from_ivar(h['IVAR'].data[i, :] if 'IVAR' in h else None, wave_shape),
+        'sky_err': lambda h, i: err_from_ivar(h['SKY_IVAR'].data[i, :] if 'SKY_IVAR' in h else None, wave_shape),
         'ivar': lambda h, i: h['IVAR'].data[i, :] / factor**2,
         'sky_ivar': lambda h, i: h['SKY_IVAR'].data[i, :] / factor**2,
         'lsf': lambda h, i: h['LSF'].data[i, :],
     }
 
-    return extractors[spectrum_type](hdul, ifib)
+    result = extractors[spectrum_type](hdul, ifib)
+    return result
 
 
 def aggregate_exposure_spectrum(hdul: fits.HDUList,

@@ -57,6 +57,17 @@ class TestDRPDataEndpoints:
         assert len(data['spectra']) == 1
         assert data['spectra'][0]['fiberid'] == 5
 
+    def test_get_drp_fiber_err_not_all_null(self, client, setup_lvm_sas):
+        """Err should be defined where IVAR is valid."""
+        response = client.get('/lvm/drp/fiber/?l=id:1.2.0/43064/5;type:err')
+        assert response.status_code == 200
+
+        data = response.json()
+        spectrum = data['spectra'][0]
+        err = spectrum['err']
+        assert len(data['wave']) == len(err)
+        assert any(value is not None for value in err)
+
     def test_get_drp_fiber_missing_params(self, client, setup_lvm_sas):
         """Test without required parameters"""
         response = client.get('/lvm/drp/fiber/')
