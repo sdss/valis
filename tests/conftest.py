@@ -204,7 +204,7 @@ def create_mock_dap_output(n_wave=100, n_fibers=10):
 
 
 def create_mock_dap_main(n_fibers=10, expnum=43064):
-    """Create minimal DAP main FITS with PT table"""
+    """Create minimal DAP main FITS with PT table and PM_ELINES"""
     pt_cols = [
         fits.Column('id', '10A', array=[f'{expnum}.{i}' for i in range(3, 3+n_fibers)]),
         fits.Column('ra', 'D', array=np.random.uniform(0, 360, n_fibers)),
@@ -214,9 +214,32 @@ def create_mock_dap_main(n_fibers=10, expnum=43064):
         fits.Column('exposure', 'K', array=[expnum] * n_fibers),
     ]
 
+    # Create PM_ELINES table for emission lines endpoint
+    n_lines_per_fiber = 10
+    emission_wavelengths = [6562.85, 4861.36, 5007.0, 4959.0, 6583.0, 6548.0, 6717.0, 6731.0, 3727.0, 3729.0]
+    n_records = n_fibers * n_lines_per_fiber
+
+    pm_elines_ids = []
+    pm_elines_wl = []
+    pm_elines_flux = []
+
+    for fib_idx in range(n_fibers):
+        fiberid = 3 + fib_idx
+        for wl in emission_wavelengths:
+            pm_elines_ids.append(f'{expnum}.{fiberid}')
+            pm_elines_wl.append(wl)
+            pm_elines_flux.append(np.random.rand() * 1e-17)
+
+    pm_elines_cols = [
+        fits.Column('id', '15A', array=pm_elines_ids),
+        fits.Column('wl', 'D', array=pm_elines_wl),
+        fits.Column('flux', 'D', array=pm_elines_flux),
+    ]
+
     return fits.HDUList([
         fits.PrimaryHDU(),
         fits.BinTableHDU.from_columns(pt_cols, name='PT'),
+        fits.BinTableHDU.from_columns(pm_elines_cols, name='PM_ELINES'),
     ])
 
 

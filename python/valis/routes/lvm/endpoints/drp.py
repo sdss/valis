@@ -31,8 +31,8 @@ FACTOR = 1e17
 class DRP(Base):
     """DRP fiber spectrum endpoints"""
 
-    @router.get('/fiber_spectrum/', summary='Get LVM DRP Fiber Spectrum Data')
-    async def get_fiber_spectrum(
+    @router.get('/drp/fiber/', summary='Get LVM DRP Fiber Spectrum Data')
+    async def get_drp_fiber(
         self,
         l: List[str] = Query(None, description="Spectrum definitions: `id:DRPversion/expnum/fiberid;type:flux`", example=['id:1.2.0/43064/532;type:flux', 'id:1.1.1/7371/532;type:flux']),
         expnum_q: Optional[int] = Query(None, alias="expnum", description="Exposure number (if l not provided)", example=43064),
@@ -45,9 +45,34 @@ class DRP(Base):
 
         Retrieves spectral data for fibers from DRP SFrame files.
 
-        **Format:** `l=id:DRPversion/expnum/fiberid[;type:spectrum_type]`
+        ## Query Format
 
-        Returns `{wave: [...], spectra: [{filename, drpver, expnum, fiberid, spectrum_type, <type>: [...]}]}`
+        `l=id:DRPversion/expnum/fiberid[;type:spectrum_type]`
+
+        ## Spectrum Types
+
+        `flux`, `sky`, `skyflux`, `err`, `sky_err`, `ivar`, `sky_ivar`, `lsf`
+
+        ## Response
+
+        `{wave: [...], spectra: [{filename, drpver, expnum, fiberid, spectrum_type, <type>: [...]}]}`
+
+        ## Examples
+
+        **Single fiber flux:**
+        ```
+        /lvm/drp/fiber/?l=id:1.2.0/43064/532;type:flux
+        ```
+
+        **Multiple fibers:**
+        ```
+        /lvm/drp/fiber/?l=id:1.2.0/43064/532;type:flux&l=id:1.2.0/43064/533;type:sky
+        ```
+
+        **Using query parameters:**
+        ```
+        /lvm/drp/fiber/?expnum=43064&fiberid=532&drpver=1.2.0&type=flux
+        ```
         """
         try:
             requests = build_spectrum_requests(l, expnum_q, fiberid_q, drpver_q, type_q)
@@ -63,8 +88,8 @@ class DRP(Base):
 
         return ORJSONResponseCustom(content={"wave": arr2list(common_wave), "spectra": spectra_data})
 
-    @router.get('/plot_fiber_spectrum/', summary='Plot LVM DRP Fiber Spectrum')
-    async def plot_fiber_spectrum(
+    @router.get('/drp/fiber/plot/', summary='Plot LVM DRP Fiber Spectrum')
+    async def plot_drp_fiber(
         self,
         l: List[str] = Query(..., description="Spectrum definitions with plot kwargs"),
         format: str = Query('png', description="Output: png, jpg, pdf, svg", example='png'),
@@ -86,7 +111,35 @@ class DRP(Base):
         """
         # Plot LVM DRP Fiber Spectrum
 
-        **Format:** `l=id:DRPversion/expnum/fiberid[;type:flux][;color:red][;lw:1.5]`
+        ## Query Format
+
+        `l=id:DRPversion/expnum/fiberid[;type:flux][;color:red][;lw:1.5]`
+
+        ## Styling Options
+
+        Any matplotlib plot kwargs: `color`, `lw`, `alpha`, `linestyle`, `zorder`, etc.
+
+        ## Examples
+
+        **Basic plot:**
+        ```
+        /lvm/drp/fiber/plot/?l=id:1.2.0/43064/532;type:flux
+        ```
+
+        **Multiple fibers with colors:**
+        ```
+        /lvm/drp/fiber/plot/?l=id:1.2.0/43064/532;type:flux;color:red&l=id:1.2.0/43064/533;type:flux;color:blue
+        ```
+
+        **Custom styling:**
+        ```
+        /lvm/drp/fiber/plot/?l=id:1.2.0/43064/532;type:flux;color:red;lw:2&width=12&height=8&dpi=150
+        ```
+
+        **PDF output with axis limits:**
+        ```
+        /lvm/drp/fiber/plot/?l=id:1.2.0/43064/532;type:flux&xmin=4000&xmax=7000&format=pdf
+        ```
         """
         if not l:
             raise HTTPException(status_code=400, detail="'l' parameter required")
@@ -133,8 +186,8 @@ class DRP(Base):
 
         return figure_response(fig, format, dpi)
 
-    @router.get('/plot_exposure_spectrum/', summary='Plot LVM DRP Exposure Aggregate Spectrum')
-    async def plot_exposure_spectrum(
+    @router.get('/drp/exposure/plot/', summary='Plot LVM DRP Exposure Aggregate Spectrum')
+    async def plot_drp_exposure(
         self,
         l: List[str] = Query(..., description="Exposure spectrum definitions"),
         format: str = Query('png', description="Output: png, jpg, pdf, svg"),
@@ -156,7 +209,46 @@ class DRP(Base):
         """
         # Plot LVM DRP Exposure Aggregate Spectrum
 
-        **Format:** `l=id:DRPversion/expnum[;type:flux][;method:median][;telescope:Sci]`
+        Plots aggregated spectrum across all fibers in an exposure.
+
+        ## Query Format
+
+        `l=id:DRPversion/expnum[;type:flux][;method:median][;telescope:Sci]`
+
+        ## Aggregation Methods
+
+        `mean`, `median`, `std`, `percentile`
+
+        ## Telescopes
+
+        `Sci`, `SkyE`, `SkyW`, `Spec`
+
+        ## Examples
+
+        **Basic median plot:**
+        ```
+        /lvm/drp/exposure/plot/?l=id:1.2.0/43064
+        ```
+
+        **Mean aggregation:**
+        ```
+        /lvm/drp/exposure/plot/?l=id:1.2.0/43064;method:mean
+        ```
+
+        **Compare telescopes:**
+        ```
+        /lvm/drp/exposure/plot/?l=id:1.2.0/43064;telescope:Sci;color:blue&l=id:1.2.0/43064;telescope:SkyE;color:red
+        ```
+
+        **PDF output:**
+        ```
+        /lvm/drp/exposure/plot/?l=id:1.2.0/43064&format=pdf
+        ```
+
+        **Compare methods:**
+        ```
+        /lvm/drp/exposure/plot/?l=id:1.2.0/43064;method:median;color:blue&l=id:1.2.0/43064;method:std;color:orange
+        ```
         """
         if not l:
             raise HTTPException(status_code=400, detail="'l' parameter required")
@@ -205,4 +297,3 @@ class DRP(Base):
             raise HTTPException(status_code=500, detail=str(e))
 
         return figure_response(fig, format, dpi)
-

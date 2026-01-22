@@ -3,9 +3,8 @@ LVM DAP endpoints: fiber output data, emission line fluxes, and plots
 """
 from __future__ import annotations
 
-import os
 from typing import List, Annotated, Optional
-from fastapi import APIRouter, HTTPException, Query, Path
+from fastapi import APIRouter, HTTPException, Query
 from fastapi_restful.cbv import cbv
 from fastapi.responses import StreamingResponse
 import numpy as np
@@ -16,7 +15,7 @@ from valis.routes.base import Base
 from valis.routes.files import ORJSONResponseCustom
 
 from ..common import arr2list, parse_line_query_dap_fiber, validate_fiberid
-from ..io import get_DAP_filenames, async_file_exists, run_in_executor
+from ..io import get_DAP_filenames, run_in_executor
 from ..services import extract_dap_fiber_data, create_spectrum_plot, figure_response
 
 # Default colors for DAP components when not specified
@@ -38,25 +37,51 @@ router = APIRouter()
 class DAP(Base):
     """DAP analysis endpoints"""
 
-    @router.get('/dap_fiber_output/', summary='Get LVM DAP Fiber Output Data')
-    async def get_dap_fiber_output(
+    @router.get('/dap/fiber/', summary='Get LVM DAP Fiber Output Data')
+    async def get_dap_fiber(
         self,
         l: List[str] = Query(..., description="DAP fiber definition: `id:DAPversion/expnum/fiberid[;components:...]`")
     ) -> ORJSONResponseCustom:
         """
         # Get LVM DAP Fiber Output Data
 
-        **Format:** `l=id:DAPversion/expnum/fiberid[;components:observed,stellar_continuum,...]`
+        Retrieves DAP spectral components for specified fibers.
 
-        **Components:** observed, stellar_continuum, emission_np, emission_pm, full_model_pm, full_model_np, residual_pm, residual_np, all
+        ## Query Format
 
-        Use `show_residual=true` in plot endpoint to show offset residual visualization.
+        `l=id:DAPversion/expnum/fiberid[;components:observed,stellar_continuum,...]`
 
-        Returns `{wave: [...], spectra: [{filename, dapver, expnum, fiberid, ra, dec, mask, components: {...}}]}`
+        ## Components
 
-        **Example:**
+        - `observed` - Observed spectrum
+        - `stellar_continuum` - Stellar continuum model
+        - `emission_np` - Non-parametric emission lines
+        - `emission_pm` - Parametric emission lines
+        - `full_model_pm` - Full model (parametric)
+        - `full_model_np` - Full model (non-parametric)
+        - `residual_pm` - Residual (observed - full_model_pm)
+        - `residual_np` - Residual (observed - full_model_np)
+        - `all` - All components
+
+        ## Response
+
+        `{wave: [...], spectra: [{filename, dapver, expnum, fiberid, ra, dec, mask, components: {...}}]}`
+
+        ## Examples
+
+        **All components:**
         ```
-        /lvm/dap_fiber_output/?l=id:1.2.0/43064/123
+        /lvm/dap/fiber/?l=id:1.2.0/43064/532;components:all
+        ```
+
+        **Specific components:**
+        ```
+        /lvm/dap/fiber/?l=id:1.2.0/43064/532;components:observed,stellar_continuum
+        ```
+
+        **Multiple fibers:**
+        ```
+        /lvm/dap/fiber/?l=id:1.2.0/43064/532;components:observed&l=id:1.2.0/43064/533;components:observed
         ```
         """
         if not l:
@@ -103,8 +128,8 @@ class DAP(Base):
 
         return ORJSONResponseCustom(content={'wave': arr2list(common_wave), 'spectra': spectra_results})
 
-    @router.get('/plot_dap_fiber_spectrum/', summary='Plot LVM DAP Fiber Spectrum')
-    async def plot_dap_fiber_spectrum(
+    @router.get('/dap/fiber/plot/', summary='Plot LVM DAP Fiber Spectrum')
+    async def plot_dap_fiber(
         self,
         l: List[str] = Query(..., description="DAP fiber definitions with plot kwargs"),
         format: str = Query('png', description="Output: png, jpg, pdf, svg", example='png'),
@@ -135,7 +160,7 @@ class DAP(Base):
         """
         # Plot LVM DAP Fiber Spectrum
 
-        Plots all DAP components for specified fibers with optional offset residual visualization.
+        Plots DAP components for specified fibers with optional offset residual visualization.
 
         ## Query Format
 
@@ -153,11 +178,9 @@ class DAP(Base):
         - `residual_np` - Residual (observed - full_model_np)
         - `all` - All components
 
-        Note: Use `show_residual=true` parameter to display offset residual visualization.
+        ## Styling Options
 
-        ## Styling Options (per line)
-
-        Any matplotlib plot kwargs can be passed: `color`, `lw`, `alpha`, `linestyle`, `zorder`, etc.
+        Any matplotlib plot kwargs: `color`, `lw`, `alpha`, `linestyle`, `zorder`, etc.
 
         ## Legend Options
 
@@ -167,54 +190,39 @@ class DAP(Base):
 
         ## Offset Residual
 
-        When `show_residual=true`, displays offset residual (observed - full_model_pm) with a reference line.
-        Offset calculated as: `min(model) - residual_scale × rms(residual)`
+        When `show_residual=true`, displays offset residual with a reference line.
+        Offset: `min(model) - residual_scale × rms(residual)`
 
         ## Examples
 
-        **Basic plot with all components:**
+        **All components:**
         ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:all
-        ```
-
-        **Observed vs model comparison:**
-        ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed,full_model_pm&legend=component
+        /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:all
         ```
 
-        **Per-component custom colors and styles (use multiple l params):**
+        **Observed vs model:**
         ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed;color:black;lw:1&l=id:1.2.0/43064/532;components:full_model_pm;color:red;lw:2&legend=component
-        ```
-
-        **Custom styling for each component:**
-        ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed;color:black&l=id:1.2.0/43064/532;components:stellar_continuum;color:green;linestyle:--&l=id:1.2.0/43064/532;components:emission_pm;color:cyan&legend=component
+        /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:observed,full_model_pm&legend=component
         ```
 
-        **With offset residual visualization:**
+        **Custom colors per component:**
         ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed,full_model_pm&show_residual=true&legend=component
-        ```
-
-        **Model + emission lines + residual:**
-        ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed,stellar_continuum,emission_pm&show_residual=true&residual_scale=5
+        /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:observed;color:black&l=id:1.2.0/43064/532;components:full_model_pm;color:red&legend=component
         ```
 
-        **Full custom styling with residual:**
+        **With offset residual:**
         ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed;color:black;lw:0.8&l=id:1.2.0/43064/532;components:full_model_pm;color:red;lw:1.5&show_residual=true&residual_color:gray&legend=component
-        ```
-
-        **PDF output with axis limits:**
-        ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:all&xmin=4000&xmax=7000&format=pdf
+        /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:observed,full_model_pm&show_residual=true
         ```
 
-        **Multiple fibers comparison:**
+        **PDF with axis limits:**
         ```
-        /lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/532;components:observed;color:blue&l=id:1.2.0/43064/533;components:observed;color:red&legend=short
+        /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:all&xmin=4000&xmax=7000&format=pdf
+        ```
+
+        **Compare fibers:**
+        ```
+        /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:observed;color:blue&l=id:1.2.0/43064/533;components:observed;color:red&legend=short
         ```
         """
         if not l:
@@ -343,30 +351,55 @@ class DAP(Base):
 
         return figure_response(fig, format, dpi)
 
-    @router.get('/dap_lines/{tile_id}/{mjd}/{exposure}', summary='Extract LVM DAP emission line fluxes')
-    async def get_dap_fluxes(
+    @router.get('/dap/lines/', summary='Get LVM DAP Emission Line Fluxes')
+    async def get_dap_lines(
         self,
-        tile_id: Annotated[int, Path(description="Tile ID", example=1028790)],
-        mjd: Annotated[int, Path(description="MJD", example=60314)],
-        exposure: Annotated[int, Path(description="Exposure number", example=10328)],
-        wl=Query('6562.85,4861.36', description='Emission lines (wavelengths)', example='6562.85,4861.36'),
-        version: Annotated[str, Query(description='DAP version (e.g., 1.2.0, 1.1.1)', example='1.2.0')] = '1.2.0',
+        expnum: Annotated[int, Query(description="Exposure number", example=43064)],
+        dapver: Annotated[str, Query(description='DAP version (e.g., 1.2.0, 1.1.1)', example='1.2.0')] = '1.2.0',
+        wl: str = Query('6562.85,4861.36', description='Emission lines (wavelengths)', example='6562.85,4861.36'),
     ):
         """
         # Get LVM DAP Emission Line Fluxes
 
-        Experimental endpoint to extract emission line fluxes from DAP files.
-        """
-        suffix = str(exposure).zfill(8)
-        sas_base = os.getenv('SAS_BASE_DIR', '/data/sdss/sas')
-        tile_prefix = "0011XX" if tile_id == 11111 else f"{str(tile_id)[:4]}XX"
-        file = f"{sas_base}/sdsswork/lvm/spectro/analysis/{version}/{tile_prefix}/{tile_id}/{mjd}/{suffix}/dap-rsp108-sn20-{suffix}.dap.fits.gz"
+        Extracts emission line fluxes from DAP files for all fibers.
+        Uses lookup table to resolve file path from expnum and DAP version.
 
-        if not await async_file_exists(file):
-            raise HTTPException(status_code=404, detail=f"DAP file not found for version {version}")
+        ## Query Parameters
+
+        - `expnum` - Exposure number
+        - `dapver` - DAP version (default: 1.2.0)
+        - `wl` - Comma-separated emission line wavelengths (Å)
+
+        ## Response
+
+        `{filename: "...", dapver: "...", expnum: ..., fiberid: [...], "6562.85": [...], "4861.36": [...]}`
+
+        ## Examples
+
+        **H-alpha and H-beta:**
+        ```
+        /lvm/dap/lines/?expnum=43064&wl=6562.85,4861.36
+        ```
+
+        **Multiple lines:**
+        ```
+        /lvm/dap/lines/?expnum=43064&wl=6562.85,4861.36,5007.0,4959.0
+        ```
+
+        **Specific DAP version:**
+        ```
+        /lvm/dap/lines/?expnum=43064&wl=6562.85&dapver=1.1.1
+        ```
+        """
+        try:
+            dap_file, _, relative_path = await get_DAP_filenames(expnum, dapver)
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except IndexError:
+            raise HTTPException(status_code=404, detail=f"Exposure {expnum} not found in drpall")
 
         def read_fluxes():
-            dap_pm = fits.getdata(file, 'PM_ELINES')
+            dap_pm = fits.getdata(dap_file, 'PM_ELINES')
             df = pd.DataFrame({
                 'id': np.array(dap_pm['id']).byteswap().newbyteorder(),
                 'wl': np.array(dap_pm['wl']).byteswap().newbyteorder(),
@@ -378,10 +411,14 @@ class DAP(Base):
             df_sub = df[df['wl'].isin(wlist)]
             df_pivot = df_sub.pivot(index='fiberid', columns='wl', values='flux').reset_index()
 
-            output = {'fiberid': df_pivot['fiberid'].tolist()}
+            output = {
+                'filename': relative_path,
+                'dapver': dapver,
+                'expnum': expnum,
+                'fiberid': df_pivot['fiberid'].tolist()
+            }
             for w in wlist:
                 output[f"{w}"] = df_pivot[w].tolist()
             return output
 
         return await run_in_executor(read_fluxes)
-

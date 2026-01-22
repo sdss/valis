@@ -16,9 +16,9 @@ from astropy.io import fits
 class TestDAPDataEndpoints:
     """Test DAP data retrieval endpoints"""
 
-    def test_get_dap_fiber_output(self, client, setup_lvm_sas):
+    def test_get_dap_fiber(self, client, setup_lvm_sas):
         """Test retrieving DAP fiber output"""
-        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/3;components:all')
+        response = client.get('/lvm/dap/fiber/?l=id:1.2.0/43064/3;components:all')
         assert response.status_code == 200
 
         data = response.json()
@@ -33,9 +33,9 @@ class TestDAPDataEndpoints:
         assert 'ra' in spectrum
         assert 'dec' in spectrum
 
-    def test_get_dap_fiber_output_specific_components(self, client, setup_lvm_sas):
+    def test_get_dap_fiber_specific_components(self, client, setup_lvm_sas):
         """Test retrieving specific DAP components"""
-        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/3;components:observed,stellar_continuum')
+        response = client.get('/lvm/dap/fiber/?l=id:1.2.0/43064/3;components:observed,stellar_continuum')
         assert response.status_code == 200
 
         data = response.json()
@@ -44,9 +44,9 @@ class TestDAPDataEndpoints:
         assert 'stellar_continuum' in components
         assert len(components) == 2
 
-    def test_dap_fiber_output_residual_pm(self, client, setup_lvm_sas):
+    def test_get_dap_fiber_residual_pm(self, client, setup_lvm_sas):
         """Test retrieving residual_pm component"""
-        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/3;components:residual_pm')
+        response = client.get('/lvm/dap/fiber/?l=id:1.2.0/43064/3;components:residual_pm')
         assert response.status_code == 200
 
         data = response.json()
@@ -54,9 +54,9 @@ class TestDAPDataEndpoints:
         assert 'residual_pm' in components
         assert len(components) == 1
 
-    def test_dap_fiber_output_both_residuals(self, client, setup_lvm_sas):
+    def test_get_dap_fiber_both_residuals(self, client, setup_lvm_sas):
         """Test retrieving both residual components"""
-        response = client.get('/lvm/dap_fiber_output/?l=id:1.2.0/43064/3;components:residual_pm,residual_np')
+        response = client.get('/lvm/dap/fiber/?l=id:1.2.0/43064/3;components:residual_pm,residual_np')
         assert response.status_code == 200
 
         data = response.json()
@@ -65,96 +65,123 @@ class TestDAPDataEndpoints:
         assert 'residual_np' in components
         assert len(components) == 2
 
+    def test_get_dap_lines(self, client, setup_lvm_sas):
+        """Test retrieving DAP emission line fluxes"""
+        response = client.get('/lvm/dap/lines/?expnum=43064&wl=6562.85,4861.36')
+        assert response.status_code == 200
+
+        data = response.json()
+        assert 'filename' in data
+        assert 'dapver' in data
+        assert 'expnum' in data
+        assert data['expnum'] == 43064
+        assert 'fiberid' in data
+        assert '6562.85' in data
+        assert '4861.36' in data
+
+    def test_get_dap_lines_custom_version(self, client, setup_lvm_sas):
+        """Test DAP lines with specific version"""
+        response = client.get('/lvm/dap/lines/?expnum=43064&dapver=1.2.0&wl=6562.85')
+        assert response.status_code == 200
+
+        data = response.json()
+        assert data['dapver'] == '1.2.0'
+
+    def test_get_dap_lines_not_found(self, client, setup_lvm_sas):
+        """Test DAP lines with non-existent exposure"""
+        response = client.get('/lvm/dap/lines/?expnum=99999999&wl=6562.85')
+        assert response.status_code == 404
+
 
 class TestDAPPlotEndpoints:
     """Test DAP plotting endpoints"""
 
-    def test_plot_dap_fiber_spectrum_png(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_png(self, client, setup_lvm_sas):
         """Test DAP fiber spectrum plot generation (PNG)"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:all&format=png')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:all&format=png')
         assert response.status_code == 200
         assert response.headers['content-type'] == 'image/png'
 
         img = Image.open(BytesIO(response.content))
         assert img.format == 'PNG'
 
-    def test_plot_dap_fiber_spectrum_specific_components(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_specific_components(self, client, setup_lvm_sas):
         """Test DAP plot with specific components"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,stellar_continuum')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,stellar_continuum')
         assert response.status_code == 200
         assert response.headers['content-type'] == 'image/png'
 
-    def test_plot_dap_fiber_spectrum_with_legend(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_with_legend(self, client, setup_lvm_sas):
         """Test DAP plot with different legend options"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,stellar_continuum&legend=short')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,stellar_continuum&legend=short')
         assert response.status_code == 200
 
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,stellar_continuum&legend=long')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,stellar_continuum&legend=long')
         assert response.status_code == 200
 
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,stellar_continuum&legend=component')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,stellar_continuum&legend=component')
         assert response.status_code == 200
 
-    def test_plot_dap_fiber_spectrum_with_styling(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_with_styling(self, client, setup_lvm_sas):
         """Test DAP plot with custom styling parameters"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:all;lw:2;alpha:0.8&width=12&height=8&dpi=150')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:all;lw:2;alpha:0.8&width=12&height=8&dpi=150')
         assert response.status_code == 200
 
-    def test_plot_dap_fiber_spectrum_pdf(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_pdf(self, client, setup_lvm_sas):
         """Test DAP plot PDF output format"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed&format=pdf')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed&format=pdf')
         assert response.status_code == 200
         assert response.headers['content-type'] == 'application/pdf'
 
-    def test_plot_dap_fiber_spectrum_svg(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_svg(self, client, setup_lvm_sas):
         """Test DAP plot SVG output format"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed&format=svg')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed&format=svg')
         assert response.status_code == 200
         assert response.headers['content-type'] == 'image/svg+xml'
 
-    def test_plot_dap_fiber_spectrum_axis_limits(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_axis_limits(self, client, setup_lvm_sas):
         """Test DAP plot with axis limits"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed&xmin=4000&xmax=7000')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed&xmin=4000&xmax=7000')
         assert response.status_code == 200
 
-    def test_plot_dap_fiber_spectrum_invalid_fiberid(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_invalid_fiberid(self, client, setup_lvm_sas):
         """Test DAP plot with out-of-range fiberid"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/2000;components:all')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/2000;components:all')
         assert response.status_code == 400
         assert 'fiberid' in response.json()['detail'].lower()
 
-    def test_plot_dap_fiber_spectrum_missing_l_param(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_missing_l_param(self, client, setup_lvm_sas):
         """Test DAP plot without required l parameter"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/')
+        response = client.get('/lvm/dap/fiber/plot/')
         assert response.status_code == 422  # Validation error
 
-    def test_plot_dap_fiber_spectrum_with_residual(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_with_residual(self, client, setup_lvm_sas):
         """Test DAP plot with offset residual via show_residual parameter"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,full_model_pm&show_residual=true')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,full_model_pm&show_residual=true')
         assert response.status_code == 200
         assert response.headers['content-type'] == 'image/png'
 
         img = Image.open(BytesIO(response.content))
         assert img.format == 'PNG'
 
-    def test_plot_dap_fiber_spectrum_residual_with_scale(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_residual_with_scale(self, client, setup_lvm_sas):
         """Test DAP plot residual with custom scale factor"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,full_model_pm&show_residual=true&residual_scale=5.0')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,full_model_pm&show_residual=true&residual_scale=5.0')
         assert response.status_code == 200
 
-    def test_plot_dap_fiber_spectrum_residual_custom_styling(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_residual_custom_styling(self, client, setup_lvm_sas):
         """Test DAP plot residual with custom color and line width"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,full_model_pm&show_residual=true&residual_color=red&residual_lw=1.0')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,full_model_pm&show_residual=true&residual_color=red&residual_lw=1.0')
         assert response.status_code == 200
 
-    def test_plot_dap_fiber_spectrum_residual_pm(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_residual_pm(self, client, setup_lvm_sas):
         """Test DAP plot with residual_pm component (direct extraction)"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,residual_pm')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,residual_pm')
         assert response.status_code == 200
 
-    def test_plot_dap_residual_np_component(self, client, setup_lvm_sas):
+    def test_plot_dap_fiber_residual_np(self, client, setup_lvm_sas):
         """Test DAP plot with residual_np component"""
-        response = client.get('/lvm/plot_dap_fiber_spectrum/?l=id:1.2.0/43064/3;components:observed,residual_np')
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,residual_np')
         assert response.status_code == 200
         assert response.headers['content-type'] == 'image/png'
 

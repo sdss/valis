@@ -77,30 +77,32 @@ def aggregate_exposure_spectrum(hdul: fits.HDUList,
     aggfunc = aggregation_functions[method]
 
     try:
-        if spectrum_type in {'flux', 'sky', 'skyflux', 'lsf'}:
+        if spectrum_type in {'flux', 'sky', 'skyflux'}:
             if spectrum_type == 'flux':
                 values = hdul['FLUX'].data[mask, :]
             elif spectrum_type == 'sky':
                 values = hdul['SKY'].data[mask, :]
-            elif spectrum_type == 'lsf':
-                values = hdul['LSF'].data[mask, :]
             elif spectrum_type == 'skyflux':
                 values = hdul['SKY'].data[mask, :] + hdul['FLUX'].data[mask, :]
-            spectrum_array = aggfunc(values)
+            spectrum_array = aggfunc(values) * factor
+
+        elif spectrum_type == 'lsf':
+            values = hdul['LSF'].data[mask, :]
+            spectrum_array = aggfunc(values)  # LSF is no scaling
 
         elif spectrum_type in {'err', 'sky_err'}:
             if spectrum_type == 'err':
                 ivar = hdul['IVAR'].data[mask, :]
             elif spectrum_type == 'sky_err':
                 ivar = hdul['SKY_IVAR'].data[mask, :]
-            spectrum_array = np.sqrt(aggfunc(1.0 / ivar))
+            spectrum_array = np.sqrt(aggfunc(1.0 / ivar)) * factor
 
         elif spectrum_type in {'ivar', 'sky_ivar'}:
             if spectrum_type == 'ivar':
                 ivar = hdul['IVAR'].data[mask, :]
             elif spectrum_type == 'sky_ivar':
                 ivar = hdul['SKY_IVAR'].data[mask, :]
-            spectrum_array = aggfunc(ivar)
+            spectrum_array = aggfunc(ivar) / factor**2
     except ValueError as e:
         raise ValueError(f"Error processing aggregation: {str(e)}")
 
