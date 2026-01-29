@@ -141,13 +141,13 @@ def extract_dap_fiber_data(dap_file: str,
         # Order defines plotting sequence (first = bottom, last = top)
         component_extractors = {
             'observed': lambda d: d[0, :],
-            'residual_np': lambda d: d[0, :] - (d[8, :] - d[7, :] + d[6, :]),
-            'residual_pm': lambda d: d[0, :] - d[8, :],
+            'residual_np': lambda d: d[4, :] - d[7, :] + d[6, :],
+            'residual_pm': lambda d: d[4, :],
             'emission_np': lambda d: d[6, :],
             'emission_pm': lambda d: d[7, :],
-            'stellar_continuum': lambda d: d[8, :] - d[7, :],
-            'full_model_np': lambda d: d[8, :] - d[7, :] + d[6, :],
-            'full_model_pm': lambda d: d[8, :],
+            'stellar_continuum': lambda d: d[1, :],
+            'full_model_np': lambda d: d[2, :] - d[7, :] + d[6, :],
+            'full_model_pm': lambda d: d[2, :],
         }
 
         if 'all' in component_names:

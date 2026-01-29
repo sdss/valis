@@ -199,11 +199,14 @@ class TestDAPComponentExtraction:
         fiber_idx = 0  # fiberid 3 is at index 0 in PT table
 
         # Create mock output data with predictable values
+        # New structure: d[0]=observed, d[1]=stellar, d[2]=full_model_pm, d[4]=residual_pm, d[6]=em_np, d[7]=em_pm
         data = np.zeros((9, n_fibers, n_wave), dtype=np.float32)
         data[0, fiber_idx, :] = 10.0  # observed
+        data[1, fiber_idx, :] = 6.0   # stellar_continuum
+        data[2, fiber_idx, :] = 8.0   # full_model_pm
+        data[4, fiber_idx, :] = 2.0   # residual_pm
         data[6, fiber_idx, :] = 1.0   # emission_np
         data[7, fiber_idx, :] = 2.0   # emission_pm
-        data[8, fiber_idx, :] = 8.0   # full_model_pm (stellar + pm_emission)
 
         output_hdu = fits.PrimaryHDU(data)
         output_hdu.header['CRVAL1'] = 3600.0
@@ -231,23 +234,19 @@ class TestDAPComponentExtraction:
 
         components = result['components']
 
-        # Verify formulas (without factor scaling)
+        # Direct extractions
         np.testing.assert_array_almost_equal(components['observed'], 10.0)
+        np.testing.assert_array_almost_equal(components['stellar_continuum'], 6.0)
+        np.testing.assert_array_almost_equal(components['full_model_pm'], 8.0)
+        np.testing.assert_array_almost_equal(components['residual_pm'], 2.0)
         np.testing.assert_array_almost_equal(components['emission_np'], 1.0)
         np.testing.assert_array_almost_equal(components['emission_pm'], 2.0)
-        np.testing.assert_array_almost_equal(components['full_model_pm'], 8.0)
 
-        # stellar_continuum = d[8] - d[7] = 8 - 2 = 6
-        np.testing.assert_array_almost_equal(components['stellar_continuum'], 6.0)
-
-        # full_model_np = d[8] - d[7] + d[6] = 8 - 2 + 1 = 7
+        # full_model_np = d[2] - d[7] + d[6] = 8 - 2 + 1 = 7
         np.testing.assert_array_almost_equal(components['full_model_np'], 7.0)
 
-        # residual_pm = d[0] - d[8] = 10 - 8 = 2
-        np.testing.assert_array_almost_equal(components['residual_pm'], 2.0)
-
-        # residual_np = d[0] - (d[8] - d[7] + d[6]) = 10 - 7 = 3
-        np.testing.assert_array_almost_equal(components['residual_np'], 3.0)
+        # residual_np = d[4] - d[7] + d[6] = 2 - 2 + 1 = 1
+        np.testing.assert_array_almost_equal(components['residual_np'], 1.0)
 
     def test_extract_dap_float32_output(self, tmp_path):
         """Test that DAP extraction returns float32 arrays"""
