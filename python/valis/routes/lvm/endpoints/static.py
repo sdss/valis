@@ -1,5 +1,5 @@
 """
-LVM static JSON file endpoints
+LVM static SDSSDB JSON endpoints
 """
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from valis.routes.base import Base
 from ..io import async_file_exists
 
 router = APIRouter()
+DEFAULT_SDSSDB_VERSION = '1.2.1'
 
 
 async def _serve_static_json(filename_template: str, drpver: str) -> FileResponse:
@@ -28,19 +29,26 @@ async def _serve_static_json(filename_template: str, drpver: str) -> FileRespons
 class Static(Base):
     """Static data file endpoints"""
 
-    @router.get('/observed-pointings', summary='Observed pointings JSON')
-    async def get_observed_pointings(
+    @router.get('/analyzed', summary='Analyzed exposures with DRP/DAP')
+    async def get_analyzed_sdssdb(
         self,
-        drpver: Annotated[str, Query(description='DRP version (e.g., 1.2.0, 1.1.1)', example='1.2.0')] = '1.2.0'
+        drpver: Annotated[str, Query(description='DRP version (e.g., 1.2.1)', example='1.2.1')] = DEFAULT_SDSSDB_VERSION
     ):
-        """Returns observed pointings from static JSON file."""
-        return await _serve_static_json('{sas_base}/sdsswork/lvm/sandbox/lvmvis/lvmvis-drpall-{drpver}.json', drpver)
+        """Returns list of observed and analyzed exposures."""
+        return await _serve_static_json('{sas_base}/sdsswork/lvm/sandbox/lvmvis/lvmvis-analyzed-sdssdb-{drpver}.json', drpver)
 
-    @router.get('/planned-tiles', summary='Planned tiles JSON')
-    async def get_planned_tiles(
+    @router.get('/observed', summary='Observed, not reduced exposures')
+    async def get_observed_sdssdb(
         self,
-        drpver: Annotated[str, Query(description='DRP version (e.g., 1.2.0, 1.1.1)', example='1.2.0')] = '1.2.0'
+        drpver: Annotated[str, Query(description='DRP version (e.g., 1.2.1)', example='1.2.1')] = DEFAULT_SDSSDB_VERSION
     ):
-        """Returns planned tiles from static JSON file."""
-        return await _serve_static_json('{sas_base}/sdsswork/lvm/sandbox/lvmvis/lvmvis-planned-tiles-after-drpall-{drpver}.json', drpver)
+        """Returns list of observed exposures, which is not reduced yet."""
+        return await _serve_static_json('{sas_base}/sdsswork/lvm/sandbox/lvmvis/lvmvis-observed-sdssdb-{drpver}.json', drpver)
 
+    @router.get('/planned', summary='Planned tiles')
+    async def get_planned_sdssdb(
+        self,
+        drpver: Annotated[str, Query(description='DRP version (e.g., 1.2.1)', example='1.2.1')] = DEFAULT_SDSSDB_VERSION
+    ):
+        """Returns list of planned tiles not observed."""
+        return await _serve_static_json('{sas_base}/sdsswork/lvm/sandbox/lvmvis/lvmvis-planned-sdssdb-{drpver}.json', drpver)

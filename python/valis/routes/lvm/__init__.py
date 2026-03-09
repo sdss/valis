@@ -20,8 +20,9 @@ Route Structure:
         ├── dap.py            # GET /dap_fiber_output/
         │                     # GET /plot_dap_fiber_spectrum/
         │                     # GET /dap_lines/{tile_id}/{mjd}/{exposure}
-        └── static.py         # GET /observed-pointings
-                              # GET /planned-tiles
+        └── static.py         # GET /analyzed-sdssdb
+                              # GET /observed-sdssdb
+                              # GET /planned-sdssdb
 
 Layer Architecture:
 ===================
