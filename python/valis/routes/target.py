@@ -15,9 +15,10 @@ from valis.routes.base import Base
 from valis.cache import valis_cache
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
                               get_parent_catalog_data, get_target_cartons,
-                              get_target_pipeline, get_target_by_altid, append_pipes, get_legacy_allspec)
+                              get_target_pipeline, get_target_by_altid, append_pipes, get_legacy_allspec,
+                              get_astra_pipeline)
 from valis.db.db import get_pw_db
-from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel, AllSpecModel
+from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel, AllSpecModel, AstraPipeline
 from valis.routes.auth import set_auth
 
 
@@ -282,3 +283,25 @@ class Target(Base):
                            ):
         """ Return legacy SDSS information from the allspec table for a given sdss_id """
         return list(get_legacy_allspec(sdss_id, phase=phase).dicts())
+
+    @router.get('/astra/{pipeline}/{sdss_id}',
+                dependencies=[Depends(get_pw_db), Depends(set_auth)],
+                responses={400: {'description': 'Invalid astra pipeline'}},
+                response_model=AstraPipeline,
+                response_model_exclude_unset=True,
+                response_model_exclude_none=True,
+                summary='Retrieve astra pipeline data for a taget by sdss_id')
+    @valis_cache(namespace='valis-target')
+    async def get_astra_pipes(self,
+                          pipeline: Annotated[str, Path(description='The Astra pipeline to search',
+                                                       example='boss_net')],
+                          sdss_id: Annotated[int, Path(description='The sdss_id of the target to get',
+                                                       example=23326)]) -> dict | None:
+        """Return Astra pipeline data for a given sdss_id and pipeline name."""
+
+        try:
+            result = get_astra_pipeline(sdss_id, self.release, pipeline)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f'Error: {e}') from e
+
+        return result

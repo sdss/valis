@@ -4,6 +4,7 @@
 
 # all resuable queries go here
 
+import inspect
 import itertools
 import packaging
 import uuid
@@ -505,6 +506,17 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None) -> peewee
     # get the apogee star data
     return apo.Star.select(*fields).where(apo.Star.sdss_id == sdss_id, vercond)
 
+
+def check_astra_release(release: str) -> str | None:
+    """Check the astra tag release"""
+    vastra = get_software_tag(release, 'v_astra')
+    vcheck = "0.5.0" if vastra in ("0.5.0", "0.6.0") else vastra
+    if vcheck is None or vcheck.replace('.', '') not in astra.Source._meta.schema:
+        print(f"warning: astra version for current release {release} does not match assigned astra schema {astra.Source._meta.schema}")
+        return None
+    return vastra
+
+
 def get_astra_target(sdss_id: int, release: str, fields: list = None) -> peewee.ModelSelect:
     """Get the Astra target metadata for an sdss_id
 
@@ -526,10 +538,7 @@ def get_astra_target(sdss_id: int, release: str, fields: list = None) -> peewee.
         the output query
     """
     # check the astra version against the assigned schema
-    vastra = get_software_tag(release, 'v_astra')
-    vastra = "0.5.0" if vastra in ("0.5.0", "0.6.0") else vastra
-    if vastra is None or vastra.replace('.', '') not in astra.Source._meta.schema:
-        print(f"warning: astra version for current release {release} does not match assigned astra schema {astra.Source._meta.schema}")
+    if check_astra_release(release) is None:
         return None
 
     # check fields
@@ -631,7 +640,8 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
     # create initial dict
     data = {'info': {},
             'boss': {}, 'apogee': {}, 'astra': {},
-            'files': {'boss': '', 'apogee': '', 'astra': ['']}}
+            'files': {'boss': '', 'apogee': '', 'astra': ['']},
+            'astra_pipelines': []}
     data['info'].update(pipes or {})
 
     # if there is no match from vizdb, return nothing
@@ -662,6 +672,9 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = 'all') -> di
                 v = s.first().apogee_visit_spectrum.where(astra.ApogeeVisitSpectrum.apred == 'dr17').dicts().first()
                 path = build_apogee_path(v, 'DR17')
                 deepmerge.always_merger.merge(data, {'files': {'apogee': path}})
+
+    # get any astra pipelines the target is in
+    data['astra_pipelines'] = list_astra_pipelines(sdss_id, release)
 
     return data
 
@@ -1198,3 +1211,107 @@ def has_legacy_data(sdss_id: int, phase: int = 5) -> bool:
     in_allspec = get_legacy_allspec(sdss_id, phase).count()
     has_legcats = get_legacy_catalogs(sdss_id)
     return in_allspec > 0 or has_legcats != {}
+
+
+def list_astra_pipelines(sdss_id: int, release: str) -> list:
+    """ List the astra pipelines available for a given target
+
+    Lists the astra pipelines available for a given target sdss_id and data release.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the SDSS data release
+
+    Returns
+    -------
+    list
+        the list of available astra pipelines for the target
+    """
+    # check the astra version against the assigned schema
+    if (vastra := check_astra_release(release)) is None:
+        return None
+
+    # drp pipeline versions
+    vers = (get_software_tag(release, 'run2d'), get_software_tag(release, 'apred_vers'))
+
+    ss = (vizdb.SDSSidToAstraPipeline.select(vizdb.SDSSidToAstraPipeline.pipeline_name).
+          where(vizdb.SDSSidToAstraPipeline.v_astra==vastra,
+               vizdb.SDSSidToAstraPipeline.sdss_id==sdss_id,
+               vizdb.SDSSidToAstraPipeline.drp_version.in_(vers))
+               .distinct().scalars())
+
+    return list(ss)
+
+
+def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> peewee.ModelSelect:
+    """ Get the Astra pipeline data for a given target and pipeline name
+
+    Retrieves the astra pipeline data from the astra.source table
+    for a given target sdss_id, data release, and astra pipeline name.
+
+    Parameters
+    ----------
+    sdss_id : int
+        the input sdss_id
+    release : str
+        the SDSS data release
+    pipeline : str
+        the name of the astra pipeline
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the output query
+    """
+    # check the astra version against the assigned schema
+    if (vastra := check_astra_release(release)) is None:
+        return None
+
+    tables = {v._meta.table_name: v for v in astra.__dict__.values() if inspect.isclass(v) and issubclass(v, astra.AstraBase)}
+
+    if pipeline not in tables:
+        raise ValueError(f"Astra pipeline {pipeline} not found in astra schema {vastra}.")
+
+    # drp pipeline versions
+    vers = (get_software_tag(release, 'run2d'), get_software_tag(release, 'apred_vers'))
+
+    # lookup the pipeline for the target sdss_id
+    pipes = list(vizdb.SDSSidToAstraPipeline.select().
+                 where(vizdb.SDSSidToAstraPipeline.v_astra==vastra,
+                       vizdb.SDSSidToAstraPipeline.sdss_id==sdss_id,
+                       vizdb.SDSSidToAstraPipeline.pipeline_name==pipeline,
+                       vizdb.SDSSidToAstraPipeline.drp_version.in_(vers)))
+
+    # no pipelines
+    if not pipes:
+        return None
+
+    # if more than one result, then likely different runs in pipeline tables, try to select the relevant one
+    # based on the latest pipeline tag for the given release.
+    if len(pipes) > 1:
+        specpks = [p.spectrum_pk for p in pipes]
+        if pipeline == 'boss_net':
+            version = get_software_tag(release, 'run2d')
+            res = astra.BossVisitSpectrum.select().where(astra.BossVisitSpectrum.spectrum.in_(specpks),
+                                                         astra.BossVisitSpectrum.run2d==version).get_or_none()
+        else:
+            version = get_software_tag(release, 'apred_vers')
+            res = astra.ApogeeVisitSpectrum.select().where(astra.ApogeeVisitSpectrum.spectrum.in_(specpks),
+                                                           astra.ApogeeVisitSpectrum.apred==version).get_or_none()
+        # select the matching pipe result
+        if res:
+            pipe = [p for p in pipes if p.source_pk == res.source.pk and p.spectrum_pk == res.spectrum.pk]
+
+    # query the astra pipeline table
+    pipe = pipes[0]
+    model = tables[pipeline]
+    query = model.select().where(model.source==pipe.source_pk,
+                                 model.spectrum==pipe.spectrum_pk)
+    res = list(query.dicts())
+
+    # return the most recent pipeline data if there are multiple entries
+    # or None if none found
+    return max(res, key=lambda i: i['created']) if res else None

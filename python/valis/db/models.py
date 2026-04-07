@@ -296,6 +296,7 @@ class PipesModel(PeeweeBase):
     apogee: Optional[ApogeeStar] = None
     astra: Optional[AstraSource] = None
     files: Optional[PipeFiles] = None
+    astra_pipelines: Optional[list[str]] = None
 
 
 class DbMetadata(PeeweeBase):
@@ -419,3 +420,15 @@ class AllSpecModel(PeeweeBase):
     def marvin_url(self) -> str:
         """ The marvin URL identifier for the SDSS object """
         return f"https://magrathea.sdss.org/marvin/galaxy/{self.plateifu}/" if self.plateifu else None
+
+
+class AstraPipeline(PeeweeBase):
+    """Pydantic model for parent catalog information """
+
+    task_pk: Annotated[int, Field(description='The task pk for the pipeline')]
+    source: Annotated[int, Field(description='The source pk associated with the astra pipeline')]
+    spectrum: Annotated[int, Field(description='The spectrum pk associated with the astra pipeline')]
+
+    # This model is usually instantiated with a dictionary of all the parent
+    # catalogue columns so we allow extra fields.
+    model_config = ConfigDict(extra='allow')
