@@ -425,7 +425,7 @@ class AllSpecModel(PeeweeBase):
 class AstraPipeline(PeeweeBase):
     """Pydantic model for parent catalog information """
 
-    task_pk: Annotated[int, Field(description='The task pk for the pipeline')]
+    task_pk: Annotated[int | None, Field(strict=False, description='The task pk for the pipeline')] = None
     source: Annotated[int, Field(description='The source pk associated with the astra pipeline')]
     spectrum: Annotated[int, Field(description='The spectrum pk associated with the astra pipeline')]
 

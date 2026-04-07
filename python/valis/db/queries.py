@@ -1271,6 +1271,7 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> peewee.Mode
         return None
 
     tables = {v._meta.table_name: v for v in astra.__dict__.values() if inspect.isclass(v) and issubclass(v, astra.AstraBase)}
+    tables['apogee_net'] = tables.get('apogee_net', tables.get('apogee_net_v2'))
 
     if pipeline not in tables:
         raise ValueError(f"Astra pipeline {pipeline} not found in astra schema {vastra}.")
