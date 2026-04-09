@@ -290,7 +290,7 @@ class Target(Base):
                 response_model=AstraPipeline,
                 response_model_exclude_unset=True,
                 response_model_exclude_none=True,
-                summary='Retrieve astra pipeline data for a taget by sdss_id')
+                summary='Retrieve astra pipeline data for a target by sdss_id')
     @valis_cache(namespace='valis-target')
     async def get_astra_pipes(self,
                           pipeline: Annotated[str, Path(description='The Astra pipeline to search',
@@ -301,7 +301,10 @@ class Target(Base):
 
         try:
             result = get_astra_pipeline(sdss_id, self.release, pipeline)
-        except Exception as e:
+        except ValueError as e:
             raise HTTPException(status_code=400, detail=f'Error: {e}') from e
+
+        if result is None:
+            raise HTTPException(status_code=404, detail=f'No Astra pipeline data found for sdss_id {sdss_id} and pipeline {pipeline}')
 
         return result

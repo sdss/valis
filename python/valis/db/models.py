@@ -423,12 +423,12 @@ class AllSpecModel(PeeweeBase):
 
 
 class AstraPipeline(PeeweeBase):
-    """Pydantic model for parent catalog information """
+    """Pydantic model for astra pipeline parameters """
 
     task_pk: Annotated[int | None, Field(strict=False, description='The task pk for the pipeline')] = None
     source: Annotated[int, Field(description='The source pk associated with the astra pipeline')]
     spectrum: Annotated[int, Field(description='The spectrum pk associated with the astra pipeline')]
 
-    # This model is usually instantiated with a dictionary of all the parent
-    # catalogue columns so we allow extra fields.
+    # This model may be instantiated from query results that include
+    # additional Astra pipeline or joined columns so we allow extra fields.
     model_config = ConfigDict(extra='allow')

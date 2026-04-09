@@ -1232,10 +1232,11 @@ def list_astra_pipelines(sdss_id: int, release: str) -> list:
     """
     # check the astra version against the assigned schema
     if (vastra := check_astra_release(release)) is None:
-        return None
+        return []
 
-    # drp pipeline versions
+    # drp pipeline versions, flatten if multi-listed
     vers = (get_software_tag(release, 'run2d'), get_software_tag(release, 'apred_vers'))
+    vers = [i for v in vers for i in (v if isinstance(v, list) else [v])]
 
     ss = (vizdb.SDSSidToAstraPipeline.select(vizdb.SDSSidToAstraPipeline.pipeline_name).
           where(vizdb.SDSSidToAstraPipeline.v_astra==vastra,
@@ -1246,7 +1247,7 @@ def list_astra_pipelines(sdss_id: int, release: str) -> list:
     return list(ss)
 
 
-def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> peewee.ModelSelect:
+def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     """ Get the Astra pipeline data for a given target and pipeline name
 
     Retrieves the astra pipeline data from the astra.source table
@@ -1276,8 +1277,9 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> peewee.Mode
     if pipeline not in tables:
         raise ValueError(f"Astra pipeline {pipeline} not found in astra schema {vastra}.")
 
-    # drp pipeline versions
+    # drp pipeline versions, flatten if multi-listed
     vers = (get_software_tag(release, 'run2d'), get_software_tag(release, 'apred_vers'))
+    vers = [i for v in vers for i in (v if isinstance(v, list) else [v])]
 
     # lookup the pipeline for the target sdss_id
     pipes = list(vizdb.SDSSidToAstraPipeline.select().
