@@ -78,6 +78,8 @@ def bdefault(obj):
     # handle python memoryview objects
     if isinstance(obj, memoryview):
         return base64.b64encode(obj.tobytes()).decode()
+    elif isinstance(obj, bytes):
+        return base64.b64encode(obj).decode()
     elif isinstance(obj, decimal.Decimal):
         # same as default pydantic
         return str(obj)
