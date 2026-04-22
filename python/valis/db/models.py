@@ -6,6 +6,7 @@
 
 import datetime
 import math
+import pathlib
 from typing import Optional, Annotated, Any, TypeVar
 from pydantic_core import to_jsonable_python
 from pydantic import (ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer,
@@ -110,9 +111,54 @@ class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
     def has_legacy_data(self) -> bool:
         return has_legacy_data(self.sdss_id)
 
+class BossVersion(PeeweeBase):
+    """ Pydantic model for boss version information """
+    ipl: Optional[int] = None
+    run2d: Optional[str] = None
+    run1d: Optional[str] = None
+    is_default: Optional[bool] = None
+    is_epoch: Optional[bool] = None
+    is_custom: Optional[bool] = None
+    custom_name: Optional[str] = None
+    sdssc2bv: Optional[int] = None
+    label: Optional[str] = None
+
+class BossSummary(PeeweeBase):
+    """ Pydantic response model for the boss pipeline summary information """
+    id: int
+    mjd: int = None
+    specprimary: Optional[bool] = None
+    boss_version: Optional[BossVersion] = Field(None, exclude=True)
+    location: Optional[str] = None
+
+    @computed_field(description='The access product or file species name')
+    @property
+    def product(self) -> str:
+        """The access product or file species name"""
+        if self.boss_version.label == 'daily':
+            return 'specLite'
+        elif self.boss_version.label == 'allepoch':
+            return 'specLite_coadd'
+        elif self.boss_version.label == 'epoch':
+            return 'specLite_epoch'
+        else:
+            return 'specLite'
+
+    @computed_field(description='The name of the coadd')
+    @property
+    def coadd(self) -> str:
+        """The name of the coadd"""
+        return self.boss_version.label if self.boss_version else None
+
+    @computed_field(description='The MJD of the observation')
+    @property
+    def stem(self) -> str:
+        """The stem of the file name, which is the MJD for BOSS spectra"""
+        return pathlib.Path(self.location).stem if self.location else None
 
 class BossSpectrum(PeeweeBase):
     """ Pydantic response model for the BHM pipeline metadata """
+    id: int = None
     sdss_id: int = None
     field: int = None
     mjd: int = None
@@ -131,6 +177,9 @@ class BossSpectrum(PeeweeBase):
     on_target: Optional[bool] = None
     fiber_ra: Optional[float] = None
     fiber_dec: Optional[float] = None
+    specprimary: Optional[bool] = None
+    boss_version: Optional[BossVersion] = None
+    run2d: Optional[str] = None
 
     @field_serializer('zwarning')
     def serialize_zwarning(self, value: Optional[int|str]) -> Optional[str]:
@@ -144,7 +193,6 @@ class BossSpectrum(PeeweeBase):
             return str(value)
         else:
             return ', '.join(labels['labels'])
-
 
 class AstraSource(PeeweeBase):
     """ Pydantic response model for the MWM Astra source metadata """
@@ -285,14 +333,14 @@ class CartonModel(PeeweeBase):
 
 class PipeFiles(BaseModel):
     """ Pydantic model for lists of files """
-    boss: Optional[str] = None
+    boss: Optional[list[str]] = None
     apogee: Optional[str] = None
     astra: Optional[list[str]] = None
 
 
 class PipesModel(PeeweeBase):
     """ Pydantic model for pipeline metadata """
-    boss: Optional[BossSpectrum] = None
+    boss: Optional[list[BossSummary]] = None
     apogee: Optional[ApogeeStar] = None
     astra: Optional[AstraSource] = None
     files: Optional[PipeFiles] = None
@@ -326,11 +374,22 @@ def gen_misc_models():
     pseudo-columns.
 
     """
-    params = [{'SDSSModel.distance': {'display_name': 'Distance [deg]',
-                                      'unit': 'degree', 'sql_type': 'float'}},
-              {'SDSSModel.has_legacy_data': {'display_name': 'Has Legacy SDSS Data',
-                                      'unit': 'boolean', 'sql_type': 'boolean'}}
-                                      ]
+    params = [
+        {'SDSSModel.distance': {'display_name': 'Distance [deg]',
+                                'unit': 'degree', 'sql_type': 'float'}},
+        {'SDSSModel.has_legacy_data': {'display_name': 'Has Legacy SDSS Data',
+                                      'unit': 'boolean', 'sql_type': 'boolean'}},
+        {'BossSummary.product': {'display_name': 'BOSS Product',
+                                'unit': 'string', 'sql_type': 'varchar'}},
+        {'BossSummary.coadd': {'display_name': 'BOSS Coadd Name',
+                               'unit': 'string', 'sql_type': 'varchar'}},
+        {'BossSummary.stem': {'display_name': 'BOSS File Stem',
+                              'unit': 'string', 'sql_type': 'varchar'}},
+        {'BossSummary.location': {'display_name': 'BOSS Path Location',
+                              'unit': 'string', 'sql_type': 'varchar'}},
+        {'BossSpectrum.zwarning': {'display_name': 'BOSS ZWARNING Flags',
+                                  'unit': 'string', 'sql_type': 'varchar'}},
+        ]
 
     for param in params:
         name, data = param.popitem()

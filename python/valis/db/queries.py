@@ -15,6 +15,7 @@ import astropy.units as u
 import deepmerge
 import peewee
 from peewee import Case
+from playhouse.shortcuts import model_to_dict
 from astropy.coordinates import SkyCoord
 from sdssdb.peewee.sdss5db import apogee_drpdb as apo
 from sdssdb.peewee.sdss5db import boss_drp as boss
@@ -24,7 +25,7 @@ from sdssdb.peewee.sdss5db import astradb as astra
 
 #from valis.db.models import MapperName
 from valis.io.spectra import extract_data, get_product_model
-from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path
+from valis.utils.paths import build_boss_path, build_apogee_path, build_astra_path, get_pathcomp
 from valis.utils.versions import get_software_tag
 
 
@@ -590,9 +591,19 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
         the output pipeline data
     """
     # get boss pipeline target
-    if pipeline == 'boss' and (qq := get_boss_target(sdss_id, release)):
-        res = qq.dicts().first()
-        return {pipeline: res, 'files': {pipeline: build_boss_path(res, release)}}
+    if pipeline == 'boss' and (qq := get_boss_target(sdss_id, release, primary=False)):
+        #res = qq.dicts().first()
+        #return {pipeline: res, 'files': {pipeline: build_boss_path(res, release)}}
+        output = {pipeline: [], 'files': {pipeline: []}}
+        for item in qq:
+            res = model_to_dict(item)
+            #bb = BossSpectrum(**res).model_dump(include={'product':True, 'specprimary':True, 'mjd': True, 'coadd': True})
+            filepath = build_boss_path(res,  release=release, ignore_existence=True)
+            res.update({'location': get_pathcomp(filepath, release, 'location')})
+            #output[pipeline].append(bb)
+            output[pipeline].append(res)
+            output['files'][pipeline].append(filepath)
+        return output
 
     # get apogee pipeline target
     elif pipeline == 'apogee' and (qq := get_apogee_target(sdss_id, release)):

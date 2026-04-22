@@ -258,7 +258,7 @@ class Target(Base):
         """ Return carton information for a given sdss_id """
         return list(get_target_cartons(sdss_id).dicts())
 
-    @router.get('/pipelines/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
+    @router.get('/pipelines/{sdss_id}', summary='Retrieve pipeline info for a target sdss_id',
                 dependencies=[Depends(get_pw_db), Depends(set_auth)],
                 response_model=PipesModel,
                 response_model_exclude_unset=True,
