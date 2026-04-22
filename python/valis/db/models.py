@@ -178,7 +178,7 @@ class BossSpectrum(PeeweeBase):
     fiber_ra: Optional[float] = None
     fiber_dec: Optional[float] = None
     specprimary: Optional[bool] = None
-    boss_version: Optional[BossVersion] = None
+    boss_version: Optional[int | BossVersion] = None
     run2d: Optional[str] = None
 
     @field_serializer('zwarning')

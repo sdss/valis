@@ -5,6 +5,7 @@ import re
 import httpx
 import orjson
 from typing import Any, Tuple, List, Union, Optional, Annotated
+from playhouse.shortcuts import model_to_dict
 from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
 from fastapi import APIRouter, HTTPException, Query, Path, Depends
 from fastapi_restful.cbv import cbv
@@ -16,9 +17,9 @@ from valis.cache import valis_cache
 from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
                               get_parent_catalog_data, get_target_cartons,
                               get_target_pipeline, get_target_by_altid, append_pipes, get_legacy_allspec,
-                              get_astra_pipeline)
+                              get_astra_pipeline, get_boss_target)
 from valis.db.db import get_pw_db
-from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel, AllSpecModel, AstraPipeline
+from valis.db.models import BossSpectrum, CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel, AllSpecModel, AstraPipeline
 from valis.routes.auth import set_auth
 
 
@@ -271,6 +272,33 @@ class Target(Base):
                                                  example='boss')] = 'all'):
         """ Return sdss-v pipeline metadata for a given sdss_id """
         return get_target_pipeline(sdss_id, self.release, pipe)
+
+    @router.get('/pipe/boss/{sdss_id}', summary='Retrieve boss pipeline parameters for a target sdss_id',
+                dependencies=[Depends(get_pw_db), Depends(set_auth)],
+                response_model=BossSpectrum,
+                response_model_exclude_unset=True,
+                response_model_exclude_none=True)
+    @valis_cache(namespace='valis-target')
+    async def get_boss_info(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
+                            dbid: Annotated[int, Query(description='Optional internal ID for direct database lookup', example=None)] = None,
+                            primary: Annotated[bool, Query(description='Optional flag for indicating specprimary', example=False)] = False,
+                            mjd: Annotated[int, Query(description='Optional MJD for selecting specific observations', example=None)] = None,
+                            coadd: Annotated[str, Query(enum=["daily", "epoch", "allepoch"], description='Optional coadd for selecting specific observations', example=None)] = "daily",
+):
+        """ Return sdss-v boss pipeline parameters for a given sdss_id """
+
+        try:
+            bb = list(get_boss_target(sdss_id, self.release, primary=primary, pk=dbid, mjd=mjd, coadd=coadd).dicts())
+        except AttributeError as e:
+            raise HTTPException(status_code=400, detail=f'Error: {e}') from e
+
+        if bb is None:
+            raise HTTPException(status_code=404, detail=f'No target found for sdss_id {sdss_id}')
+
+        if len(bb) > 1:
+            raise HTTPException(status_code=400, detail=f'Multiple targets found for sdss_id {sdss_id}. Please refine your query.')
+
+        return bb[0]
 
     @router.get('/legacy/{sdss_id}', summary='Retrieve legacy SDSS info for a target sdss_id from the allspec summary table',
                 dependencies=[Depends(get_pw_db), Depends(set_auth)],

@@ -426,7 +426,7 @@ def get_targets_obs(release: str, obs: str, spectrograph: str) -> peewee.ModelSe
 # 61731453 - in astra, false all else; dr17 release
 
 def get_boss_target(sdss_id: int, release: str, fields: list = None,
-                    primary: bool = True) -> peewee.ModelSelect:
+                    primary: bool = True, pk: int = None, mjd: int = None, coadd: str = None) -> peewee.ModelSelect:
     """ Get BHM target metadata for an sdss_id
 
     Parameters
@@ -439,6 +439,12 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
         a list of fields to retrieve from the database, by default None
     primary : bool, default True
         Flag to only use the primary observation
+    pk : int, optional
+        Optional internal database primary key for direct lookup, by default None
+    mjd : int, optional
+        Optional MJD of the observation, by default None
+    coadd : str, optional
+        Optional coadd label, either daily, epoch or allepoch, by default None
 
     Returns
     -------
@@ -466,6 +472,18 @@ def get_boss_target(sdss_id: int, release: str, fields: list = None,
     # filter on primary
     if primary:
         query = query.where(boss.BossSpectrum.specprimary == 1)
+
+    # filter on primary key
+    if pk:
+        query = query.where(boss.BossSpectrum.id == pk)
+
+    # filter on mjd
+    if mjd:
+        query = query.where(boss.BossSpectrum.mjd == mjd)
+
+    # filter on coadd label
+    if coadd:
+        query = query.join(boss.BossVersion).where(boss.BossVersion.label==coadd)
 
     return query
 
