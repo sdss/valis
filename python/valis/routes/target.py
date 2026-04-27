@@ -18,6 +18,7 @@ from valis.cache import valis_cache
 from valis.db.db import get_pw_db
 from valis.db.models import (
     AllSpecModel,
+    ApogeeResponse,
     AstraPipeline,
     BossSpectrum,
     CartonModel,
@@ -29,6 +30,7 @@ from valis.db.models import (
 from valis.db.queries import (
     append_pipes,
     get_a_spectrum,
+    get_apogee_target,
     get_astra_pipeline,
     get_boss_target,
     get_catalog_sources,
@@ -389,6 +391,57 @@ class Target(Base):
             )
 
         return bb[0]
+
+    @router.get(
+        "/pipe/apogee/{sdss_id}",
+        summary="Retrieve apogee pipeline parameters for a target sdss_id",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=ApogeeResponse,
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
+    @valis_cache(namespace="valis-target")
+    async def get_apogee_info(
+        self,
+        sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
+        obstype: Annotated[
+            str,
+            Query(
+                enum=["star", "visit"],
+                description="Type of apogee observation to select",
+                example="star",
+            ),
+        ] = "star",
+        dbid: Annotated[int, Query(description="Optional internal ID for direct database lookup", example=None)] = None,
+        mjd: Annotated[
+            int,
+            Query(
+                description="Optional MJD for selecting specific observations. Either starver or visit mjd, for star or visit obstype, respectively.",
+                example=None,
+            ),
+        ] = None,
+        field: Annotated[
+            int, Query(description="Optional field for selecting specific observations. For visits only.", example=None)
+        ] = None,
+    ):
+        try:
+            aa = list(get_apogee_target(sdss_id, self.release, table=obstype, pk=dbid, mjd=mjd, field=field).dicts())
+        except AttributeError as e:
+            raise HTTPException(status_code=400, detail=f"Error: {e}") from e
+
+        if not aa:
+            raise HTTPException(status_code=404, detail=f"No target found for sdss_id {sdss_id}")
+
+        if len(aa) > 1:
+            raise HTTPException(
+                status_code=400, detail=f"Multiple targets found for sdss_id {sdss_id}. Please refine your query."
+            )
+
+        # inject the obstype into result for proper discrimination in the response model
+        result = aa[0]
+        result["obstype"] = obstype
+
+        return result
 
     @router.get(
         "/legacy/{sdss_id}",

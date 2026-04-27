@@ -493,10 +493,10 @@ def get_boss_target(
     return query
 
 
-def get_apogee_target(sdss_id: int, release: str, fields: list = None) -> peewee.ModelSelect:
+def get_apogee_target(sdss_id: int, release: str, fields: list = None, table: str = 'star', pk: int = None, mjd: int = None, field: int = None) -> peewee.ModelSelect:
     """Get the Apogee target metadata for an sdss_id
 
-    Retrieves the apogee pipeline data from the apogee_drp.star table
+    Retrieves the apogee pipeline data from the apogee_drp.star or visit table
     for the given sdss_id and data release.
 
     Parameters
@@ -507,6 +507,8 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None) -> peewee
         the data release to look up
     fields : list, optional
         a list of fields to retrieve from the database, by default None
+    table : str, optional
+        which apogee table to query, either 'star' or 'visit', by default 'star'
 
     Returns
     -------
@@ -516,19 +518,37 @@ def get_apogee_target(sdss_id: int, release: str, fields: list = None) -> peewee
     # get the relevant software tag
     apred = get_software_tag(release, "apred_vers")
 
+    # set the table
+    model = apo.Visit if table == 'visit' else apo.Star
+
     # create apogee version conditions
     if isinstance(apred, list):
-        vercond = apo.Star.apred_vers.in_(apred)
+        vercond = model.apred_vers.in_(apred)
     else:
-        vercond = apo.Star.apred_vers == apred
+        vercond = model.apred_vers == apred
 
     # check fields
-    fields = fields or [apo.Star]
+    fields = fields or [model]
     if fields and isinstance(fields[0], str):
-        fields = (getattr(apo.Star, i) for i in fields)
+        fields = (getattr(model, i) for i in fields)
 
     # get the apogee star data
-    return apo.Star.select(*fields).where(apo.Star.sdss_id == sdss_id, vercond)
+    query =  model.select(*fields).where(model.sdss_id == sdss_id, vercond)
+
+    # filter on primary key
+    if pk:
+        query = query.where(model.pk == pk)
+
+    # filter on mjd
+    if mjd:
+        col = model.mjd if table == 'visit' else model.starver
+        query = query.where(col == mjd)
+
+    # filter on field
+    if field and table == 'visit':
+        query = query.where(model.field == field)
+
+    return query
 
 
 def check_astra_release(release: str) -> str | None:
@@ -597,7 +617,6 @@ def get_target_meta(sdss_id: int, release: str) -> dict:
     pipes = append_pipes(query, observed=False, release=release)
     return pipes.dicts().first()
 
-
 def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     """Get the pipeline reduction data for a pipeline
 
@@ -631,9 +650,26 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
         return output
 
     # get apogee pipeline target
-    elif pipeline == "apogee" and (qq := get_apogee_target(sdss_id, release)):
-        res = qq.dicts().first()
-        return {pipeline: res, "files": {pipeline: build_apogee_path(res, release)}}
+    elif pipeline == "apogee":
+        #res = qq.dicts().first()
+        output = {pipeline: {'stars': [], 'visits': []}, "files": {pipeline: []}}
+        # stars
+        if (qq := get_apogee_target(sdss_id, release, table='star')):
+            for item in qq:
+                res = model_to_dict(item)
+                filepath = build_apogee_path(res, release=release, ignore_existence=True)
+                res.update({"location": get_pathcomp(filepath, release, "location")})
+                output[pipeline]['stars'].append(res)
+                output["files"][pipeline].append(filepath)
+        # visits
+        if (qq := get_apogee_target(sdss_id, release, table='visit')):
+            for item in qq:
+                res = model_to_dict(item)
+                filepath = build_apogee_path(res, release=release, ignore_existence=True)
+                res.update({"location": get_pathcomp(filepath, release, "location")})
+                output[pipeline]['visits'].append(res)
+                output["files"][pipeline].append(filepath)
+        return output
 
     # get astra pipeline target
     elif pipeline == "astra" and (qq := get_astra_target(sdss_id, release)):

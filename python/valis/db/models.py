@@ -8,7 +8,7 @@ import datetime
 import math
 import pathlib
 
-from typing import Annotated, Any, Optional, TypeVar
+from typing import Annotated, Any, Optional, TypeVar, Union, Literal
 
 from pydantic import (
     BaseModel,
@@ -160,7 +160,7 @@ class BossSummary(PeeweeBase):
     mjd: int = None
     specprimary: Optional[bool] = None
     boss_version: Optional[BossVersion] = Field(None, exclude=True)
-    location: Optional[str] = None
+    location: Optional[str] = Field(None, description='the file location')
 
     @computed_field(description="The access product or file species name")
     @property
@@ -181,7 +181,7 @@ class BossSummary(PeeweeBase):
         """The name of the coadd"""
         return self.boss_version.label if self.boss_version else None
 
-    @computed_field(description="The MJD of the observation")
+    @computed_field(description="The filestem of the product")
     @property
     def stem(self) -> str:
         """The stem of the file name, which is the MJD for BOSS spectra"""
@@ -203,7 +203,7 @@ class BossSpectrum(PeeweeBase):
     objtype: str = None
     specobjid: Optional[int] = None
     z: Optional[float] = None
-    zwarning: Optional[int | str] = None
+    zwarning: Optional[int | str] = Field(None, description='the zwarning maskbits labels')
     objclass: Optional[str] = None
     subclass: Optional[str] = None
     sn_median_all: Optional[float] = None
@@ -268,9 +268,48 @@ class AstraSource(PeeweeBase):
     e_k_mag: FloatNaN[float] = None
 
 
+class ApoStarSummary(PeeweeBase):
+    """Model for summary of apogee star fields"""
+
+    pk: int
+    starver: int = None
+    location: Optional[str] = Field(None, description='the file location')
+    product: str = 'apStar'
+    nvisits: Optional[int] = None
+    telescope: str = None
+
+    @computed_field(description="The filestem of the product")
+    @property
+    def stem(self) -> str:
+        """The stem of the file name, which is the MJD for BOSS spectra"""
+        return pathlib.Path(self.location).stem if self.location else None
+
+class ApoVisitSummary(PeeweeBase):
+    """Model for summary of apogee visit fields"""
+
+    pk: int
+    mjd: int = None
+    location: Optional[str] = Field(None, description='the file location')
+    product: str = 'apVisit'
+    telescope: str = None
+    field: int = None
+
+    @computed_field(description="The filestem of the product")
+    @property
+    def stem(self) -> str:
+        """The stem of the file name, which is the MJD for BOSS spectra"""
+        return pathlib.Path(self.location).stem if self.location else None
+
+class ApogeeSummary(PeeweeBase):
+    """ Pydantic response model for summmary of pipe metadata for apogee"""
+
+    stars: Optional[list[ApoStarSummary]] = None
+    visits: Optional[list[ApoVisitSummary]] = None
+
 class ApogeeStar(PeeweeBase):
     """Pydantic response model for the MWM Apogee DRP pipeline star metadata"""
 
+    pk: int = None
     apogee_id: str = None
     file: str = None
     uri: str = None
@@ -299,7 +338,7 @@ class ApogeeStar(PeeweeBase):
     apogee2_target3: int = None
     apogee2_target4: int = None
     catalogid: int = None
-    gaiadr2_sourceid: int = None
+    gaia_sourceid: int = None
     firstcarton: str = None
     targflags: str = None
     nvisits: int = None
@@ -307,7 +346,68 @@ class ApogeeStar(PeeweeBase):
     ngoodrvs: int = None
     starflag: int = None
     starflags: str = None
+    vrad: float = None
+    vscatter: float = None
+    verr: float = None
+    vmederr: float = None
+    meanfib: float = None
+    sigfib: float = None
+    cadence: str = None
+    program: str = None
+    category: str = None
+    gaia_release: str = None
+    obstype: Literal["star"] = Field(default="star", exclude=False)
 
+class ApogeeVisit(PeeweeBase):
+    """Pydantic response model for the MWM Apogee DRP pipeline visit metadata"""
+
+    pk: int = None
+    apogee_id: str = None
+    target_id: str = None
+    file: str = None
+    uri: str = None
+    fiberid: Optional[int] = None
+    plate: Optional[int] = None
+    mjd: int = None
+    telescope: str = None
+    apred_vers: str = None
+    field: Optional[int] = None
+    programname: Optional[str] = None
+    objtype: Optional[str] = None
+    ra: float = None
+    dec: float = None
+    glon: float = None
+    glat: float = None
+    jmag: float = None
+    jerr: float = None
+    hmag: float = None
+    herr: float = None
+    kmag: float = None
+    kerr: float = None
+    catalogid: int = None
+    gaia_sourceid: int = None
+    snr: float = None
+    apogee_target1: int = None
+    apogee_target2: int = None
+    apogee_target3: int = None
+    apogee_target4: int = None
+    firstcarton: str = None
+    cadence: str = None
+    program: str = None
+    category: str = None
+    exptime: float = None
+    nframes: int = None
+    gaia_release: str = None
+    design: int = None
+    sdss_id: int = None
+    obstype: Literal["visit"] = Field(default="visit", exclude=False)
+
+
+# create discriminated union for polymorphic response model in the target/pipe/apogee response
+ApogeeResponse = Union[
+    Annotated[ApogeeStar, Field(discriminator="obstype")],
+    Annotated[ApogeeVisit, Field(discriminator="obstype")]
+]
 
 class CatalogModel(PeeweeBase):
     """Pydantic model for source catalog information"""
@@ -376,7 +476,7 @@ class PipeFiles(BaseModel):
     """Pydantic model for lists of files"""
 
     boss: Optional[list[str]] = None
-    apogee: Optional[str] = None
+    apogee: Optional[list[str]] = None
     astra: Optional[list[str]] = None
 
 
@@ -384,7 +484,7 @@ class PipesModel(PeeweeBase):
     """Pydantic model for pipeline metadata"""
 
     boss: Optional[list[BossSummary]] = None
-    apogee: Optional[ApogeeStar] = None
+    apogee: Optional[ApogeeSummary] = None
     astra: Optional[AstraSource] = None
     files: Optional[PipeFiles] = None
     astra_pipelines: Optional[list[str]] = None
