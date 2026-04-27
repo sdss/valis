@@ -142,9 +142,9 @@ def build_boss_path(values: dict, release: str, lite: bool = True,
 
 
 def build_apogee_path(values: dict, release: str, ignore_existence: bool = False) -> str:
-    """ Build an Apogee apStar file path
+    """ Build an Apogee apStar or apVisit file path
 
-    Builds an Apogee file path to the apStar file.  It remaps the
+    Builds an Apogee file path to the apStar or apVisit file.  It remaps the
     database ``apogee_id`` to path template ``obj``.
 
     Parameters
@@ -161,8 +161,17 @@ def build_apogee_path(values: dict, release: str, ignore_existence: bool = False
     str
         the output file path
     """
-    return build_file_path(values, 'apStar', release,
-                           remap={'obj': 'apogee_id', 'apred': 'apred_vers'},
+    file = values.get('file', '')
+    match file:
+        case _ if 'apStar' in file:
+            name = 'apStar'
+        case _ if 'apVisit' in file:
+            name = 'apVisit'
+        case _:
+            name = 'apStar'
+
+    return build_file_path(values, name, release,
+                           remap={'obj': 'apogee_id', 'apred': 'apred_vers', 'fiber':'fiberid'},
                            defaults={'apstar': 'stars'},
                            ignore_existence=ignore_existence)
 
