@@ -674,10 +674,19 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     # get astra pipeline target
     elif pipeline == "astra" and (qq := get_astra_target(sdss_id, release)):
         res = qq.dicts().first()
-        return {
-            pipeline: res,
-            "files": {pipeline: [build_astra_path(res, release), build_astra_path(res, release, name="mwmVisit")]},
-        }
+        output = {pipeline: {"source": res, 'products': []}, "files": {pipeline: []}}
+                #   "files": {pipeline: [build_astra_path(res, release, ignore_existence=True),
+                #                        build_astra_path(res, release, name="mwmVisit", ignore_existence=True)]}}
+        for item in ("mwmStar", "mwmVisit"):
+            filepath = build_astra_path(res, release=release, name=item, ignore_existence=True)
+            output[pipeline]['products'].append({"product": item, "location": get_pathcomp(filepath, release, "location")})
+            output["files"][pipeline].append(filepath)
+
+        # return {
+        #     pipeline: res,
+        #     "files": {pipeline: [build_astra_path(res, release, ignore_existence=True), build_astra_path(res, release, name="mwmVisit", ignore_existence=True)]},
+        # }
+        return output
 
 
 def get_target_pipeline(sdss_id: int, release: str, pipeline: str = "all") -> dict:
@@ -717,7 +726,7 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = "all") -> di
         "boss": {},
         "apogee": {},
         "astra": {},
-        "files": {"boss": "", "apogee": "", "astra": [""]},
+        "files": {"boss": [""], "apogee": [""], "astra": [""]},
         "astra_pipelines": [],
     }
     data["info"].update(pipes or {})
@@ -748,8 +757,8 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = "all") -> di
             if pipes["release"] == "dr17":
                 s = get_astra_target(sdss_id, release)
                 v = s.first().apogee_visit_spectrum.where(astra.ApogeeVisitSpectrum.apred == "dr17").dicts().first()
-                path = build_apogee_path(v, "DR17")
-                deepmerge.always_merger.merge(data, {"files": {"apogee": path}})
+                path = build_apogee_path(v, "DR17", ignore_existence=True)
+                deepmerge.always_merger.merge(data, {"files": {"apogee": [path]}})
 
     # get any astra pipelines the target is in
     data["astra_pipelines"] = list_astra_pipelines(sdss_id, release)

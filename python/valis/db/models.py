@@ -268,6 +268,23 @@ class AstraSource(PeeweeBase):
     e_k_mag: FloatNaN[float] = None
 
 
+class AstraProducts(PeeweeBase):
+    """Model for the summary of astra products"""
+    product: str = None
+    location: Optional[str] = Field(None, description='the file location')
+
+    @computed_field(description="The filestem of the product")
+    @property
+    def stem(self) -> str:
+        """The stem of the file name, which is the MJD for BOSS spectra"""
+        return pathlib.Path(self.location).stem if self.location else None
+
+class AstraSummary(PeeweeBase):
+    """Pydantic response model for summary of pipe metadata for astra"""
+
+    source: Optional[AstraSource] = None
+    products: Optional[list[AstraProducts]] = None
+
 class ApoStarSummary(PeeweeBase):
     """Model for summary of apogee star fields"""
 
@@ -485,7 +502,7 @@ class PipesModel(PeeweeBase):
 
     boss: Optional[list[BossSummary]] = None
     apogee: Optional[ApogeeSummary] = None
-    astra: Optional[AstraSource] = None
+    astra: Optional[AstraSummary] = None
     files: Optional[PipeFiles] = None
     astra_pipelines: Optional[list[str]] = None
 
