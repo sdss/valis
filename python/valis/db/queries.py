@@ -636,22 +636,17 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     """
     # get boss pipeline target
     if pipeline == "boss" and (qq := get_boss_target(sdss_id, release, primary=False)):
-        # res = qq.dicts().first()
-        # return {pipeline: res, 'files': {pipeline: build_boss_path(res, release)}}
         output = {pipeline: [], "files": {pipeline: []}}
         for item in qq:
             res = model_to_dict(item)
-            # bb = BossSpectrum(**res).model_dump(include={'product':True, 'specprimary':True, 'mjd': True, 'coadd': True})
             filepath = build_boss_path(res, release=release, ignore_existence=True)
             res.update({"location": get_pathcomp(filepath, release, "location")})
-            # output[pipeline].append(bb)
             output[pipeline].append(res)
             output["files"][pipeline].append(filepath)
         return output
 
     # get apogee pipeline target
     elif pipeline == "apogee":
-        #res = qq.dicts().first()
         output = {pipeline: {'stars': [], 'visits': []}, "files": {pipeline: []}}
         # stars
         if (qq := get_apogee_target(sdss_id, release, table='star')):
@@ -675,17 +670,11 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     elif pipeline == "astra" and (qq := get_astra_target(sdss_id, release)):
         res = qq.dicts().first()
         output = {pipeline: {"source": res, 'products': []}, "files": {pipeline: []}}
-                #   "files": {pipeline: [build_astra_path(res, release, ignore_existence=True),
-                #                        build_astra_path(res, release, name="mwmVisit", ignore_existence=True)]}}
         for item in ("mwmStar", "mwmVisit"):
             filepath = build_astra_path(res, release=release, name=item, ignore_existence=True)
             output[pipeline]['products'].append({"product": item, "location": get_pathcomp(filepath, release, "location")})
             output["files"][pipeline].append(filepath)
 
-        # return {
-        #     pipeline: res,
-        #     "files": {pipeline: [build_astra_path(res, release, ignore_existence=True), build_astra_path(res, release, name="mwmVisit", ignore_existence=True)]},
-        # }
         return output
 
 
