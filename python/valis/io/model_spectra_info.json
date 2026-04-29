@@ -1,14 +1,15 @@
 [
     {
         "product": "specLite",
-        "aliases": ["specFull", "spec-lite", "spec"],
+        "aliases": ["specFull", "spec-lite", "spec", "specLite_coadd", "specFull_coadd", "specLite_epoch", "specFull_epoch"],
         "pipeline": "boss",
         "multi_spectra": false,
         "parameters": {
             "flux": {"extension": 1, "type": "table", "column": "FLUX", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
             "wavelength": {"extension": 1, "type": "table", "column": "LOGLAM", "units": "Angstrom"},
             "error": {"extension": 1, "type": "table", "column": "IVAR"},
-            "mask": {"extension": 1, "type": "table", "column": "OR_MASK"}
+            "mask": {"extension": 1, "type": "table", "column": "OR_MASK"},
+            "model": {"extension": 1, "type": "table", "column": "MODEL"}
         }
     },
     {
@@ -19,6 +20,18 @@
         "parameters": {
             "flux": {"extension": 1, "type": "image", "column": "FLUX", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
             "wavelength": {"extension": 0, "type": "wcs", "column": "LOGLAM", "nwave": 8575, "units": "Angstrom"},
+            "error": {"extension": 2, "type": "image", "column": "ERROR", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
+            "mask": {"extension": 3, "type": "image", "column": "MASK"}
+        }
+    },
+    {
+        "product": "apVisit",
+        "aliases": ["apVisit"],
+        "pipeline": "apogee",
+        "multi_spectra": false,
+        "parameters": {
+            "flux": {"extension": 1, "type": "image", "column": "FLUX", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
+            "wavelength": {"extension": 4, "type": "image", "column": "WAVELENGTH", "nwave": 4096, "units": "Angstrom"},
             "error": {"extension": 2, "type": "image", "column": "ERROR", "units": "1e-17 * erg / (s * cm**2 * Angstrom)"},
             "mask": {"extension": 3, "type": "image", "column": "MASK"}
         }

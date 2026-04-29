@@ -1,76 +1,108 @@
-from __future__ import print_function, division, absolute_import
+from __future__ import absolute_import, division, print_function
 
 import math
 import re
+
+from typing import Annotated, Any, List, Optional, Tuple, Union
+
+import astropy.units as u
 import httpx
 import orjson
-from typing import Any, Tuple, List, Union, Optional, Annotated
-from pydantic import field_validator, model_validator, BaseModel, Field, model_serializer
-from fastapi import APIRouter, HTTPException, Query, Path, Depends
-from fastapi_restful.cbv import cbv
-import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.simbad import Simbad
-from valis.routes.base import Base
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi_restful.cbv import cbv
+from pydantic import BaseModel, Field, field_validator, model_serializer, model_validator
+
 from valis.cache import valis_cache
-from valis.db.queries import (get_target_meta, get_a_spectrum, get_catalog_sources,
-                              get_parent_catalog_data, get_target_cartons,
-                              get_target_pipeline, get_target_by_altid, append_pipes, get_legacy_allspec,
-                              get_astra_pipeline)
 from valis.db.db import get_pw_db
-from valis.db.models import CatalogResponse, CartonModel, ParentCatalogModel, PipesModel, SDSSModel, AllSpecModel, AstraPipeline
+from valis.db.models import (
+    AllSpecModel,
+    ApogeeResponse,
+    AstraPipeline,
+    BossSpectrum,
+    CartonModel,
+    CatalogResponse,
+    ParentCatalogModel,
+    PipesModel,
+    SDSSModel,
+)
+from valis.db.queries import (
+    append_pipes,
+    get_a_spectrum,
+    get_apogee_target,
+    get_astra_pipeline,
+    get_boss_target,
+    get_catalog_sources,
+    get_legacy_allspec,
+    get_parent_catalog_data,
+    get_target_by_altid,
+    get_target_cartons,
+    get_target_meta,
+    get_target_pipeline,
+)
 from valis.routes.auth import set_auth
+from valis.routes.base import Base
 
 
 router = APIRouter()
 
-Simbad.add_votable_fields('distance_result')
-Simbad.add_votable_fields('ra(d)', 'dec(d)')
+Simbad.add_votable_fields("distance_result")
+Simbad.add_votable_fields("ra(d)", "dec(d)")
 
 
 class CoordModel(BaseModel):
-    """ Pydantic model for a SkyCoord object """
-    value: Tuple[float, float] = Field(..., description='The coordinate value', example=(230.50745896, 43.53232817))
-    frame: str = Field(..., description='The coordinate frame', example='icrs')
-    unit: str = Field(..., description='The coordinate units', example='deg')
+    """Pydantic model for a SkyCoord object"""
+
+    value: Tuple[float, float] = Field(..., description="The coordinate value", example=(230.50745896, 43.53232817))
+    frame: str = Field(..., description="The coordinate frame", example="icrs")
+    unit: str = Field(..., description="The coordinate units", example="deg")
 
 
 class NameResponse(BaseModel):
-    """ Response model for target name resolver endpoint """
-    coordinate: CoordModel = Field(..., description='The resolved coordinate')
-    object_type: str = Field(..., description='The resolved type of object', example='G')
-    name: str = Field(..., description='The resolved common target name', example='2MASX J15220182+4331560')
-    identifiers: List[str] = Field(..., description='A list of resolved target identifiers', example=["LEDA 2223006", "CASG 697"])
+    """Response model for target name resolver endpoint"""
+
+    coordinate: CoordModel = Field(..., description="The resolved coordinate")
+    object_type: str = Field(..., description="The resolved type of object", example="G")
+    name: str = Field(..., description="The resolved common target name", example="2MASX J15220182+4331560")
+    identifiers: List[str] = Field(
+        ..., description="A list of resolved target identifiers", example=["LEDA 2223006", "CASG 697"]
+    )
 
 
 class DistModel(BaseModel):
-    """ Model to represent the distance separation """
+    """Model to represent the distance separation"""
+
     value: float
-    unit: str = 'arcsec'
+    unit: str = "arcsec"
 
     def to_quantity(self):
         return self.value * u.Unit(self.unit)
 
 
 class SpectrumModel(BaseModel):
-    """ Response model for a spectrum """
-    header: dict = Field({}, description='The primary header')
-    flux: list = Field([], description='The spectrum flux array')
-    wavelength: list = Field([], description='The spectrum wavelength array')
-    error: list = Field([], description='The spectrum uncertainty array')
-    mask: list = Field([], description='The spectrum mask array')
+    """Response model for a spectrum"""
 
-    @model_serializer(when_used='json-unless-none')
+    header: dict = Field({}, description="The primary header")
+    flux: list = Field([], description="The spectrum flux array")
+    wavelength: list = Field([], description="The spectrum wavelength array")
+    error: list = Field([], description="The spectrum uncertainty array")
+    mask: list = Field([], description="The spectrum mask array")
+
+    @model_serializer(when_used="json-unless-none")
     def spec_mod(self):
-        return {'header': orjson.dumps(self.header),
-                'flux': orjson.dumps(self.flux, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
-                'wavelength': orjson.dumps(self.wavelength, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
-                'error': orjson.dumps(self.error, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
-                'mask': orjson.dumps(self.mask, option=orjson.OPT_SERIALIZE_NUMPY).decode()}
+        return {
+            "header": orjson.dumps(self.header),
+            "flux": orjson.dumps(self.flux, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+            "wavelength": orjson.dumps(self.wavelength, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+            "error": orjson.dumps(self.error, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+            "mask": orjson.dumps(self.mask, option=orjson.OPT_SERIALIZE_NUMPY).decode(),
+        }
 
 
 class SimbadRow(BaseModel):
-    """ Response Model for a Simbad query_region row result """
+    """Response Model for a Simbad query_region row result"""
+
     main_id: str = Field(...)
     ra: str = Field(...)
     dec: str = Field(...)
@@ -90,12 +122,9 @@ class SimbadRow(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def lower_and_nan(cls, values):
-        return {
-            k.lower(): None if not isinstance(v, str) and math.isnan(v) else v
-            for k, v in values.items()
-        }
+        return {k.lower(): None if not isinstance(v, str) and math.isnan(v) else v for k, v in values.items()}
 
-    @field_validator('distance_result')
+    @field_validator("distance_result")
     @classmethod
     def parse_distance(cls, v):
         return DistModel(value=v)
@@ -103,44 +132,46 @@ class SimbadRow(BaseModel):
 
 @cbv(router)
 class Target(Base):
-    """ Endpoints for dealing with individual targets """
+    """Endpoints for dealing with individual targets"""
 
-    @router.get("/resolve/name", summary='Resolve a target name with Sesame', response_model=NameResponse)
-    async def get_name(self, name: str = Query(..., description='the target name', example='MaNGA 7443-12701')) -> dict:
-        """ Resolve a target name using the Sesame Name Resolver service
+    @router.get("/resolve/name", summary="Resolve a target name with Sesame", response_model=NameResponse)
+    async def get_name(self, name: str = Query(..., description="the target name", example="MaNGA 7443-12701")) -> dict:
+        """Resolve a target name using the Sesame Name Resolver service
 
         Sesame resolves against Simbad, NED, and Vizier databases, in that order.
         Returns the first successful match found.
         """
         # sesame name resolver URL
-        url = f'https://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame/-oI/?{name.strip()}'
+        url = f"https://cdsweb.u-strasbg.fr/cgi-bin/nph-sesame/-oI/?{name.strip()}"
 
         async with httpx.AsyncClient() as client:
             rr = await client.get(url)
             if rr.is_error:
                 raise HTTPException(status_code=rr.status_code, detail=rr.content)
 
-            data = rr.content.decode('utf-8')
+            data = rr.content.decode("utf-8")
 
-            bad_rows = re.findall(r'#!(.*?)\n', data)
+            bad_rows = re.findall(r"#!(.*?)\n", data)
             if bad_rows:
-                raise HTTPException(status_code=400, detail=f'Could not resolve target name {name}.')
+                raise HTTPException(status_code=400, detail=f"Could not resolve target name {name}.")
 
-            coord = re.findall(r'%J\s*([0-9.]+)\s*([+-.0-9]+)', data)[0]
-            coord = {'value': coord, 'frame': 'icrs', 'unit': 'deg'}
-            obj = re.findall(r'%C.0(.*?)\n', data)[0].strip()
-            name = re.findall(r'%I.0(.*?)\n', data)[0].split("NAME")[-1].strip()
-            names = [i for i in re.findall(r'%I (.*?)\n', data) if 'NAME' not in i]
-            return {'coordinate': coord, 'object_type': obj, 'name': name, 'identifiers': names}
+            coord = re.findall(r"%J\s*([0-9.]+)\s*([+-.0-9]+)", data)[0]
+            coord = {"value": coord, "frame": "icrs", "unit": "deg"}
+            obj = re.findall(r"%C.0(.*?)\n", data)[0].strip()
+            name = re.findall(r"%I.0(.*?)\n", data)[0].split("NAME")[-1].strip()
+            names = [i for i in re.findall(r"%I (.*?)\n", data) if "NAME" not in i]
+            return {"coordinate": coord, "object_type": obj, "name": name, "identifiers": names}
 
-    @router.get("/resolve/coord", summary='Resolve a target coordinate with Simbad')
-    async def get_coord(self,
-                        coord: tuple = Query(None, description='the target coordinate', example=(230.50745896, 43.53232817)),
-                        cunit: str = Query('deg', description='the coordinate unit', example='deg'),
-                        name: str = Query(None, description='the target name', example='MaNGA 7443-12701'),
-                        radius: float = Query(1.0, description='the radius to search around the coordinate', example=1.0),
-                        runit: str = Query('arcmin', description='the unit of radius unit', example='arcmin')) -> List[SimbadRow]:
-        """ Resolve a coordinate using astroquery Simbad.query_region
+    @router.get("/resolve/coord", summary="Resolve a target coordinate with Simbad")
+    async def get_coord(
+        self,
+        coord: tuple = Query(None, description="the target coordinate", example=(230.50745896, 43.53232817)),
+        cunit: str = Query("deg", description="the coordinate unit", example="deg"),
+        name: str = Query(None, description="the target name", example="MaNGA 7443-12701"),
+        radius: float = Query(1.0, description="the radius to search around the coordinate", example=1.0),
+        runit: str = Query("arcmin", description="the unit of radius unit", example="arcmin"),
+    ) -> List[SimbadRow]:
+        """Resolve a coordinate using astroquery Simbad.query_region
 
         Perform a cone search using astroquery Simbad.query_region around
         a given coordinate or target name, with a specified radius. Returns a list
@@ -160,25 +191,41 @@ class Target(Base):
             raise HTTPException(status_code=404, detail=Simbad.last_parsed_result.error_raw)
 
         # return successful result
-        return res.to_pandas().to_dict('records')
+        return res.to_pandas().to_dict("records")
 
-    @router.get('/ids/{sdss_id}', summary='Retrieve pipeline metadata for a target sdss_id',
-                dependencies=[Depends(get_pw_db)],
-                response_model=Union[SDSSModel, dict],
-                response_model_exclude_unset=True, response_model_exclude_none=True)
+    @router.get(
+        "/ids/{sdss_id}",
+        summary="Retrieve pipeline metadata for a target sdss_id",
+        dependencies=[Depends(get_pw_db)],
+        response_model=Union[SDSSModel, dict],
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
     async def get_target(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
-        """ Return target metadata for a given sdss_id """
+        """Return target metadata for a given sdss_id"""
         return get_target_meta(sdss_id, self.release) or {}
 
-    @router.get('/sdssid/{id}', summary='Retrieve a target sdss_id from an alternative id',
-                dependencies=[Depends(get_pw_db)],
-                response_model=Union[SDSSModel, dict],
-                response_model_exclude_unset=True, response_model_exclude_none=True)
-    async def get_target_altid(self,
+    @router.get(
+        "/sdssid/{id}",
+        summary="Retrieve a target sdss_id from an alternative id",
+        dependencies=[Depends(get_pw_db)],
+        response_model=Union[SDSSModel, dict],
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
+    async def get_target_altid(
+        self,
         id: Annotated[int | str, Path(title="The alternative id of the target to get", example="2M23595980+1528407")],
-        idtype: Annotated[str, Query(enum=['catalogid', 'gaiaid', 'specobjid'], description='For ambiguous integer ids, the type of id, e.g. "catalogid"', example=None)] = None
-        ):
-        """ Lookup an sdss_id for a given alternative id.
+        idtype: Annotated[
+            str,
+            Query(
+                enum=["catalogid", "gaiaid", "specobjid"],
+                description='For ambiguous integer ids, the type of id, e.g. "catalogid"',
+                example=None,
+            ),
+        ] = None,
+    ):
+        """Lookup an sdss_id for a given alternative id.
 
         Alternative ids can be string ids: plate-mjd-fiberid, field-mjd-catalogid, apogee-id, mangaid, plate-ifu,
         or integer ids: catalogid, gaiaid, specobjid. For pure integer ids, use the idtype field to specify the type of id
@@ -189,23 +236,38 @@ class Target(Base):
         query = append_pipes(query, observed=False)
         return query.dicts().first() or {}
 
-    @router.get('/spectra/{sdss_id}', summary='Retrieve a spectrum for a target sdss_id',
-                dependencies=[Depends(get_pw_db), Depends(set_auth)],
-                response_model=List[SpectrumModel])
-    @valis_cache(namespace='valis-target')
-    async def get_spectrum(self, sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
-                           product: Annotated[str, Query(description='The file species or data product name', example='specLite')],
-                           ext: Annotated[str, Query(description='For multi-extension spectra, e.g. mwmStar, the name of the spectral extension', example='BOSS/APO')] = None,
-                           ):
+    @router.get(
+        "/spectra/{sdss_id}",
+        summary="Retrieve a spectrum for a target sdss_id",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=List[SpectrumModel],
+    )
+    @valis_cache(namespace="valis-target")
+    async def get_spectrum(
+        self,
+        sdss_id: Annotated[int, Path(title="The sdss_id of the target to get", example=23326)],
+        product: Annotated[str, Query(description="The file species or data product name", example="specLite")],
+        ext: Annotated[
+            str,
+            Query(
+                description="For multi-extension spectra, e.g. mwmStar, the name of the spectral extension",
+                example="BOSS/APO",
+            ),
+        ] = None,
+    ):
         return list(get_a_spectrum(sdss_id, product, self.release, ext=ext))
 
-    @router.get('/catalogs/{sdss_id}', summary='Retrieve catalog information for a target sdss_id',
-                dependencies=[Depends(get_pw_db), Depends(set_auth)],
-                response_model=List[CatalogResponse],
-                response_model_exclude_unset=True, response_model_exclude_none=True)
-    @valis_cache(namespace='valis-target')
+    @router.get(
+        "/catalogs/{sdss_id}",
+        summary="Retrieve catalog information for a target sdss_id",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=List[CatalogResponse],
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
+    @valis_cache(namespace="valis-target")
     async def get_catalogs(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
-        """ Return catalog information for a given sdss_id """
+        """Return catalog information for a given sdss_id"""
 
         sdss_id_data = get_catalog_sources(sdss_id).dicts()
 
@@ -214,25 +276,28 @@ class Target(Base):
         # This takes advantage that all the parent catalog columns have '__' in the name.
         response_data: list[dict[str, Any]] = []
         for row in sdss_id_data:
-            s_data = {k: v for k, v in row.items() if '__' not in k}
-            cat_data = {k.split('__')[0]: v for k, v in row.items() if '__' in k}
-            response_data.append({**s_data, 'parent_catalogs': cat_data})
+            s_data = {k: v for k, v in row.items() if "__" not in k}
+            cat_data = {k.split("__")[0]: v for k, v in row.items() if "__" in k}
+            response_data.append({**s_data, "parent_catalogs": cat_data})
 
         return response_data
 
-    @router.get('/parents/{catalog}/{sdss_id}',
-                dependencies=[Depends(get_pw_db), Depends(set_auth)],
-                response_model=list[ParentCatalogModel],
-                responses={400: {'description': 'Invalid input sdss_id or catalog'}},
-                summary='Retrieve parent catalog information for a taget by sdss_id')
-    @valis_cache(namespace='valis-target')
-    async def get_parents(self,
-                          catalog: Annotated[str, Path(description='The parent catalog to search',
-                                                       example='gaia_dr3_source')],
-                          sdss_id: Annotated[int, Path(description='The sdss_id of the target to get',
-                                                       example=129047350)],
-                          catalogid: Annotated[int, Query(description='Restrict the list of returned entries to this catalogid',
-                                                          example=63050396587194280)]=None):
+    @router.get(
+        "/parents/{catalog}/{sdss_id}",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=list[ParentCatalogModel],
+        responses={400: {"description": "Invalid input sdss_id or catalog"}},
+        summary="Retrieve parent catalog information for a target by sdss_id",
+    )
+    @valis_cache(namespace="valis-target")
+    async def get_parents(
+        self,
+        catalog: Annotated[str, Path(description="The parent catalog to search", example="gaia_dr3_source")],
+        sdss_id: Annotated[int, Path(description="The sdss_id of the target to get", example=129047350)],
+        catalogid: Annotated[
+            int, Query(description="Restrict the list of returned entries to this catalogid", example=63050396587194280)
+        ] = None,
+    ):
         """Return parent catalog information for a given sdss_is.
 
         Returns a list of mappings for each set of parent catalogs associated
@@ -243,68 +308,189 @@ class Target(Base):
         try:
             result = list(get_parent_catalog_data(sdss_id, catalog, catalogid=catalogid).dicts())
             if len(result) == 0:
-                raise ValueError(f'No parent catalog data found for sdss_id {sdss_id}')
+                raise ValueError(f"No parent catalog data found for sdss_id {sdss_id}")
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f'Error: {e}')
+            raise HTTPException(status_code=400, detail=f"Error: {e}")
 
         return result
 
-    @router.get('/cartons/{sdss_id}', summary='Retrieve carton information for a target sdss_id',
-                dependencies=[Depends(get_pw_db), Depends(set_auth)],
-                response_model=List[CartonModel],
-                response_model_exclude_unset=True, response_model_exclude_none=True)
-    @valis_cache(namespace='valis-target')
+    @router.get(
+        "/cartons/{sdss_id}",
+        summary="Retrieve carton information for a target sdss_id",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=List[CartonModel],
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
+    @valis_cache(namespace="valis-target")
     async def get_cartons(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326)):
-        """ Return carton information for a given sdss_id """
+        """Return carton information for a given sdss_id"""
         return list(get_target_cartons(sdss_id).dicts())
 
-    @router.get('/pipelines/{sdss_id}', summary='Retrieve pipeline data for a target sdss_id',
-                dependencies=[Depends(get_pw_db), Depends(set_auth)],
-                response_model=PipesModel,
-                response_model_exclude_unset=True,
-                response_model_exclude_none=True)
-    @valis_cache(namespace='valis-target')
-    async def get_pipeline(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
-                           pipe: Annotated[str,
-                                           Query(enum=['all', 'boss', 'apogee', 'astra'],
-                                                 description='Specify search on specific pipeline',
-                                                 example='boss')] = 'all'):
-        """ Return sdss-v pipeline metadata for a given sdss_id """
+    @router.get(
+        "/pipelines/{sdss_id}",
+        summary="Retrieve pipeline info for a target sdss_id",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=PipesModel,
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
+    @valis_cache(namespace="valis-target")
+    async def get_pipeline(
+        self,
+        sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
+        pipe: Annotated[
+            str,
+            Query(
+                enum=["all", "boss", "apogee", "astra"],
+                description="Specify search on specific pipeline",
+                example="boss",
+            ),
+        ] = "all",
+    ):
+        """Return sdss-v pipeline metadata for a given sdss_id"""
         return get_target_pipeline(sdss_id, self.release, pipe)
 
-    @router.get('/legacy/{sdss_id}', summary='Retrieve legacy SDSS info for a target sdss_id from the allspec summary table',
-                dependencies=[Depends(get_pw_db), Depends(set_auth)],
-                response_model=List[AllSpecModel],
-                response_model_exclude_unset=True,
-                response_model_exclude_none=True)
-    @valis_cache(namespace='valis-target')
-    async def get_legacy(self, sdss_id: int = Path(title="The sdss_id of the target to get", example=79235253),
-                         phase: Annotated[Optional[int], Query(description='The SDSS phase below which to consider legacy, e.g <5. Set to 0 to return everything.', example=5)] = 5
-                           ):
-        """ Return legacy SDSS information from the allspec table for a given sdss_id """
+    @router.get(
+        "/pipe/boss/{sdss_id}",
+        summary="Retrieve boss pipeline parameters for a target sdss_id",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=BossSpectrum,
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
+    @valis_cache(namespace="valis-target")
+    async def get_boss_info(
+        self,
+        sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
+        dbid: Annotated[int, Query(description="Optional internal ID for direct database lookup", example=None)] = None,
+        primary: Annotated[bool, Query(description="Optional flag for indicating specprimary", example=False)] = False,
+        mjd: Annotated[int, Query(description="Optional MJD for selecting specific observations", example=None)] = None,
+        coadd: Annotated[
+            str,
+            Query(
+                enum=["daily", "epoch", "allepoch"],
+                description="Optional coadd for selecting specific observations",
+                example=None,
+            ),
+        ] = "daily",
+    ):
+        """Return sdss-v boss pipeline parameters for a given sdss_id"""
+
+        try:
+            bb = list(get_boss_target(sdss_id, self.release, primary=primary, pk=dbid, mjd=mjd, coadd=coadd).dicts())
+        except AttributeError as e:
+            raise HTTPException(status_code=400, detail=f"Error: {e}") from e
+
+        if not bb:
+            raise HTTPException(status_code=404, detail=f"No target found for sdss_id {sdss_id}")
+
+        if len(bb) > 1:
+            raise HTTPException(
+                status_code=400, detail=f"Multiple targets found for sdss_id {sdss_id}. Please refine your query."
+            )
+
+        return bb[0]
+
+    @router.get(
+        "/pipe/apogee/{sdss_id}",
+        summary="Retrieve apogee pipeline parameters for a target sdss_id",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=ApogeeResponse,
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
+    @valis_cache(namespace="valis-target")
+    async def get_apogee_info(
+        self,
+        sdss_id: int = Path(title="The sdss_id of the target to get", example=23326),
+        obstype: Annotated[
+            str,
+            Query(
+                enum=["star", "visit"],
+                description="Type of apogee observation to select",
+                example="star",
+            ),
+        ] = "star",
+        dbid: Annotated[int, Query(description="Optional internal ID for direct database lookup", example=None)] = None,
+        mjd: Annotated[
+            int,
+            Query(
+                description="Optional MJD for selecting specific observations. Either starver or visit mjd, for star or visit obstype, respectively.",
+                example=None,
+            ),
+        ] = None,
+        field: Annotated[
+            int, Query(description="Optional field for selecting specific observations. For visits only.", example=None)
+        ] = None,
+    ):
+        try:
+            aa = list(get_apogee_target(sdss_id, self.release, table=obstype, pk=dbid, mjd=mjd, field=field).dicts())
+        except AttributeError as e:
+            raise HTTPException(status_code=400, detail=f"Error: {e}") from e
+
+        if not aa:
+            raise HTTPException(status_code=404, detail=f"No target found for sdss_id {sdss_id}")
+
+        if len(aa) > 1:
+            raise HTTPException(
+                status_code=400, detail=f"Multiple targets found for sdss_id {sdss_id}. Please refine your query."
+            )
+
+        # inject the obstype into result for proper discrimination in the response model
+        result = aa[0]
+        result["obstype"] = obstype
+
+        return result
+
+    @router.get(
+        "/legacy/{sdss_id}",
+        summary="Retrieve legacy SDSS info for a target sdss_id from the allspec summary table",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        response_model=List[AllSpecModel],
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+    )
+    @valis_cache(namespace="valis-target")
+    async def get_legacy(
+        self,
+        sdss_id: int = Path(title="The sdss_id of the target to get", example=79235253),
+        phase: Annotated[
+            Optional[int],
+            Query(
+                description="The SDSS phase below which to consider legacy, e.g <5. Set to 0 to return everything.",
+                example=5,
+            ),
+        ] = 5,
+    ):
+        """Return legacy SDSS information from the allspec table for a given sdss_id"""
         return list(get_legacy_allspec(sdss_id, phase=phase).dicts())
 
-    @router.get('/astra/{pipeline}/{sdss_id}',
-                dependencies=[Depends(get_pw_db), Depends(set_auth)],
-                responses={400: {'description': 'Invalid astra pipeline'}},
-                response_model=AstraPipeline,
-                response_model_exclude_unset=True,
-                response_model_exclude_none=True,
-                summary='Retrieve astra pipeline data for a target by sdss_id')
-    @valis_cache(namespace='valis-target')
-    async def get_astra_pipes(self,
-                          pipeline: Annotated[str, Path(description='The Astra pipeline to search',
-                                                       example='boss_net')],
-                          sdss_id: Annotated[int, Path(description='The sdss_id of the target to get',
-                                                       example=23326)]) -> dict | None:
+    @router.get(
+        "/astra/{pipeline}/{sdss_id}",
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+        responses={400: {"description": "Invalid astra pipeline"}},
+        response_model=AstraPipeline,
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
+        summary="Retrieve astra pipeline data for a target by sdss_id",
+    )
+    @valis_cache(namespace="valis-target")
+    async def get_astra_pipes(
+        self,
+        pipeline: Annotated[str, Path(description="The Astra pipeline to search", example="boss_net")],
+        sdss_id: Annotated[int, Path(description="The sdss_id of the target to get", example=23326)],
+    ) -> dict | None:
         """Return Astra pipeline data for a given sdss_id and pipeline name."""
 
         try:
             result = get_astra_pipeline(sdss_id, self.release, pipeline)
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=f'Error: {e}') from e
+            raise HTTPException(status_code=400, detail=f"Error: {e}") from e
 
         if result is None:
-            raise HTTPException(status_code=404, detail=f'No Astra pipeline data found for sdss_id {sdss_id} and pipeline {pipeline}')
+            raise HTTPException(
+                status_code=404, detail=f"No Astra pipeline data found for sdss_id {sdss_id} and pipeline {pipeline}"
+            )
 
         return result

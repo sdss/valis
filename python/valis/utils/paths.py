@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 #
 
-
 from sdss_access.path import Path
 
 from valis.utils.versions import get_tags
@@ -121,19 +120,33 @@ def build_boss_path(values: dict, release: str, lite: bool = True,
     str
         the output file path
     """
+    # get coadd label or fallback to daily
+    label = values.get('boss_version', {}).get('label') or 'daily'
+    match label:
+        case "allepoch":
+            suffix = "_coadd"
+        case "daily":
+            suffix = ""
+        case "epoch":
+            suffix = "_epoch"
+        case _:  # default to daily
+            suffix = ""
+
     if 'IPL' in release or 'WORK' in release or int(release.split('DR')[-1]) >= 18:
         name = 'specLite' if lite else 'specFull'
+        name = f"{name}{suffix}"
     else:
         name = 'spec-lite' if lite else 'spec'
 
     return build_file_path(values, name, release, remap={'fieldid': 'field'},
+                           defaults={'coadd': 'allepoch'},
                            ignore_existence=ignore_existence)
 
 
 def build_apogee_path(values: dict, release: str, ignore_existence: bool = False) -> str:
-    """ Build an Apogee apStar file path
+    """ Build an Apogee apStar or apVisit file path
 
-    Builds an Apogee file path to the apStar file.  It remaps the
+    Builds an Apogee file path to the apStar or apVisit file.  It remaps the
     database ``apogee_id`` to path template ``obj``.
 
     Parameters
@@ -150,8 +163,17 @@ def build_apogee_path(values: dict, release: str, ignore_existence: bool = False
     str
         the output file path
     """
-    return build_file_path(values, 'apStar', release,
-                           remap={'obj': 'apogee_id', 'apred': 'apred_vers'},
+    file = values.get('file', '') or ''
+    match file:
+        case _ if 'apStar' in file:
+            name = 'apStar'
+        case _ if 'apVisit' in file:
+            name = 'apVisit'
+        case _:
+            name = 'apStar'
+
+    return build_file_path(values, name, release,
+                           remap={'obj': 'apogee_id', 'apred': 'apred_vers', 'fiber':'fiberid'},
                            defaults={'apstar': 'stars'},
                            ignore_existence=ignore_existence)
 
@@ -219,3 +241,36 @@ def build_legacy_path(values: dict, release: str = "DR17", ignore_existence: boo
                            remap={'field':'apogee_field', 'apred':'apred_vers', 'obj':'apogee_id', 'ifu':'ifudsgn',
                                   'plateid':'plate', 'fiber': 'fiberid', 'fieldid': 'fps_field'},
                            defaults={'prefix': prefix, 'apstar':'stars', 'wave':'LOG'}, ignore_existence=ignore_existence)
+
+
+def get_pathcomp(path: str, release: str, piece: str = 'url') -> str | bool:
+    """ Get a path component for a given filepath and release
+
+    Parameters
+    ----------
+    path : str
+        the full filepath to parse
+    release : str
+        the data release
+    piece : str, optional
+        the component of the path to return, by default 'url'
+
+    Returns
+    -------
+    str | bool
+        the requested path component or a boolean indicating existence
+    """
+    pp = Path(release=release)
+    match piece:
+        case 'url':
+            return pp.url('', full=path)
+        case 'location':
+            return pp.location('', full=path)
+        case 'exists':
+            return pp.exists('', full=path)
+        case 'dir':
+            return pp.dir('', full=path)
+        case 'name':
+            return pp.name('', full=path)
+        case _:
+            return pp.url('', full=path)

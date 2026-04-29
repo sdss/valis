@@ -6,14 +6,27 @@
 
 import datetime
 import math
-from typing import Optional, Annotated, Any, TypeVar
-from pydantic_core import to_jsonable_python
-from pydantic import (ConfigDict, BaseModel, Field, BeforeValidator, FieldSerializationInfo, field_serializer,
-                      field_validator, FieldValidationInfo, model_serializer, computed_field)
+import pathlib
 
-from valis.routes.maskbits import mask_values_to_labels
+from typing import Annotated, Any, Optional, TypeVar, Union, Literal
+
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    FieldSerializationInfo,
+    FieldValidationInfo,
+    computed_field,
+    field_serializer,
+    field_validator,
+    model_serializer,
+)
+from pydantic_core import to_jsonable_python
+
 from valis.db.queries import has_legacy_data
 from valis.exceptions import ValisError
+from valis.routes.maskbits import mask_values_to_labels
 from valis.utils.paths import build_legacy_path
 
 
@@ -22,7 +35,8 @@ def coerce_nan_to_none(x: Any) -> Any:
         return None
     return x
 
-T = TypeVar('T')
+
+T = TypeVar("T")
 
 FloatNaN = Annotated[Optional[T], BeforeValidator(coerce_nan_to_none)]
 
@@ -31,12 +45,14 @@ FloatNaN = Annotated[Optional[T], BeforeValidator(coerce_nan_to_none)]
 
 
 class OrmBase(BaseModel):
-    """ Base pydantic model for sqlalchemy ORMs """
+    """Base pydantic model for sqlalchemy ORMs"""
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class PeeweeBase(OrmBase):
-    """ Base pydantic model for peewee ORMs """
+    """Base pydantic model for peewee ORMs"""
+
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -52,102 +68,173 @@ class PeeweeBase(OrmBase):
 
 
 class SDSSidStackedBase(PeeweeBase):
-    """ Pydantic response model for the Peewee vizdb.SDSSidStacked ORM """
+    """Pydantic response model for the Peewee vizdb.SDSSidStacked ORM"""
 
-    sdss_id: Optional[int] = Field(..., description='the SDSS identifier')
-    ra_sdss_id: Optional[float] = Field(..., description='Right Ascension of the most recent cross-match catalogid')
-    dec_sdss_id: Optional[float] = Field(..., description='Declination of the most recent cross-match catalogid')
-    catalogid21: Optional[int] = Field(None, description='the version 21 catalog id')
-    catalogid25: Optional[int] = Field(None, description='the version 25 catalog id')
-    #catalogid31: Optional[int] = Field(None, description='the version 31 catalog id')  # TODO - uncomment when v1 crossmatch is made public
-    last_updated: datetime.date = Field(None, description='the date the sdss_id row was last updated', exclude=True)
+    sdss_id: Optional[int] = Field(..., description="the SDSS identifier")
+    ra_sdss_id: Optional[float] = Field(..., description="Right Ascension of the most recent cross-match catalogid")
+    dec_sdss_id: Optional[float] = Field(..., description="Declination of the most recent cross-match catalogid")
+    catalogid21: Optional[int] = Field(None, description="the version 21 catalog id")
+    catalogid25: Optional[int] = Field(None, description="the version 25 catalog id")
+    # catalogid31: Optional[int] = Field(None, description='the version 31 catalog id')  # TODO - uncomment when v1 crossmatch is made public
+    last_updated: datetime.date = Field(None, description="the date the sdss_id row was last updated", exclude=True)
 
-    @field_serializer('last_updated')
+    @field_serializer("last_updated")
     def serialize_dt(self, date: datetime.date) -> str:
         return date.isoformat()
 
 
 class SDSSidFlatBase(PeeweeBase):
-    """ Pydantic response model for the Peewee vizdb.SDSSidFlat ORM """
+    """Pydantic response model for the Peewee vizdb.SDSSidFlat ORM"""
 
-    sdss_id: int = Field(..., description='the SDSS identifier')
-    ra_sdss_id: float = Field(..., description='Right Ascension of the most recent cross-match catalogid')
-    dec_sdss_id: float = Field(..., description='Declination of the most recent cross-match catalogid')
-    catalogid: int = Field(..., description='the catalogid associated with the given sdss_id')
-    version_id: Optional[int] = Field(None, description='the version of the catalog for a given catalogid')
-    n_associated: int = Field(..., description='The total number of sdss_ids associated with that catalogid.')
-    ra_catalogid: Optional[float] = Field(None, description='Right Ascension, in degrees, specific to the catalogid')
-    dec_catalogid: Optional[float] = Field(None, description='Declination, in degrees, specific to the catalogid')
-    rank: int = Field(..., description='Ranking when catalogid paired to multiple sdss_id, with rank 1 as priority.')
+    sdss_id: int = Field(..., description="the SDSS identifier")
+    ra_sdss_id: float = Field(..., description="Right Ascension of the most recent cross-match catalogid")
+    dec_sdss_id: float = Field(..., description="Declination of the most recent cross-match catalogid")
+    catalogid: int = Field(..., description="the catalogid associated with the given sdss_id")
+    version_id: Optional[int] = Field(None, description="the version of the catalog for a given catalogid")
+    n_associated: int = Field(..., description="The total number of sdss_ids associated with that catalogid.")
+    ra_catalogid: Optional[float] = Field(None, description="Right Ascension, in degrees, specific to the catalogid")
+    dec_catalogid: Optional[float] = Field(None, description="Declination, in degrees, specific to the catalogid")
+    rank: int = Field(..., description="Ranking when catalogid paired to multiple sdss_id, with rank 1 as priority.")
+
 
 class SDSSidPipesBase(PeeweeBase):
-    """ Pydantic response model for the Peewee vizdb.SDSSidToPipes ORM """
+    """Pydantic response model for the Peewee vizdb.SDSSidToPipes ORM"""
 
-    sdss_id: int = Field(..., description='the SDSS identifier')
-    in_boss: bool = Field(..., description='Flag if target is in the BHM reductions', examples=[False])
-    in_apogee: bool = Field(..., description='Flag if target is in the MWM reductions', examples=[False])
-    in_bvs: bool = Field(..., description='Flag if target is in the boss component of the Astra reductions', examples=[False], exclude=True)
-    in_astra: bool = Field(..., description='Flag if the target is in the Astra reductions', examples=[False])
-    has_been_observed: Optional[bool] = Field(False, validate_default=True, description='Flag if target has been observed or not', examples=[False])
-    release: Optional[str] = Field(None, description='the Astra release field, either sdss5 or dr17')
-    obs: Optional[str] = Field(None, description='the observatory the observation is from')
-    mjd: Optional[int] = Field(None, description='the MJD of the data reduction')
+    sdss_id: int = Field(..., description="the SDSS identifier")
+    in_boss: bool = Field(..., description="Flag if target is in the BHM reductions", examples=[False])
+    in_apogee: bool = Field(..., description="Flag if target is in the MWM reductions", examples=[False])
+    in_bvs: bool = Field(
+        ...,
+        description="Flag if target is in the boss component of the Astra reductions",
+        examples=[False],
+        exclude=True,
+    )
+    in_astra: bool = Field(..., description="Flag if the target is in the Astra reductions", examples=[False])
+    has_been_observed: Optional[bool] = Field(
+        False, validate_default=True, description="Flag if target has been observed or not", examples=[False]
+    )
+    release: Optional[str] = Field(None, description="the Astra release field, either sdss5 or dr17")
+    obs: Optional[str] = Field(None, description="the observatory the observation is from")
+    mjd: Optional[int] = Field(None, description="the MJD of the data reduction")
 
-    @field_validator('has_been_observed')
+    @field_validator("has_been_observed")
     @classmethod
     def is_observed(cls, v: str, info: FieldValidationInfo) -> str:
-        """ validator for when has_been_observed was not available in table """
+        """validator for when has_been_observed was not available in table"""
         if not v:
-            return info.data.get('in_boss') or info.data.get('in_apogee') or info.data.get('in_astra')
+            return info.data.get("in_boss") or info.data.get("in_apogee") or info.data.get("in_astra")
         return v
 
-class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
-    """ Main Pydantic response for SDSS id plus Pipes flags """
-    distance: Optional[float] = Field(None, description='Separation distance between input target and cone search results, in degrees')
 
-    @computed_field(description='Flag if the target has legacy SDSS data available')
+class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
+    """Main Pydantic response for SDSS id plus Pipes flags"""
+
+    distance: Optional[float] = Field(
+        None, description="Separation distance between input target and cone search results, in degrees"
+    )
+
+    @computed_field(description="Flag if the target has legacy SDSS data available")
     @property
     def has_legacy_data(self) -> bool:
         return has_legacy_data(self.sdss_id)
 
 
-class BossSpectrum(PeeweeBase):
-    """ Pydantic response model for the BHM pipeline metadata """
-    sdss_id: int = None
-    field: int = None
-    mjd: int = None
-    catalogid: int = None
-    nexp: int = None
-    exptime: float = None
-    survey: str = None
-    firstcarton: str = None
-    objtype: str = None
-    specobjid: Optional[int] = None
-    z: Optional[float] = None
-    zwarning: Optional[int|str] = None
-    objclass: Optional[str] = None
-    subclass: Optional[str] = None
-    sn_median_all: Optional[float] = None
-    on_target: Optional[bool] = None
-    fiber_ra: Optional[float] = None
-    fiber_dec: Optional[float] = None
+class BossVersion(PeeweeBase):
+    """Pydantic model for boss version information"""
 
-    @field_serializer('zwarning')
-    def serialize_zwarning(self, value: Optional[int|str]) -> Optional[str]:
-        """ serialize the zwarning maskbits to their labels"""
+    ipl: Optional[int] = Field(None, description="the associated IPL version")
+    run2d: Optional[str] = Field(None, description="the BOSS run2d version")
+    run1d: Optional[str] = Field(None, description="the BOSS run1d version")
+    is_default: Optional[bool] = Field(None, description="flag if this is the current default version")
+    is_epoch: Optional[bool] = Field(None, description="flag if this is version is associated with the field-epoch coadds")
+    is_custom: Optional[bool] = Field(None, description="flag if this is version is associated with a custom coadd schema")
+    custom_name: Optional[str] = Field(None, description="the name of the custom coadd schema")
+    sdssc2bv: Optional[int] = Field(None, description="SDSSV Carton to Bit Version used for semaphore Targeting (SDSS5_TARGET_FLAG) flags")
+    label: Optional[str] = Field(None, description="the coadd label for the version, either daily, epoch or allepoch")
+
+
+class BossSummary(PeeweeBase):
+    """Pydantic response model for the boss pipeline summary information"""
+
+    id: int = Field(..., description="the unique pk identifier for the boss_spectrum row")
+    mjd: int = Field(None, description="the MJD of the observation in boss_spectrum")
+    specprimary: Optional[bool] = Field(None, description="flag if this is a primary spectrum")
+    boss_version: Optional[BossVersion] = Field(None, exclude=True, description="the boss version info")
+    location: Optional[str] = Field(None, description='the file location')
+
+    @computed_field(description="The access product or file species name")
+    @property
+    def product(self) -> str:
+        """The access product or file species name"""
+        # in case boss_version is None
+        if not self.boss_version:
+            return 'specLite'
+
+        if self.boss_version.label == "daily":
+            return "specLite"
+        elif self.boss_version.label == "allepoch":
+            return "specLite_coadd"
+        elif self.boss_version.label == "epoch":
+            return "specLite_epoch"
+        else:
+            return "specLite"
+
+    @computed_field(description="The name of the coadd")
+    @property
+    def coadd(self) -> str:
+        """The name of the coadd"""
+        return self.boss_version.label if self.boss_version else None
+
+    @computed_field(description="The filestem of the product")
+    @property
+    def stem(self) -> str:
+        """The stem of the file name, which is the MJD for BOSS spectra"""
+        return pathlib.Path(self.location).stem if self.location else None
+
+
+class BossSpectrum(PeeweeBase):
+    """Pydantic response model for the BHM pipeline metadata"""
+
+    id: int = Field(None, description="the unique pk identifier for the boss_spectrum row")
+    sdss_id: int = Field(None, description="the SDSS identifier for the object")
+    field: int = Field(None, description="SDSS FieldID (plateID for plate era data)")
+    mjd: int = Field(None, description="the MJD of completed combined Spectra")
+    catalogid: int = Field(None, description="SDSS-V CatalogID used in naming")
+    nexp: int = Field(None, description="Number of Included Exposures")
+    exptime: float = Field(None, description="Total Exposure time of Coadded Spectra")
+    survey: str = Field(None, description="Survey that field is part of")
+    firstcarton: str = Field(None, description="Primary SDSS Carton for target")
+    objtype: str = Field(None, description="Why this object was targetted. QSO=SCIENCE")
+    specobjid: Optional[int] = Field(None, description="Unique ID based on Field, MJD, FIBERID, RUN2D")
+    z: Optional[float] = Field(None, description="Redshift; incorrect for nonzero ZWARNING flag")
+    zwarning: Optional[int | str] = Field(None, description='the zwarning maskbits labels')
+    objclass: Optional[str] = Field(None, description="the object class")
+    subclass: Optional[str] = Field(None, description="the Spectro sub-classification")
+    sn_median_all: Optional[float] = Field(None, description="Median S/N for all good pixels in all filters")
+    on_target: Optional[bool] = Field(None, description="Whether this fiber is on target")
+    fiber_ra: Optional[float] = Field(None, description="Fiber RA (first exposure) [J2000 for plate; at exposure for FPS]")
+    fiber_dec: Optional[float] = Field(None, description="Fiber DEC (first exposure) [J2000 for plate; at exposure for FPS]")
+    specprimary: Optional[bool] = Field(None, description="flag if this is the best version of spectrum at this location")
+    boss_version: Optional[int | BossVersion] = Field(None, description="the boss version info")
+    run2d: Optional[str] = Field(None, description="the BOSS run2d version")
+
+    @field_serializer("zwarning")
+    def serialize_zwarning(self, value: Optional[int | str]) -> Optional[str]:
+        """serialize the zwarning maskbits to their labels"""
         if value == 0:
-            return ''
+            return ""
 
         try:
-            labels = mask_values_to_labels(schema='ZWARNING', value=value)
+            labels = mask_values_to_labels(schema="ZWARNING", value=value)
         except ValisError:
             return str(value)
         else:
-            return ', '.join(labels['labels'])
+            return ", ".join(labels["labels"])
 
 
 class AstraSource(PeeweeBase):
-    """ Pydantic response model for the MWM Astra source metadata """
+    """Pydantic response model for the MWM Astra source metadata"""
+
     sdss_id: int = None
     catalogid: int = None
     sdss4_apogee_id: Optional[str] = None
@@ -184,8 +271,66 @@ class AstraSource(PeeweeBase):
     k_mag: FloatNaN[float] = None
     e_k_mag: FloatNaN[float] = None
 
+
+class AstraProducts(PeeweeBase):
+    """Model for the summary of astra products"""
+    product: str = Field(None, description="the name of the product or file species")
+    location: Optional[str] = Field(None, description='the file location')
+
+    @computed_field(description="The filestem of the product")
+    @property
+    def stem(self) -> str:
+        """The stem of the file name, which is the MJD for BOSS spectra"""
+        return pathlib.Path(self.location).stem if self.location else None
+
+class AstraSummary(PeeweeBase):
+    """Pydantic response model for summary of pipe metadata for astra"""
+
+    source: Optional[AstraSource] = Field(None, description='info from the astra.source table for the target')
+    products: Optional[list[AstraProducts]] = Field(None, description='list of products for the target')
+
+class ApoStarSummary(PeeweeBase):
+    """Model for summary of apogee star fields"""
+
+    pk: int = Field(..., description="the unique pk identifier for the apogee_star row")
+    starver: int = Field(None, description="the last MJD from all visits used in the star product name")
+    location: Optional[str] = Field(None, description='the file location')
+    product: str = Field('apStar', description="the data product name, which is apStar for apogee star summary")
+    nvisits: Optional[int] = Field(None, description="the number of visits for the star")
+    telescope: str = Field(None, description="the telescope used for the observation")
+
+    @computed_field(description="The filestem of the product")
+    @property
+    def stem(self) -> str:
+        """The stem of the file name for apogee star spectra"""
+        return pathlib.Path(self.location).stem if self.location else None
+
+class ApoVisitSummary(PeeweeBase):
+    """Model for summary of apogee visit fields"""
+
+    pk: int = Field(..., description="the unique pk identifier for the apogee_visit row")
+    mjd: int = Field(None, description="the MJD of the visit")
+    location: Optional[str] = Field(None, description='the file location')
+    product: str = Field('apVisit', description="the data product name, which is apVisit for apogee visit summary")
+    telescope: str = Field(None, description="the telescope used for the observation")
+    field: int = Field(None, description="the observed field id")
+
+    @computed_field(description="The filestem of the product")
+    @property
+    def stem(self) -> str:
+        """The stem of the file name for apogee visit spectra"""
+        return pathlib.Path(self.location).stem if self.location else None
+
+class ApogeeSummary(PeeweeBase):
+    """ Pydantic response model for summary of pipe metadata for apogee"""
+
+    stars: Optional[list[ApoStarSummary]] = Field(None, description="list of star product summaries for the target")
+    visits: Optional[list[ApoVisitSummary]] = Field(None, description="list of visit product summaries for the target")
+
 class ApogeeStar(PeeweeBase):
-    """ Pydantic response model for the MWM Apogee DRP pipeline star metadata """
+    """Pydantic response model for the MWM Apogee DRP pipeline star metadata"""
+
+    pk: int = None
     apogee_id: str = None
     file: str = None
     uri: str = None
@@ -214,7 +359,7 @@ class ApogeeStar(PeeweeBase):
     apogee2_target3: int = None
     apogee2_target4: int = None
     catalogid: int = None
-    gaiadr2_sourceid: int = None
+    gaia_sourceid: int = None
     firstcarton: str = None
     targflags: str = None
     nvisits: int = None
@@ -222,9 +367,81 @@ class ApogeeStar(PeeweeBase):
     ngoodrvs: int = None
     starflag: int = None
     starflags: str = None
+    vrad: FloatNaN = None
+    vscatter: FloatNaN = None
+    verr: FloatNaN = None
+    vmederr: FloatNaN = None
+    chisq: float = None
+    rv_teff: FloatNaN = None
+    rv_tefferr: FloatNaN = None
+    rv_logg: FloatNaN = None
+    rv_loggerr: FloatNaN = None
+    rv_feh: FloatNaN = None
+    rv_feherr: FloatNaN = None
+    rv_ccpfwhm: FloatNaN = None
+    rv_autofwhm: FloatNaN = None
+    meanfib: float = None
+    sigfib: float = None
+    cadence: str = None
+    program: str = None
+    category: str = None
+    gaia_release: str = None
+    obstype: Literal["star"] = Field(default="star", exclude=False)
+
+class ApogeeVisit(PeeweeBase):
+    """Pydantic response model for the MWM Apogee DRP pipeline visit metadata"""
+
+    pk: int = None
+    apogee_id: str = None
+    target_id: str = None
+    file: str = None
+    uri: str = None
+    fiberid: Optional[int] = None
+    plate: Optional[int] = None
+    mjd: int = None
+    telescope: str = None
+    apred_vers: str = None
+    field: Optional[int] = None
+    programname: Optional[str] = None
+    objtype: Optional[str] = None
+    ra: float = None
+    dec: float = None
+    glon: float = None
+    glat: float = None
+    jmag: float = None
+    jerr: float = None
+    hmag: float = None
+    herr: float = None
+    kmag: float = None
+    kerr: float = None
+    catalogid: int = None
+    gaia_sourceid: int = None
+    snr: float = None
+    apogee_target1: int = None
+    apogee_target2: int = None
+    apogee_target3: int = None
+    apogee_target4: int = None
+    firstcarton: str = None
+    cadence: str = None
+    program: str = None
+    category: str = None
+    exptime: float = None
+    nframes: int = None
+    gaia_release: str = None
+    design: int = None
+    sdss_id: int = None
+    obstype: Literal["visit"] = Field(default="visit", exclude=False)
+
+
+# create discriminated union for polymorphic response model in the target/pipe/apogee response
+ApogeeResponse = Union[
+    Annotated[ApogeeStar, Field(discriminator="obstype")],
+    Annotated[ApogeeVisit, Field(discriminator="obstype")]
+]
 
 class CatalogModel(PeeweeBase):
-    """ Pydantic model for source catalog information """
+    """Pydantic model for source catalog information"""
+
     catalogid: int
     version: int
     lead: str
@@ -236,30 +453,31 @@ class CatalogModel(PeeweeBase):
 
 
 class ParentCatalogModel(PeeweeBase):
-    """Pydantic model for parent catalog information """
+    """Pydantic model for parent catalog information"""
 
-    sdss_id: Annotated[int, Field(description='The sdss_id associated with the parent catalogue data')]
-    catalogid: Annotated[int, Field(description='The catalogid associated with the parent catalogue data')]
+    sdss_id: Annotated[int, Field(description="The sdss_id associated with the parent catalogue data")]
+    catalogid: Annotated[int, Field(description="The catalogid associated with the parent catalogue data")]
 
     # This model is usually instantiated with a dictionary of all the parent
     # catalogue columns so we allow extra fields.
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
 
-    @model_serializer(mode='wrap')
+    @model_serializer(mode="wrap")
     def _dump(self, handler):
         # serializer to handle the extra fields that are Decimal
         # wrap mode wraps the default serialization logic vs replace, pydantic default serializes Decimal to str
         data = handler(self)  # includes extras in model_extra
         return to_jsonable_python(data, fallback=str)
 
+
 class CatalogResponse(CatalogModel, SDSSidFlatBase):
-    """ Response model for source catalog and sdss_id information """
+    """Response model for source catalog and sdss_id information"""
 
-    parent_catalogs: dict[str, Any] = Field(..., description='The parent catalog associations for a given catalogid')
+    parent_catalogs: dict[str, Any] = Field(..., description="The parent catalog associations for a given catalogid")
 
-    @field_serializer('parent_catalogs')
+    @field_serializer("parent_catalogs")
     def serialize_parent_catalogs(self, v: dict[str, Any], info: FieldSerializationInfo) -> dict[str, Any]:
-        """ Serialize the parent catalogs, excluding None values and trimming strings."""
+        """Serialize the parent catalogs, excluding None values and trimming strings."""
 
         if info.exclude_none:
             return {k: v.strip() if isinstance(v, str) else v for k, v in v.items() if v is not None}
@@ -268,7 +486,8 @@ class CatalogResponse(CatalogModel, SDSSidFlatBase):
 
 
 class CartonModel(PeeweeBase):
-    """ Response model for target and carton information """
+    """Response model for target and carton information"""
+
     catalogid: int
     version: int
     ra: float
@@ -284,35 +503,37 @@ class CartonModel(PeeweeBase):
 
 
 class PipeFiles(BaseModel):
-    """ Pydantic model for lists of files """
-    boss: Optional[str] = None
-    apogee: Optional[str] = None
+    """Pydantic model for lists of files"""
+
+    boss: Optional[list[str]] = None
+    apogee: Optional[list[str]] = None
     astra: Optional[list[str]] = None
 
 
 class PipesModel(PeeweeBase):
-    """ Pydantic model for pipeline metadata """
-    boss: Optional[BossSpectrum] = None
-    apogee: Optional[ApogeeStar] = None
-    astra: Optional[AstraSource] = None
+    """Pydantic model for pipeline metadata"""
+
+    boss: Optional[list[BossSummary]] = None
+    apogee: Optional[ApogeeSummary] = None
+    astra: Optional[AstraSummary] = None
     files: Optional[PipeFiles] = None
     astra_pipelines: Optional[list[str]] = None
 
 
 class DbMetadata(PeeweeBase):
-    """ Pydantic response model for the db metadata """
-    dbschema: str = Field(..., description='the database schema name', alias='schema')
-    table_name: str = Field(..., description='the database table name')
-    column_name: str = Field(..., description='the database column name')
-    display_name: str = Field(..., description='a human-readable display name for the column')
-    description: str = Field(..., description='a description of the database column')
-    unit: Optional[str] = Field(None, description='the unit if any for the database column')
-    sql_type: Optional[str] = Field(None, description='the data type of the column')
+    """Pydantic response model for the db metadata"""
 
+    dbschema: str = Field(..., description="the database schema name", alias="schema")
+    table_name: str = Field(..., description="the database table name")
+    column_name: str = Field(..., description="the database column name")
+    display_name: str = Field(..., description="a human-readable display name for the column")
+    description: str = Field(..., description="a description of the database column")
+    unit: Optional[str] = Field(None, description="the unit if any for the database column")
+    sql_type: Optional[str] = Field(None, description="the data type of the column")
 
 
 def gen_misc_models():
-    """ Generate metadata info for miscellaneous return columns
+    """Generate metadata info for miscellaneous return columns
 
     This is a hack to handle cases where we return columns in search
     results that are not part of the original pipelines database ORM
@@ -326,109 +547,137 @@ def gen_misc_models():
     pseudo-columns.
 
     """
-    params = [{'SDSSModel.distance': {'display_name': 'Distance [deg]',
-                                      'unit': 'degree', 'sql_type': 'float'}},
-              {'SDSSModel.has_legacy_data': {'display_name': 'Has Legacy SDSS Data',
-                                      'unit': 'boolean', 'sql_type': 'boolean'}}
-                                      ]
+    params = [
+        {"SDSSModel.distance": {"display_name": "Distance [deg]", "unit": "degree", "sql_type": "float"}},
+        {
+            "SDSSModel.has_legacy_data": {
+                "display_name": "Has Legacy SDSS Data",
+                "unit": "boolean",
+                "sql_type": "boolean",
+            }
+        },
+        {"BossSummary.product": {"display_name": "BOSS Product", "unit": "string", "sql_type": "varchar"}},
+        {"BossSummary.coadd": {"display_name": "BOSS Coadd Name", "unit": "string", "sql_type": "varchar"}},
+        {"BossSummary.stem": {"display_name": "BOSS File Stem", "unit": "string", "sql_type": "varchar"}},
+        {"BossSummary.location": {"display_name": "BOSS Path Location", "unit": "string", "sql_type": "varchar"}},
+        {"BossSpectrum.zwarning": {"display_name": "BOSS ZWARNING Flags", "unit": "string", "sql_type": "varchar"}},
+    ]
 
     for param in params:
         name, data = param.popitem()
-        model, column = name.split('.')
+        model, column = name.split(".")
         mod = globals()[model]
         # check model fields and computed fields
         col = mod.model_fields.get(column) or mod.model_computed_fields.get(column)
         if not col:
-            col = type('Tmp', (), {'description':'no description available'})
+            col = type("Tmp", (), {"description": "no description available"})
 
-        yield {"pk": 0, "schema": "miscdb", "table_name": "misctab",
-               "column_name": column, "display_name": data["display_name"],
-               "description": col.description,
-               "unit": data["unit"], "sql_type": data["sql_type"]}
+        yield {
+            "pk": 0,
+            "schema": "miscdb",
+            "table_name": "misctab",
+            "column_name": column,
+            "display_name": data["display_name"],
+            "description": col.description,
+            "unit": data["unit"],
+            "sql_type": data["sql_type"],
+        }
 
 
 class AllSpecModel(PeeweeBase):
-    """ Pydantic response model for all spectra """
-    allspec_id: str = Field(None, description='a unique id for the object')
-    multiplex_id: Optional[str] = Field(None, description='the multiplex id')
-    sdss_id: Optional[int] = Field(None, description='the SDSS identifier')
-    catalogid: Optional[int] = Field(None, description='the SDSS-V catalog id')
-    ra: float = Field(None, description='Right Ascension in decimal degrees')
-    dec: float = Field(None, description='Declination in decimal degrees')
-    sdss_phase: int = Field(None, description='the SDSS phase number of the spectrum')
-    observatory: str = Field(None, description='the observatory, APO or LCO')
-    instrument: str = Field(None, description='the SDSS spectrograph instrument')
-    survey: str = Field(None, description='The SDSS spectroscopic survey or sub-survey')
-    programname: Optional[str] = Field(None, description='the spectroscopic program name')
-    telescope: Optional[str] = Field(None, description='the SDSS telescope')
-    file_spec: Optional[str] = Field(None, description='the data product file species name')
-    cas_url: Optional[str] = Field(None, description='the CAS URL')
-    sas_url: Optional[str] = Field(None, description='the SAS URL')
-    sas_file: Optional[str] = Field(None, description='the SAS file name')
-    plate: Optional[int] = Field(None, description='the legacy plate number')
-    fps_field: Optional[int] = Field(None, description='the FPS field number')
-    plate_or_fps_field: Optional[int] = Field(None, description='the plate or FPS field')
-    mjd: Optional[int] = Field(None, description='the MJD of the observation')
-    run2d: Optional[str] = Field(None, description='the BOSS 2d DRP version')
-    run1d: Optional[str] = Field(None, description='the BOSS 1d DRP version')
-    coadd: Optional[str] = Field(None, description='either epoch, daily, or custom (allepoch)')
-    apred_vers: Optional[str] = Field(None, description='the APOGEE DRP version')
-    drpver: Optional[str] = Field(None, description='the MaNGA DRP version')
-    version: str = Field(..., description='any valid pipeline version')
-    apogee_id: Optional[str] = Field(None, description='the APOGEE object id')
-    apogee_field: Optional[str] = Field(None, description='the APOGEE field, pre-SDSS-V')
-    apstar_id: Optional[str] = Field(None, description='the APOGEE star id')
-    visit_id: Optional[str] = Field(None, description='the APOGEE visit id')
-    mangaid: Optional[str] = Field(None, description='the MaNGA ID')
-    specobjid: Optional[int] = Field(None, description='the spectroscopic object id')
-    fiberid: Optional[int] = Field(None, description='the legacy SDSS fiber id')
-    ifudsgn: Optional[int] = Field(None, description='the MaNGA IFU designation')
-    release: Optional[str] = Field(None, description='the data release, e.g. DR17')
+    """Pydantic response model for all spectra"""
 
-    @computed_field(description='The plate-ifu identifier for MaNGA')
+    allspec_id: str = Field(None, description="a unique id for the object")
+    multiplex_id: Optional[str] = Field(None, description="the multiplex id")
+    sdss_id: Optional[int] = Field(None, description="the SDSS identifier")
+    catalogid: Optional[int] = Field(None, description="the SDSS-V catalog id")
+    ra: float = Field(None, description="Right Ascension in decimal degrees")
+    dec: float = Field(None, description="Declination in decimal degrees")
+    sdss_phase: int = Field(None, description="the SDSS phase number of the spectrum")
+    observatory: str = Field(None, description="the observatory, APO or LCO")
+    instrument: str = Field(None, description="the SDSS spectrograph instrument")
+    survey: str = Field(None, description="The SDSS spectroscopic survey or sub-survey")
+    programname: Optional[str] = Field(None, description="the spectroscopic program name")
+    telescope: Optional[str] = Field(None, description="the SDSS telescope")
+    file_spec: Optional[str] = Field(None, description="the data product file species name")
+    cas_url: Optional[str] = Field(None, description="the CAS URL")
+    sas_url: Optional[str] = Field(None, description="the SAS URL")
+    sas_file: Optional[str] = Field(None, description="the SAS file name")
+    plate: Optional[int] = Field(None, description="the legacy plate number")
+    fps_field: Optional[int] = Field(None, description="the FPS field number")
+    plate_or_fps_field: Optional[int] = Field(None, description="the plate or FPS field")
+    mjd: Optional[int] = Field(None, description="the MJD of the observation")
+    run2d: Optional[str] = Field(None, description="the BOSS 2d DRP version")
+    run1d: Optional[str] = Field(None, description="the BOSS 1d DRP version")
+    coadd: Optional[str] = Field(None, description="either epoch, daily, or custom (allepoch)")
+    apred_vers: Optional[str] = Field(None, description="the APOGEE DRP version")
+    drpver: Optional[str] = Field(None, description="the MaNGA DRP version")
+    version: str = Field(..., description="any valid pipeline version")
+    apogee_id: Optional[str] = Field(None, description="the APOGEE object id")
+    apogee_field: Optional[str] = Field(None, description="the APOGEE field, pre-SDSS-V")
+    apstar_id: Optional[str] = Field(None, description="the APOGEE star id")
+    visit_id: Optional[str] = Field(None, description="the APOGEE visit id")
+    mangaid: Optional[str] = Field(None, description="the MaNGA ID")
+    specobjid: Optional[int] = Field(None, description="the spectroscopic object id")
+    fiberid: Optional[int] = Field(None, description="the legacy SDSS fiber id")
+    ifudsgn: Optional[int] = Field(None, description="the MaNGA IFU designation")
+    release: Optional[str] = Field(None, description="the data release, e.g. DR17")
+
+    @computed_field(description="The plate-ifu identifier for MaNGA")
     @property
     def plateifu(self) -> str:
-        """ The plate-ifu identifier for MaNGA """
+        """The plate-ifu identifier for MaNGA"""
         return f"{self.plate}-{self.ifudsgn}" if self.plate and self.ifudsgn else None
 
-    @computed_field(description='The plate-mjd-fiberid identifier for legacy SDSS')
+    @computed_field(description="The plate-mjd-fiberid identifier for legacy SDSS")
     @property
     def plate_mjd_fiberid(self) -> str:
-        """ The plate-mjd-fiberid identifier for legacy SDSS """
+        """The plate-mjd-fiberid identifier for legacy SDSS"""
         return f"{self.plate}-{self.mjd}-{self.fiberid}" if self.plate and self.mjd and self.fiberid else None
 
-    @computed_field(description='The field-mjd-catalogid identifier for SDSS-V')
+    @computed_field(description="The field-mjd-catalogid identifier for SDSS-V")
     @property
     def field_mjd_catalogid(self) -> str:
-        """ The field-mjd-catalogid identifier for SDSS-V """
-        return f"{self.fps_field}-{self.mjd}-{self.catalogid}" if self.fps_field and self.mjd and self.catalogid else None
+        """The field-mjd-catalogid identifier for SDSS-V"""
+        return (
+            f"{self.fps_field}-{self.mjd}-{self.catalogid}" if self.fps_field and self.mjd and self.catalogid else None
+        )
 
-    @computed_field(description='The target identifier for the SDSS object')
+    @computed_field(description="The target identifier for the SDSS object")
     @property
     def id(self) -> str:
-        """ The target identifier for the SDSS object """
-        return self.plateifu or self.plate_mjd_fiberid or self.field_mjd_catalogid or self.apogee_id or self.mangaid or self.apstar_id or self.visit_id or self.specobjid
+        """The target identifier for the SDSS object"""
+        return (
+            self.plateifu
+            or self.plate_mjd_fiberid
+            or self.field_mjd_catalogid
+            or self.apogee_id
+            or self.mangaid
+            or self.apstar_id
+            or self.visit_id
+            or self.specobjid
+        )
 
-    @computed_field(description='The legacy SAS filepath for the SDSS object')
+    @computed_field(description="The legacy SAS filepath for the SDSS object")
     @property
     def filepath(self) -> str:
-        """ The legacy SAS filepath for the SDSS object """
+        """The legacy SAS filepath for the SDSS object"""
         return build_legacy_path(self.__dict__, release=self.release, ignore_existence=True)
 
-    @computed_field(description='The marvin URL identifier for the SDSS MaNGA target')
+    @computed_field(description="The marvin URL identifier for the SDSS MaNGA target")
     @property
     def marvin_url(self) -> str:
-        """ The marvin URL identifier for the SDSS object """
+        """The marvin URL identifier for the SDSS object"""
         return f"https://magrathea.sdss.org/marvin/galaxy/{self.plateifu}/" if self.plateifu else None
 
 
 class AstraPipeline(PeeweeBase):
-    """Pydantic model for astra pipeline parameters """
+    """Pydantic model for astra pipeline parameters"""
 
-    task_pk: Annotated[int | None, Field(strict=False, description='The task pk for the pipeline')] = None
-    source: Annotated[int, Field(description='The source pk associated with the astra pipeline')]
-    spectrum: Annotated[int, Field(description='The spectrum pk associated with the astra pipeline')]
+    task_pk: Annotated[int | None, Field(strict=False, description="The task pk for the pipeline")] = None
+    source: Annotated[int, Field(description="The source pk associated with the astra pipeline")]
+    spectrum: Annotated[int, Field(description="The spectrum pk associated with the astra pipeline")]
 
     # This model may be instantiated from query results that include
     # additional Astra pipeline or joined columns so we allow extra fields.
-    model_config = ConfigDict(extra='allow')
+    model_config = ConfigDict(extra="allow")
