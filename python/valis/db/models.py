@@ -142,24 +142,24 @@ class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
 class BossVersion(PeeweeBase):
     """Pydantic model for boss version information"""
 
-    ipl: Optional[int] = None
-    run2d: Optional[str] = None
-    run1d: Optional[str] = None
-    is_default: Optional[bool] = None
-    is_epoch: Optional[bool] = None
-    is_custom: Optional[bool] = None
-    custom_name: Optional[str] = None
-    sdssc2bv: Optional[int] = None
-    label: Optional[str] = None
+    ipl: Optional[int] = Field(None, description="the associated IPL version")
+    run2d: Optional[str] = Field(None, description="the BOSS run2d version")
+    run1d: Optional[str] = Field(None, description="the BOSS run1d version")
+    is_default: Optional[bool] = Field(None, description="flag if this is the current default version")
+    is_epoch: Optional[bool] = Field(None, description="flag if this is version is associated with the field-epoch coadds")
+    is_custom: Optional[bool] = Field(None, description="flag if this is version is associated with a custom coadd schema")
+    custom_name: Optional[str] = Field(None, description="the name of the custom coadd schema")
+    sdssc2bv: Optional[int] = Field(None, description="SDSSV Carton to Bit Version used for semaphore Targeting (SDSS5_TARGET_FLAG) flags")
+    label: Optional[str] = Field(None, description="the coadd label for the version, either daily, epoch or allepoch")
 
 
 class BossSummary(PeeweeBase):
     """Pydantic response model for the boss pipeline summary information"""
 
-    id: int
-    mjd: int = None
-    specprimary: Optional[bool] = None
-    boss_version: Optional[BossVersion] = Field(None, exclude=True)
+    id: int = Field(..., description="the unique pk identifier for the boss_spectrum row")
+    mjd: int = Field(None, description="the MJD of the observation in boss_spectrum")
+    specprimary: Optional[bool] = Field(None, description="flag if this is a primary spectrum")
+    boss_version: Optional[BossVersion] = Field(None, exclude=True, description="the boss version info")
     location: Optional[str] = Field(None, description='the file location')
 
     @computed_field(description="The access product or file species name")
@@ -195,28 +195,28 @@ class BossSummary(PeeweeBase):
 class BossSpectrum(PeeweeBase):
     """Pydantic response model for the BHM pipeline metadata"""
 
-    id: int = None
-    sdss_id: int = None
-    field: int = None
-    mjd: int = None
-    catalogid: int = None
-    nexp: int = None
-    exptime: float = None
-    survey: str = None
-    firstcarton: str = None
-    objtype: str = None
-    specobjid: Optional[int] = None
-    z: Optional[float] = None
+    id: int = Field(None, description="the unique pk identifier for the boss_spectrum row")
+    sdss_id: int = Field(None, description="the SDSS identifier for the object")
+    field: int = Field(None, description="SDSS FieldID (plateID for plate era data)")
+    mjd: int = Field(None, description="the MJD of completed combined Spectra")
+    catalogid: int = Field(None, description="SDSS-V CatalogID used in naming")
+    nexp: int = Field(None, description="Number of Included Exposures")
+    exptime: float = Field(None, description="Total Exposure time of Coadded Spectra")
+    survey: str = Field(None, description="Survey that field is part of")
+    firstcarton: str = Field(None, description="Primary SDSS Carton for target")
+    objtype: str = Field(None, description="Why this object was targetted. QSO=SCIENCE")
+    specobjid: Optional[int] = Field(None, description="Unique ID based on Field, MJD, FIBERID, RUN2D")
+    z: Optional[float] = Field(None, description="Redshift; incorrect for nonzero ZWARNING flag")
     zwarning: Optional[int | str] = Field(None, description='the zwarning maskbits labels')
-    objclass: Optional[str] = None
-    subclass: Optional[str] = None
-    sn_median_all: Optional[float] = None
-    on_target: Optional[bool] = None
-    fiber_ra: Optional[float] = None
-    fiber_dec: Optional[float] = None
-    specprimary: Optional[bool] = None
-    boss_version: Optional[int | BossVersion] = None
-    run2d: Optional[str] = None
+    objclass: Optional[str] = Field(None, description="the object class")
+    subclass: Optional[str] = Field(None, description="the Spectro sub-classification")
+    sn_median_all: Optional[float] = Field(None, description="Median S/N for all good pixels in all filters")
+    on_target: Optional[bool] = Field(None, description="Whether this fiber is on target")
+    fiber_ra: Optional[float] = Field(None, description="Fiber RA (first exposure) [J2000 for plate; at exposure for FPS]")
+    fiber_dec: Optional[float] = Field(None, description="Fiber DEC (first exposure) [J2000 for plate; at exposure for FPS]")
+    specprimary: Optional[bool] = Field(None, description="flag if this is the best version of spectrum at this location")
+    boss_version: Optional[int | BossVersion] = Field(None, description="the boss version info")
+    run2d: Optional[str] = Field(None, description="the BOSS run2d version")
 
     @field_serializer("zwarning")
     def serialize_zwarning(self, value: Optional[int | str]) -> Optional[str]:
@@ -274,7 +274,7 @@ class AstraSource(PeeweeBase):
 
 class AstraProducts(PeeweeBase):
     """Model for the summary of astra products"""
-    product: str = None
+    product: str = Field(None, description="the name of the product or file species")
     location: Optional[str] = Field(None, description='the file location')
 
     @computed_field(description="The filestem of the product")
@@ -286,18 +286,18 @@ class AstraProducts(PeeweeBase):
 class AstraSummary(PeeweeBase):
     """Pydantic response model for summary of pipe metadata for astra"""
 
-    source: Optional[AstraSource] = None
-    products: Optional[list[AstraProducts]] = None
+    source: Optional[AstraSource] = Field(None, description='info from the astra.source table for the target')
+    products: Optional[list[AstraProducts]] = Field(None, description='list of products for the target')
 
 class ApoStarSummary(PeeweeBase):
     """Model for summary of apogee star fields"""
 
-    pk: int
-    starver: int = None
+    pk: int = Field(..., description="the unique pk identifier for the apogee_star row")
+    starver: int = Field(None, description="the last MJD from all visits used in the star product name")
     location: Optional[str] = Field(None, description='the file location')
-    product: str = 'apStar'
-    nvisits: Optional[int] = None
-    telescope: str = None
+    product: str = Field('apStar', description="the data product name, which is apStar for apogee star summary")
+    nvisits: Optional[int] = Field(None, description="the number of visits for the star")
+    telescope: str = Field(None, description="the telescope used for the observation")
 
     @computed_field(description="The filestem of the product")
     @property
@@ -308,12 +308,12 @@ class ApoStarSummary(PeeweeBase):
 class ApoVisitSummary(PeeweeBase):
     """Model for summary of apogee visit fields"""
 
-    pk: int
-    mjd: int = None
+    pk: int = Field(..., description="the unique pk identifier for the apogee_visit row")
+    mjd: int = Field(None, description="the MJD of the visit")
     location: Optional[str] = Field(None, description='the file location')
-    product: str = 'apVisit'
-    telescope: str = None
-    field: int = None
+    product: str = Field('apVisit', description="the data product name, which is apVisit for apogee visit summary")
+    telescope: str = Field(None, description="the telescope used for the observation")
+    field: int = Field(None, description="the observed field id")
 
     @computed_field(description="The filestem of the product")
     @property
@@ -324,8 +324,8 @@ class ApoVisitSummary(PeeweeBase):
 class ApogeeSummary(PeeweeBase):
     """ Pydantic response model for summary of pipe metadata for apogee"""
 
-    stars: Optional[list[ApoStarSummary]] = None
-    visits: Optional[list[ApoVisitSummary]] = None
+    stars: Optional[list[ApoStarSummary]] = Field(None, description="list of star product summaries for the target")
+    visits: Optional[list[ApoVisitSummary]] = Field(None, description="list of visit product summaries for the target")
 
 class ApogeeStar(PeeweeBase):
     """Pydantic response model for the MWM Apogee DRP pipeline star metadata"""
