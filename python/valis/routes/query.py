@@ -235,7 +235,7 @@ class QueryRoutes(Base):
 
     @router.post(
         "/altids",
-        summary="Performa search for SDSS targets based on a list of alternative ids",
+        summary="Perform a search for SDSS targets based on a list of alternative ids",
         response_model=List[SDSSModel],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )

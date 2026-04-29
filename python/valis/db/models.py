@@ -166,6 +166,10 @@ class BossSummary(PeeweeBase):
     @property
     def product(self) -> str:
         """The access product or file species name"""
+        # in case boss_version is None
+        if not self.boss_version:
+            return 'specLite'
+
         if self.boss_version.label == "daily":
             return "specLite"
         elif self.boss_version.label == "allepoch":
@@ -298,7 +302,7 @@ class ApoStarSummary(PeeweeBase):
     @computed_field(description="The filestem of the product")
     @property
     def stem(self) -> str:
-        """The stem of the file name, which is the MJD for BOSS spectra"""
+        """The stem of the file name for apogee star spectra"""
         return pathlib.Path(self.location).stem if self.location else None
 
 class ApoVisitSummary(PeeweeBase):
@@ -314,11 +318,11 @@ class ApoVisitSummary(PeeweeBase):
     @computed_field(description="The filestem of the product")
     @property
     def stem(self) -> str:
-        """The stem of the file name, which is the MJD for BOSS spectra"""
+        """The stem of the file name for apogee visit spectra"""
         return pathlib.Path(self.location).stem if self.location else None
 
 class ApogeeSummary(PeeweeBase):
-    """ Pydantic response model for summmary of pipe metadata for apogee"""
+    """ Pydantic response model for summary of pipe metadata for apogee"""
 
     stars: Optional[list[ApoStarSummary]] = None
     visits: Optional[list[ApoVisitSummary]] = None

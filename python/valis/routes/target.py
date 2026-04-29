@@ -287,7 +287,7 @@ class Target(Base):
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
         response_model=list[ParentCatalogModel],
         responses={400: {"description": "Invalid input sdss_id or catalog"}},
-        summary="Retrieve parent catalog information for a taget by sdss_id",
+        summary="Retrieve parent catalog information for a target by sdss_id",
     )
     @valis_cache(namespace="valis-target")
     async def get_parents(
@@ -382,7 +382,7 @@ class Target(Base):
         except AttributeError as e:
             raise HTTPException(status_code=400, detail=f"Error: {e}") from e
 
-        if bb is None:
+        if not bb:
             raise HTTPException(status_code=404, detail=f"No target found for sdss_id {sdss_id}")
 
         if len(bb) > 1:

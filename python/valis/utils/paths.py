@@ -129,6 +129,8 @@ def build_boss_path(values: dict, release: str, lite: bool = True,
             suffix = ""
         case "epoch":
             suffix = "_epoch"
+        case _:  # default to daily
+            suffix = ""
 
     if 'IPL' in release or 'WORK' in release or int(release.split('DR')[-1]) >= 18:
         name = 'specLite' if lite else 'specFull'
@@ -161,7 +163,7 @@ def build_apogee_path(values: dict, release: str, ignore_existence: bool = False
     str
         the output file path
     """
-    file = values.get('file', '')
+    file = values.get('file', '') or ''
     match file:
         case _ if 'apStar' in file:
             name = 'apStar'
@@ -241,7 +243,7 @@ def build_legacy_path(values: dict, release: str = "DR17", ignore_existence: boo
                            defaults={'prefix': prefix, 'apstar':'stars', 'wave':'LOG'}, ignore_existence=ignore_existence)
 
 
-def get_pathcomp(path: str, release: str, piece:str = 'url') -> str:
+def get_pathcomp(path: str, release: str, piece: str = 'url') -> str | bool:
     """ Get a path component for a given filepath and release
 
     Parameters
@@ -255,8 +257,8 @@ def get_pathcomp(path: str, release: str, piece:str = 'url') -> str:
 
     Returns
     -------
-    str
-        _description_
+    str | bool
+        the requested path component or a boolean indicating existence
     """
     pp = Path(release=release)
     match piece:
@@ -270,3 +272,5 @@ def get_pathcomp(path: str, release: str, piece:str = 'url') -> str:
             return pp.dir('', full=path)
         case 'name':
             return pp.name('', full=path)
+        case _:
+            return pp.url('', full=path)

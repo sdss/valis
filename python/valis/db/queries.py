@@ -712,10 +712,10 @@ def get_target_pipeline(sdss_id: int, release: str, pipeline: str = "all") -> di
     # create initial dict
     data = {
         "info": {},
-        "boss": {},
+        "boss": [],
         "apogee": {},
         "astra": {},
-        "files": {"boss": [""], "apogee": [""], "astra": [""]},
+        "files": {"boss": [], "apogee": [], "astra": []},
         "astra_pipelines": [],
     }
     data["info"].update(pipes or {})
