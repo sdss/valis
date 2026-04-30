@@ -9,68 +9,47 @@ Route Structure:
     lvm/
     ├── __init__.py           # Route exports
     ├── common.py             # Constants, enums, parsers, validators
-    ├── io.py                 # File resolution, async FITS reading
-    ├── services.py           # DRP, DAP extraction & plotting
+    ├── io.py                 # LVMBase: async path resolution + run_sync + file_exists
+    ├── services.py           # Synchronous FITS extraction + matplotlib plotting
     └── endpoints/            # FastAPI routers
-        ├── __init__.py       # Combined router
+        ├── __init__.py       # Combined router (auth applied per-subrouter)
         ├── cutout.py         # GET /cutout/image/{version}/{hips}
-        ├── drp.py            # GET /fiber_spectrum/
-        │                     # GET /plot_fiber_spectrum/
-        │                     # GET /plot_exposure_spectrum/
-        ├── dap.py            # GET /dap_fiber_output/
-        │                     # GET /plot_dap_fiber_spectrum/
-        │                     # GET /dap_lines/{tile_id}/{mjd}/{exposure}
-        └── static.py         # GET /analyzed-sdssdb
-                              # GET /observed-sdssdb
-                              # GET /planned-sdssdb
+        ├── drp.py            # GET /drp/fiber/
+        │                     # GET /drp/fiber/plot/
+        │                     # GET /drp/exposure/plot/
+        ├── dap.py            # GET /dap/fiber/
+        │                     # GET /dap/fiber/plot/
+        │                     # GET /dap/lines/
+        └── static.py         # GET /analyzed, /observed, /planned
 
 Layer Architecture:
 ===================
 
-    ┌─────────────┐
-    │  endpoints/ │  ← FastAPI routes (HTTP handlers)
-    └──────┬──────┘
-           │ calls
-    ┌──────▼──────┐
-    │  services   │  ← Business logic (extraction, plotting)
-    └──────┬──────┘
-           │ uses
-    ┌──────▼──────┐
-    │     io      │  ← Async file I/O (FITS reading)
-    └──────┬──────┘
-           │ validates with
-    ┌──────▼──────┐
-    │   common    │  ← Shared utilities (parsers, validators)
-    └─────────────┘
+         ┌──────────────┐
+         │  endpoints/  │  FastAPI CBVs, subclass LVMBase
+         └───┬──────┬───┘
+             │      │
+      uses   │      │   uses
+             ▼      ▼
+    ┌──────────┐  ┌──────────┐
+    │    io    │  │ services │  (sibling layers)
+    │  LVMBase │  │          │
+    └────┬─────┘  └────┬─────┘
+         │             │
+         └──────┬──────┘
+                ▼
+         ┌───────────┐
+         │  common   │  constants, parsers, validators
+         └───────────┘
+
+io:       async path resolution (sdss_access/tree/hardcoded fallback),
+          async file_exists, generic run_sync executor.
+services: pure sync functions invoked via run_sync from endpoints
+          (FITS extraction, matplotlib figure construction).
+Endpoints orchestrate: parse request -> resolve path (io) ->
+                       read+process (services via run_sync) -> build response.
 """
 
 from .endpoints import router
-from .common import (
-    LAST_DRP_VERSION, ALLOWED_LINE_TYPES, arr2list,
-    parse_line_query_fiber, parse_line_query_exposure, parse_line_query_dap_fiber,
-    build_spectrum_requests
-)
-from .io import get_LVM_drpall_record, get_SFrame_filename, get_DAP_filenames
-from .services import (
-    extract_fiber_data, extract_dap_fiber_data, process_spectrum_requests,
-    create_spectrum_plot, figure_response
-)
 
-__all__ = [
-    'router',
-    'LAST_DRP_VERSION',
-    'ALLOWED_LINE_TYPES',
-    'arr2list',
-    'parse_line_query_fiber',
-    'parse_line_query_exposure',
-    'parse_line_query_dap_fiber',
-    'build_spectrum_requests',
-    'get_LVM_drpall_record',
-    'get_SFrame_filename',
-    'get_DAP_filenames',
-    'extract_fiber_data',
-    'extract_dap_fiber_data',
-    'process_spectrum_requests',
-    'create_spectrum_plot',
-    'figure_response',
-]
+__all__ = ['router']

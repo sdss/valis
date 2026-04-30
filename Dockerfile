@@ -67,6 +67,18 @@ RUN uv pip install --python .venv/bin/python "cdshealpix>=0.7.0" "numba>=0.59.1"
 RUN git clone https://github.com/cds-astro/hips2fits-cutout.git /usr/lib/hips2fits-cutout
 ENV PYTHONPATH=/usr/lib/hips2fits-cutout:$PYTHONPATH
 
+# Install sdss-tree from git main to get DR20 LVM templates
+# (lvm_drpall, lvm_sframe, lvm_dap, lvm_dapall, LVM_SPECTRO_ANALYSIS)
+# missing in PyPI 4.1.2. Replicates the library's own wheel build:
+# copy_data.py stages cfg files where setup.cfg's package_data expects them.
+# NOTE: must stay the last uv/pip step — any later `uv sync` would revert sdss-tree to 4.1.2 from uv.lock.
+# TODO: replace with a pinned PyPI version once 4.1.3 is released.
+RUN git clone --depth 1 https://github.com/sdss/tree.git /tmp/tree-src \
+    && cd /tmp/tree-src \
+    && /app/venv/bin/python bin/copy_data.py \
+    && uv pip install --python /tmp/.venv/bin/python . \
+    && rm -rf /tmp/tree-src
+
 # Setting environment variables
 # these can be manually overridden
 ENV MODULE_NAME="valis.wsgi"

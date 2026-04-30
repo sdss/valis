@@ -11,11 +11,10 @@ import numpy as np
 import pandas as pd
 from astropy.io import fits
 
-from valis.routes.base import Base
 from valis.routes.files import ORJSONResponseCustom
 
 from ..common import arr2list, parse_line_query_dap_fiber, validate_fiberid
-from ..io import get_DAP_filenames, run_in_executor
+from ..io import LVMBase
 from ..services import extract_dap_fiber_data, create_spectrum_plot, figure_response
 
 # Default colors for DAP components when not specified
@@ -34,7 +33,7 @@ router = APIRouter()
 
 
 @cbv(router)
-class DAP(Base):
+class DAP(LVMBase):
     """DAP analysis endpoints"""
 
     @router.get('/dap/fiber/', summary='Get LVM DAP Fiber Output Data')
@@ -98,15 +97,16 @@ class DAP(Base):
         for parsed in parsed_data:
             id_parts = parsed['id'].split('/')
             dapver, expnum, fiberid = id_parts[0], int(id_parts[1]), int(id_parts[2])
+            drpver = parsed.get('drpver')
             validate_fiberid(fiberid)
 
             try:
-                dap_file, output_file, relative_path = await get_DAP_filenames(expnum, dapver)
+                dap_file, output_file, relative_path = await self.get_dap_filenames(expnum, dapver, drpver=drpver)
             except FileNotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e))
 
             try:
-                result = await run_in_executor(
+                result = await self.run_sync(
                     extract_dap_fiber_data, dap_file, output_file, fiberid, parsed['components']
                 )
             except ValueError as e:
@@ -238,6 +238,7 @@ class DAP(Base):
         for parsed in parsed_lines:
             id_parts = parsed['id'].split('/')
             dapver, expnum, fiberid = id_parts[0], int(id_parts[1]), int(id_parts[2])
+            drpver = parsed.get('drpver')
 
             try:
                 validate_fiberid(fiberid)
@@ -245,12 +246,12 @@ class DAP(Base):
                 raise HTTPException(status_code=400, detail=str(e))
 
             try:
-                dap_file, output_file, _ = await get_DAP_filenames(expnum, dapver)
+                dap_file, output_file, _ = await self.get_dap_filenames(expnum, dapver, drpver=drpver)
             except FileNotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e))
 
             try:
-                result = await run_in_executor(
+                result = await self.run_sync(
                     extract_dap_fiber_data, dap_file, output_file, fiberid, parsed['components']
                 )
             except ValueError as e:
@@ -355,7 +356,8 @@ class DAP(Base):
     async def get_dap_lines(
         self,
         expnum: Annotated[int, Query(description="Exposure number", example=43064)],
-        dapver: Annotated[str, Query(description='DAP version (e.g., 1.2.0, 1.1.1)', example='1.2.0')] = '1.2.0',
+        dapver: Annotated[str, Query(description='DAP version', example='1.2.0')] = '1.2.0',
+        drpver: Annotated[Optional[str], Query(description='DRP version for DAP path resolution', example='1.2.0')] = None,
         wl: str = Query('6562.85,4861.36', description='Emission lines (wavelengths)', example='6562.85,4861.36'),
     ):
         """
@@ -392,7 +394,7 @@ class DAP(Base):
         ```
         """
         try:
-            dap_file, _, relative_path = await get_DAP_filenames(expnum, dapver)
+            dap_file, _, relative_path = await self.get_dap_filenames(expnum, dapver, drpver=drpver)
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except IndexError:
@@ -421,4 +423,4 @@ class DAP(Base):
                 output[f"{w}"] = df_pivot[w].tolist()
             return output
 
-        return await run_in_executor(read_fluxes)
+        return await self.run_sync(read_fluxes)

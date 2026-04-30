@@ -327,6 +327,25 @@ class TestDAPComponentExtraction:
 class TestDAPFileResolution:
     """Test DAP file resolution with .fits/.fits.gz priority"""
 
+    class _FakePath:
+        def __init__(self, release):
+            self.release = release
+            self.calls = []
+
+        def lookup_names(self):
+            return ['lvm_dap']
+
+        def full(self, name, **kwargs):
+            assert name == 'lvm_dap'
+            self.calls.append(kwargs.copy())
+            root = '/sas/dr20/spectro/lvm/analysis' if self.release == 'dr20' else '/sas/sdsswork/lvm/spectro/analysis'
+            suffix = str(kwargs['expnum']).zfill(8)
+            version_path = f"{kwargs['drpver']}/{kwargs['dapver']}" if kwargs['dapver'] else kwargs['drpver']
+            return (
+                f"{root}/{version_path}/1048XX/{kwargs['tileid']}/{kwargs['mjd']}/{suffix}/"
+                f"dap-{kwargs['rspid']}-{kwargs['snlevel']}-{suffix}.{kwargs['daptype']}.fits"
+            )
+
     def _create_mock_drpall(self, drpall_dir, drpver, expnum, tile_id, mjd):
         """Helper to create mock drpall."""
         cols = [
@@ -341,10 +360,72 @@ class TestDAPFileResolution:
             fits.BinTableHDU.from_columns(cols),
         ]).writeto(drpall_dir / f'drpall-{drpver}.fits')
 
+    def test_dap_path_uses_sdss_access_drp_and_dap_versions(self):
+        """DR20 DAP paths use lvm_dap with separate DRP and DAP build versions."""
+        from valis.routes.lvm.io import _dap_file_path
+
+        path = self._FakePath('dr20')
+        resolved = _dap_file_path(
+            '1.2.0', '1.2.0.251218', 1048982, 60859, 99999, 'dap', path=path
+        )
+
+        assert path.calls[0]['drpver'] == '1.2.0'
+        assert path.calls[0]['dapver'] == '1.2.0.251218'
+        assert '/analysis/1.2.0/1.2.0.251218/' in resolved
+        assert resolved.endswith('/dap-rsp108-sn20-00099999.dap.fits')
+
+    def test_dap_path_normalises_work_dapver_for_sdss_access(self):
+        """WORK lvm_dap paths keep the one-version directory layout."""
+        from valis.routes.lvm.io import _dap_file_path
+
+        path = self._FakePath('sdsswork')
+        resolved = _dap_file_path(
+            '1.2.0', '1.2.0', 1048982, 60859, 99999, 'dap', path=path
+        )
+
+        assert path.calls[0]['drpver'] == '1.2.0'
+        assert path.calls[0]['dapver'] == ''
+        assert '/analysis/1.2.0/1048XX/' in resolved
+        assert '/analysis/1.2.0/1.2.0/' not in resolved
+
+    def test_dap_paths_resolve_each_release_immediately(self):
+        """Do not retain sdss_access Path objects across release switches."""
+        from valis.routes.lvm.io import _dap_file_path
+
+        dr20 = _dap_file_path(
+            '1.2.0', '1.2.0.251218', 1048982, 60859, 99999, 'dap',
+            path=self._FakePath('dr20')
+        )
+        work = _dap_file_path(
+            '1.2.0', '1.2.0', 1048982, 60859, 99999, 'dap',
+            path=self._FakePath('sdsswork')
+        )
+
+        assert dr20.startswith('/sas/dr20/')
+        assert work.startswith('/sas/sdsswork/')
+
+    def test_real_sdss_access_path_rebinds_release_before_full(self):
+        """A later Path(release=...) must not change an earlier DAP release."""
+        from sdss_access.path import Path
+        from valis.routes.lvm.io import _dap_file_path
+
+        dr20_path = Path(release='DR20')
+        if 'lvm_dap' not in dr20_path.lookup_names():
+            pytest.skip('sdss_access tree does not provide lvm_dap')
+
+        Path(release='sdsswork')
+        resolved = _dap_file_path(
+            '1.2.0', '1.2.0.251218', 1056245, 60405, 15660, 'dap',
+            path=dr20_path
+        )
+
+        assert '/dr20/spectro/lvm/analysis/1.2.0/1.2.0.251218/' in resolved
+        assert '/sdsswork/' not in resolved
+
     def test_dap_prefers_uncompressed(self, tmp_path, monkeypatch):
         """Test that .fits is preferred over .fits.gz"""
         import asyncio
-        from valis.routes.lvm.io import get_DAP_filenames
+        from valis.routes.lvm.io import _get_dap_filenames
 
         sas_root = tmp_path / 'sas'
         drpver = '1.2.0'
@@ -367,7 +448,7 @@ class TestDAPFileResolution:
 
         monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
 
-        dap_file, output_file, relative_path = asyncio.run(get_DAP_filenames(expnum, drpver))
+        dap_file, output_file, relative_path = asyncio.run(_get_dap_filenames(expnum, drpver))
 
         assert dap_file.endswith('.fits')
         assert not dap_file.endswith('.fits.gz')
@@ -378,7 +459,7 @@ class TestDAPFileResolution:
     def test_dap_falls_back_to_gz(self, tmp_path, monkeypatch):
         """Test fallback to .fits.gz when .fits not available"""
         import asyncio
-        from valis.routes.lvm.io import get_DAP_filenames
+        from valis.routes.lvm.io import _get_dap_filenames
 
         sas_root = tmp_path / 'sas'
         drpver = '1.2.0'
@@ -399,7 +480,7 @@ class TestDAPFileResolution:
 
         monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
 
-        dap_file, output_file, relative_path = asyncio.run(get_DAP_filenames(expnum, drpver))
+        dap_file, output_file, relative_path = asyncio.run(_get_dap_filenames(expnum, drpver))
 
         assert dap_file.endswith('.fits.gz')
         assert output_file.endswith('.fits.gz')
@@ -408,7 +489,7 @@ class TestDAPFileResolution:
     def test_dap_file_not_found(self, tmp_path, monkeypatch):
         """Test error when neither .fits nor .fits.gz exists"""
         import asyncio
-        from valis.routes.lvm.io import get_DAP_filenames
+        from valis.routes.lvm.io import _get_dap_filenames
 
         sas_root = tmp_path / 'sas'
         drpver = '1.2.0'
@@ -427,4 +508,4 @@ class TestDAPFileResolution:
         monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
 
         with pytest.raises(FileNotFoundError, match="Neither .* nor .* exists"):
-            asyncio.run(get_DAP_filenames(expnum, drpver))
+            asyncio.run(_get_dap_filenames(expnum, drpver))

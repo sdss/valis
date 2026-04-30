@@ -299,13 +299,9 @@ def setup_lvm_sas(monkeypatch, tmp_path):
     monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
     
     # Monkeypatch LVM I/O functions to use mock data
-    from valis.routes.lvm import io as lvm_io_module
+    from valis.routes.lvm import io as lvm_io
 
-    original_get_drpall = lvm_io_module.get_LVM_drpall_record
-    original_get_sframe = lvm_io_module.get_SFrame_filename
-    original_get_dap = lvm_io_module.get_DAP_filenames
-    
-    async def patched_get_drpall(expnum, drpver):
+    async def patched_get_drpall(expnum, drpver, tree=None, path=None):
         import asyncio
         from astropy.io import fits
         loop = asyncio.get_event_loop()
@@ -329,7 +325,7 @@ def setup_lvm_sas(monkeypatch, tmp_path):
         
         return await loop.run_in_executor(None, read_fits)
     
-    async def patched_get_sframe(expnum, drpver):
+    async def patched_get_sframe(expnum, drpver, tree=None, path=None):
         drp_record = await patched_get_drpall(expnum, drpver)
         location = drp_record['location'].decode() if isinstance(drp_record['location'], bytes) else drp_record['location']
         file = str(sas_root / location)
@@ -339,9 +335,10 @@ def setup_lvm_sas(monkeypatch, tmp_path):
         
         return file
     
-    async def patched_get_dap(expnum, dapver):
+    async def patched_get_dap(expnum, dapver, drpver=None, tree=None, path=None):
         import asyncio
-        drp_record = await patched_get_drpall(expnum, dapver)
+        drpver = drpver or dapver
+        drp_record = await patched_get_drpall(expnum, drpver)
 
         tile_id = int(drp_record['tileid'])
         mjd = int(drp_record['mjd'])
@@ -369,9 +366,9 @@ def setup_lvm_sas(monkeypatch, tmp_path):
 
         return dap_file, output_file, relative_path
     
-    monkeypatch.setattr(lvm_io_module, 'get_LVM_drpall_record', patched_get_drpall)
-    monkeypatch.setattr(lvm_io_module, 'get_SFrame_filename', patched_get_sframe)
-    monkeypatch.setattr(lvm_io_module, 'get_DAP_filenames', patched_get_dap)
+    monkeypatch.setattr(lvm_io, '_get_drpall_record', patched_get_drpall)
+    monkeypatch.setattr(lvm_io, '_get_sframe_filename', patched_get_sframe)
+    monkeypatch.setattr(lvm_io, '_get_dap_filenames', patched_get_dap)
 
     return {
         'sas_base': sas_base,

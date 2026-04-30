@@ -13,7 +13,7 @@ def validate_release(value: str) -> str:
     """ Validate a release value """
     if value.upper() not in Tree.get_available_releases():
         raise ValueError(f'Validation error: release {value} not a valid release')
-    return value
+    return value.upper()
 
 
 class BaseBody(BaseModel):

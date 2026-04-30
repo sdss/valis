@@ -6,7 +6,7 @@ from enum import Enum
 from functools import lru_cache
 from typing import List, Literal, Optional, Union
 
-from pydantic import AnyHttpUrl, Field, field_validator
+from pydantic import AnyHttpUrl, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from valis import config
@@ -51,7 +51,20 @@ class Settings(BaseSettings):
     db_reset: bool = True
     cache_backend: CacheBackendEnum | None = CacheBackendEnum.inmemory
     cache_ttl: int = 15552000 # 6 months
+    # cookie settings for the HttpOnly refresh-token cookie; secure defaults to
+    # True in production and False in dev/test to avoid HTTPS requirement locally
+    cookie_name: str = 'sdss_refresh_token'
+    cookie_secure: Optional[bool] = None
+    cookie_samesite: Literal['strict', 'lax', 'none'] = 'strict'
+    cookie_path: str = '/'
+    cookie_max_age: int = 30 * 24 * 3600
     model_config = SettingsConfigDict(env_prefix="valis_")
+
+    @model_validator(mode='after')
+    def set_cookie_secure_default(self) -> 'Settings':
+        if self.cookie_secure is None:
+            self.cookie_secure = self.env == EnvEnum.prod
+        return self
 
     @field_validator('allow_origin')
     @classmethod
