@@ -50,6 +50,38 @@ class CredToken(CredentialBase):
     refresh: str = None
 
 
+def _split_bearer_token(auth_header: str) -> str:
+    """Return the token only when the header is an app Bearer credential."""
+    parts = auth_header.split(None, 1)
+    if len(parts) != 2 or parts[0].lower() != 'bearer':
+        return ''
+    return parts[1].strip()
+
+
+def get_app_auth_header(request: Request) -> str:
+    """Return the app Bearer header from the configured request header.
+
+    Read ``settings.app_auth_header`` first. If that header is not
+    ``Authorization`` and has no Bearer token, fall back to
+    ``Authorization: Bearer ...`` for older clients.
+    """
+    # Read the app token from the configured header first. This lets external
+    # Basic auth use Authorization without hiding the app's Bearer token.
+    auth_header = request.headers.get(settings.app_auth_header, '')
+    token = _split_bearer_token(auth_header)
+    if token:
+        return f'Bearer {token}'
+
+    # Keep Authorization: Bearer working for older clients. Authorization: Basic
+    # is ignored here.
+    if settings.app_auth_header.lower() != 'authorization':
+        auth_header = request.headers.get('Authorization', '')
+        token = _split_bearer_token(auth_header)
+        if token:
+            return f'Bearer {token}'
+    return ''
+
+
 class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
 
     async def __call__(self, request: Request, release: str = Depends(release)):
@@ -57,7 +89,15 @@ class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
 
         if 'DR' in self.release or settings.env == 'development':
             return None
-        await super().__call__(request)
+        auth_header = get_app_auth_header(request)
+        token = _split_bearer_token(auth_header)
+        if not token:
+            raise HTTPException(
+                status_code=401,
+                detail='Not authenticated',
+                headers={'WWW-Authenticate': 'Bearer'},
+            )
+        return token
 
 
 oauth2_scheme = SDSSAuthPasswordBearer(tokenUrl="auth/login")
@@ -95,7 +135,10 @@ callback_dict = {i.name: [i] for i in auth_callback_router.routes}
 
 
 async def verify_token(request: Request):
-    hdrs = {'Credential': request.headers.get('Authorization', '')}
+    auth_header = get_app_auth_header(request)
+    if not auth_header:
+        raise HTTPException(status_code=401, detail='Missing access token')
+    hdrs = {'Credential': auth_header}
     async with httpx.AsyncClient() as client:
         rr = await client.post('https://api.sdss.org/crowd/credential/identity', headers=hdrs)
         if rr.is_error:
@@ -135,7 +178,10 @@ class Auth(Base):
     @router.post("/user", summary='Get user information', response_model=User, callbacks=callback_dict['get_member'], dependencies=[Depends(set_auth)])
     async def get_user(self, request: Request):
         """ Get user information """
-        hdrs = {'Credential': request.headers.get('Authorization', '')}
+        auth_header = get_app_auth_header(request)
+        if not auth_header:
+            raise HTTPException(status_code=401, detail='Missing access token')
+        hdrs = {'Credential': auth_header}
         async with httpx.AsyncClient() as client:
             rr = await client.post('https://api.sdss.org/crowd/credential/member', headers=hdrs)
             if rr.is_error:
@@ -146,8 +192,8 @@ class Auth(Base):
     @router.post("/refresh", summary='Refresh your auth token', response_model=Token, callbacks=callback_dict['refresh_token'])
     async def refresh_token(self, request: Request):
         """ Refresh your auth token """
-        # prefer explicit Authorization header (old clients); fall back to HttpOnly cookie
-        auth_header = request.headers.get('Authorization', '')
+        # Prefer explicit app Bearer tokens for old clients; Basic belongs to upstream auth.
+        auth_header = get_app_auth_header(request)
         if not auth_header:
             cookie_token = request.cookies.get(settings.cookie_name)
             if cookie_token:

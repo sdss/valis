@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     db_reset: bool = True
     cache_backend: CacheBackendEnum | None = CacheBackendEnum.inmemory
     cache_ttl: int = 15552000 # 6 months
+    # Header used for app Bearer tokens when an upstream proxy owns Authorization.
+    app_auth_header: str = 'Authorization'
     # cookie settings for the HttpOnly refresh-token cookie; secure defaults to
     # True in production and False in dev/test to avoid HTTPS requirement locally
     cookie_name: str = 'sdss_refresh_token'
@@ -65,6 +67,18 @@ class Settings(BaseSettings):
         if self.cookie_secure is None:
             self.cookie_secure = self.env == EnvEnum.prod
         return self
+
+    # Keep VALIS_APP_AUTH_HEADER to a plain HTTP header name: no blanks,
+    # colon, or line breaks from an accidentally pasted full header line.
+    @field_validator('app_auth_header')
+    @classmethod
+    def valid_app_auth_header(cls, value):
+        value = value.strip()
+        if not value:
+            raise ValueError('app_auth_header must not be empty')
+        if any(ch.isspace() or ch in ':\r\n' for ch in value):
+            raise ValueError('app_auth_header must be a valid HTTP header name')
+        return value
 
     @field_validator('allow_origin')
     @classmethod
