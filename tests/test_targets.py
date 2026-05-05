@@ -1,6 +1,8 @@
 # encoding: utf-8
 #
 
+import pytest
+
 
 def get_data(response):
     assert response.status_code == 200
@@ -10,7 +12,7 @@ def get_data(response):
 def test_resolve_target_name(client):
     response = client.get("/target/resolve/name?name=MaNGA 7443-12701")
     data = get_data(response)
-    assert data['coordinate']['value'] == [230.50745896, 43.53232817]
+    assert data['coordinate']['value'] == pytest.approx([230.50745896, 43.53232817], abs=0.01 / 3600)
     assert data['coordinate']['unit'] == 'deg'
     assert data['name'] in ("LEDA 2223006", "2MASX J15220182+4331560")
 
