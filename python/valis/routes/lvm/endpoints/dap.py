@@ -394,7 +394,7 @@ class DAP(LVMBase):
         ```
         """
         try:
-            dap_file, _, relative_path = await self.get_dap_filenames(expnum, dapver, drpver=drpver)
+            dap_file, relative_path = await self.get_dap_filename(expnum, dapver, 'dap', drpver=drpver)
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except IndexError:

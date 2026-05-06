@@ -509,3 +509,37 @@ class TestDAPFileResolution:
 
         with pytest.raises(FileNotFoundError, match="Neither .* nor .* exists"):
             asyncio.run(_get_dap_filenames(expnum, drpver))
+
+    def test_dap_file_resolves_without_output_file(self, tmp_path, monkeypatch):
+        """DAP lines can read the main DAP file even when spectra output is absent."""
+        import asyncio
+        from valis.routes.lvm.io import _get_dap_filename, _get_dap_filenames
+
+        sas_root = tmp_path / 'sas'
+        drpver = '1.2.0'
+        dapver = '1.2.0.251218'
+        expnum = 99996
+        tile_id = 1048982
+        mjd = 60859
+
+        drpall_dir = sas_root / 'sdsswork/lvm/spectro/redux' / drpver
+        drpall_dir.mkdir(parents=True)
+        self._create_mock_drpall(drpall_dir, drpver, expnum, tile_id, mjd)
+
+        suffix = str(expnum).zfill(8)
+        dap_dir = (
+            sas_root / 'sdsswork/lvm/spectro/analysis' / drpver / dapver /
+            '1048XX' / str(tile_id) / str(mjd) / suffix
+        )
+        dap_dir.mkdir(parents=True)
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.dap.fits').touch()
+
+        monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
+
+        dap_file, relative_path = asyncio.run(_get_dap_filename(expnum, dapver, 'dap'))
+
+        assert dap_file.endswith(f'dap-rsp108-sn20-{suffix}.dap.fits')
+        assert relative_path.endswith(f'dap-rsp108-sn20-{suffix}.dap.fits')
+
+        with pytest.raises(FileNotFoundError, match=r"\.output\.fits"):
+            asyncio.run(_get_dap_filenames(expnum, dapver))

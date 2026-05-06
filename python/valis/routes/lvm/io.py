@@ -235,34 +235,51 @@ async def _get_sframe_filename(expnum: int, drpver: str, tree=None, path=None) -
     return _sframe_path(drpver, int(rec['tileid']), int(rec['mjd']), expnum, tree=tree, path=path)
 
 
-async def _get_dap_filenames(expnum: int, dapver: str, drpver: Optional[str] = None,
-                             tree=None, path=None) -> Tuple[str, str, str]:
+async def _find_dap_file(drpver: str, dapver: str, tile_id: int, mjd: int, expnum: int,
+                         daptype: str, tree=None, path=None) -> str:
+    checked = []
+    for base in _dap_file_path_candidates(drpver, dapver, tile_id, mjd, expnum, daptype, tree=tree, path=path):
+        if await _file_exists(base):
+            return base
+        gz = f"{base}.gz"
+        if await _file_exists(gz):
+            return gz
+        checked.extend([base, gz])
+    if len(checked) == 2:
+        raise FileNotFoundError(f"Neither {checked[0]} nor {checked[1]} exists")
+    raise FileNotFoundError(f"None of these files exist: {', '.join(checked)}")
+
+
+def _relative_to_sas(file_path: str, tree=None) -> str:
+    d = tree.to_dict() if tree is not None else {}
+    sas = d.get('SAS_BASE_DIR') or os.getenv('SAS_BASE_DIR', _SDSS_SAS_DEFAULT)
+    return file_path.replace(f"{sas}/", "")
+
+
+async def _get_dap_filename(expnum: int, dapver: str, daptype: str,
+                            drpver: Optional[str] = None, tree=None, path=None) -> Tuple[str, str]:
     """
-    Resolve DAP files. Returns (dap_file, output_file, relative_path).
+    Resolve a single DAP file. Returns (file, relative_path).
     Probes .fits first, falls back to .fits.gz.
     """
     drpver = drpver or _drpver_from_dapver(dapver)
     rec = await _get_drpall_record(expnum, drpver, tree=tree, path=path)
-    tile_id, mjd = int(rec['tileid']), int(rec['mjd'])
+    file_path = await _find_dap_file(
+        drpver, dapver, int(rec['tileid']), int(rec['mjd']), expnum, daptype, tree=tree, path=path
+    )
+    return file_path, _relative_to_sas(file_path, tree=tree)
 
-    async def find(daptype: str) -> str:
-        checked = []
-        for base in _dap_file_path_candidates(drpver, dapver, tile_id, mjd, expnum, daptype, tree=tree, path=path):
-            if await _file_exists(base):
-                return base
-            gz = f"{base}.gz"
-            if await _file_exists(gz):
-                return gz
-            checked.extend([base, gz])
-        if len(checked) == 2:
-            raise FileNotFoundError(f"Neither {checked[0]} nor {checked[1]} exists")
-        raise FileNotFoundError(f"None of these files exist: {', '.join(checked)}")
 
-    dap_file = await find('dap')
-    output_file = await find('output')
-    d = tree.to_dict() if tree is not None else {}
-    sas = d.get('SAS_BASE_DIR') or os.getenv('SAS_BASE_DIR', _SDSS_SAS_DEFAULT)
-    relative_path = output_file.replace(f"{sas}/", "")
+async def _get_dap_filenames(expnum: int, dapver: str, drpver: Optional[str] = None,
+                             tree=None, path=None) -> Tuple[str, str, str]:
+    """
+    Resolve DAP spectra files. Returns (dap_file, output_file, relative_path).
+    Probes .fits first, falls back to .fits.gz.
+    """
+    dap_file, _ = await _get_dap_filename(expnum, dapver, 'dap', drpver=drpver, tree=tree, path=path)
+    output_file, relative_path = await _get_dap_filename(
+        expnum, dapver, 'output', drpver=drpver, tree=tree, path=path
+    )
     return dap_file, output_file, relative_path
 
 
@@ -293,3 +310,7 @@ class LVMBase(Base):
     async def get_dap_filenames(self, expnum: int, dapver: str,
                                 drpver: Optional[str] = None) -> Tuple[str, str, str]:
         return await _get_dap_filenames(expnum, dapver, drpver=drpver, tree=self.tree, path=self.path)
+
+    async def get_dap_filename(self, expnum: int, dapver: str, daptype: str,
+                               drpver: Optional[str] = None) -> Tuple[str, str]:
+        return await _get_dap_filename(expnum, dapver, daptype, drpver=drpver, tree=self.tree, path=self.path)

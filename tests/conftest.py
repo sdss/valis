@@ -365,10 +365,32 @@ def setup_lvm_sas(monkeypatch, tmp_path):
         relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.output{output_ext}"
 
         return dap_file, output_file, relative_path
+
+    async def patched_get_dap_file(expnum, dapver, daptype, drpver=None, tree=None, path=None):
+        import asyncio
+        drpver = drpver or dapver
+        drp_record = await patched_get_drpall(expnum, drpver)
+
+        tile_id = int(drp_record['tileid'])
+        mjd = int(drp_record['mjd'])
+        suffix = str(expnum).zfill(8)
+        tile_prefix = f"{str(tile_id)[:4]}XX" if tile_id != 11111 else "0011XX"
+
+        base_path = sas_root / 'sdsswork' / 'lvm' / 'spectro' / 'analysis' / dapver / tile_prefix / str(tile_id) / str(mjd) / suffix
+        relative_base = f"sdsswork/lvm/spectro/analysis/{dapver}/{tile_prefix}/{tile_id}/{mjd}/{suffix}"
+
+        loop = asyncio.get_event_loop()
+        base_name = base_path / f'dap-rsp108-sn20-{suffix}.{daptype}'
+        for ext in ['.fits', '.fits.gz']:
+            filepath = f"{base_name}{ext}"
+            if await loop.run_in_executor(None, os.path.exists, filepath):
+                return filepath, f"{relative_base}/dap-rsp108-sn20-{suffix}.{daptype}{ext}"
+        raise FileNotFoundError(f"Neither {base_name}.fits nor {base_name}.fits.gz exists")
     
     monkeypatch.setattr(lvm_io, '_get_drpall_record', patched_get_drpall)
     monkeypatch.setattr(lvm_io, '_get_sframe_filename', patched_get_sframe)
     monkeypatch.setattr(lvm_io, '_get_dap_filenames', patched_get_dap)
+    monkeypatch.setattr(lvm_io, '_get_dap_filename', patched_get_dap_file)
 
     return {
         'sas_base': sas_base,
