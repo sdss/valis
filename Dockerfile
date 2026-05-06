@@ -69,14 +69,16 @@ ENV PYTHONPATH=/usr/lib/hips2fits-cutout:$PYTHONPATH
 
 # Install sdss-tree from git main to get DR20 LVM templates
 # (lvm_drpall, lvm_sframe, lvm_dap, lvm_dapall, LVM_SPECTRO_ANALYSIS)
-# missing in PyPI 4.1.2. Replicates the library's own wheel build:
-# copy_data.py stages cfg files where setup.cfg's package_data expects them.
-# NOTE: must stay the last uv/pip step — any later `uv sync` would revert sdss-tree to 4.1.2 from uv.lock.
+# missing in PyPI 4.1.2. copy_data.py stages cfg files where
+# setup.cfg's package_data expects them.
+# NOTE: must stay after the final uv sync. Runtime uv commands must use --no-sync
+# until sdss-tree 4.1.3 is pinned in uv.lock. Otherwise uv run syncs .venv
+# back to the locked PyPI sdss-tree 4.1.2, which lacks DR20 LVM DAP templates.
 # TODO: replace with a pinned PyPI version once 4.1.3 is released.
 RUN git clone --depth 1 https://github.com/sdss/tree.git /tmp/tree-src \
     && cd /tmp/tree-src \
-    && /app/venv/bin/python bin/copy_data.py \
-    && uv pip install --python /tmp/.venv/bin/python --force-reinstall . \
+    && /tmp/.venv/bin/python bin/copy_data.py \
+    && uv pip install --python /tmp/.venv/bin/python --force-reinstall --no-deps . \
     && rm -rf /tmp/tree-src
 
 # Setting environment variables
@@ -100,4 +102,4 @@ LABEL org.opencontainers.image.description="valis ${VALIS_ENV} image"
 EXPOSE 8000
 
 # Start the FastAPI app for production
-CMD ["uv", "run", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
+CMD ["uv", "run", "--no-sync", "gunicorn", "-c", "python/valis/wsgi_conf.py", "valis.wsgi:app"]
