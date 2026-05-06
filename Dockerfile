@@ -76,7 +76,7 @@ ENV PYTHONPATH=/usr/lib/hips2fits-cutout:$PYTHONPATH
 RUN git clone --depth 1 https://github.com/sdss/tree.git /tmp/tree-src \
     && cd /tmp/tree-src \
     && /app/venv/bin/python bin/copy_data.py \
-    && uv pip install --python /tmp/.venv/bin/python . \
+    && uv pip install --python /tmp/.venv/bin/python --force-reinstall . \
     && rm -rf /tmp/tree-src
 
 # Setting environment variables
