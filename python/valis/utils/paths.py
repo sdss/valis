@@ -121,7 +121,7 @@ def build_boss_path(values: dict, release: str, lite: bool = True,
         the output file path
     """
     # get coadd label or fallback to daily
-    label = values.get('boss_version', {}).get('label') or 'daily'
+    label = (values and values.get('boss_version', {}).get('label')) or 'daily'
     match label:
         case "allepoch":
             suffix = "_coadd"
@@ -163,7 +163,7 @@ def build_apogee_path(values: dict, release: str, ignore_existence: bool = False
     str
         the output file path
     """
-    file = values.get('file', '') or ''
+    file = (values and values.get('file', '')) or ''
     match file:
         case _ if 'apStar' in file:
             name = 'apStar'
