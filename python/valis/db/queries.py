@@ -648,6 +648,11 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     # get apogee pipeline target
     elif pipeline == "apogee":
         output = {pipeline: {'stars': [], 'visits': []}, "files": {pipeline: []}}
+
+        # apogee is disabled for DR20
+        if release.upper() == "DR20":
+            return output
+
         # stars
         if (qq := get_apogee_target(sdss_id, release, table='star')):
             for item in qq:
