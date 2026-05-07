@@ -1315,7 +1315,8 @@ def has_legacy_data(sdss_id: int, phase: int = 5) -> bool:
         True if the target has legacy SDSS data, False otherwise
     """
     in_allspec = get_legacy_allspec(sdss_id, phase).count()
-    has_legcats = get_legacy_catalogs(sdss_id)
+    # fix this; this can return no legacy in allspec but has parent catalog from photoobj, e.g. 62245293
+    has_legcats = {}  # get_legacy_catalogs(sdss_id)
     return in_allspec > 0 or has_legcats != {}
 
 
