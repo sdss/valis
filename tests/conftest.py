@@ -358,11 +358,21 @@ def setup_lvm_sas(monkeypatch, tmp_path):
             raise FileNotFoundError(f"Neither {base_name}.fits nor {base_name}.fits.gz exists")
 
         dap_file = await find_file(str(base_path / f'dap-rsp108-sn20-{suffix}.dap'))
-        output_file = await find_file(str(base_path / f'dap-rsp108-sn20-{suffix}.output'))
+
+        checked_errors = []
+        for daptype in ('model', 'output'):
+            try:
+                output_file = await find_file(str(base_path / f'dap-rsp108-sn20-{suffix}.{daptype}'))
+                break
+            except FileNotFoundError as e:
+                checked_errors.append(str(e))
+        else:
+            raise FileNotFoundError("; ".join(checked_errors))
 
         # Build relative_path matching the actual extension found
         output_ext = '.fits.gz' if output_file.endswith('.gz') else '.fits'
-        relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.output{output_ext}"
+        output_type = 'model' if '.model.' in output_file else 'output'
+        relative_path = f"{relative_base}/dap-rsp108-sn20-{suffix}.{output_type}{output_ext}"
 
         return dap_file, output_file, relative_path
 

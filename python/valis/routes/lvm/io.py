@@ -273,14 +273,21 @@ async def _get_dap_filename(expnum: int, dapver: str, daptype: str,
 async def _get_dap_filenames(expnum: int, dapver: str, drpver: Optional[str] = None,
                              tree=None, path=None) -> Tuple[str, str, str]:
     """
-    Resolve DAP spectra files. Returns (dap_file, output_file, relative_path).
-    Probes .fits first, falls back to .fits.gz.
+    Resolve DAP spectra files. Returns (dap_file, model/output_file, relative_path).
+    Probes model before output, and .fits before .fits.gz for each product.
     """
     dap_file, _ = await _get_dap_filename(expnum, dapver, 'dap', drpver=drpver, tree=tree, path=path)
-    output_file, relative_path = await _get_dap_filename(
-        expnum, dapver, 'output', drpver=drpver, tree=tree, path=path
-    )
-    return dap_file, output_file, relative_path
+    checked_errors = []
+    for daptype in ('model', 'output'):
+        try:
+            spectra_file, relative_path = await _get_dap_filename(
+                expnum, dapver, daptype, drpver=drpver, tree=tree, path=path
+            )
+            return dap_file, spectra_file, relative_path
+        except FileNotFoundError as e:
+            checked_errors.append(str(e))
+
+    raise FileNotFoundError("; ".join(checked_errors))
 
 
 # --- Public interface for endpoint classes -----------------------------------
