@@ -26,8 +26,8 @@ dependencies = [
     "pandas>=2.3.3",
     "python-multipart>=0.0.20",
     "sdss-access>=3.0.10",
-    "sdss-tree>=4.0.10",
-    "sdssdb>=0.13.4",
+    "sdss-tree>=4.1.2",
+    "sdssdb>=1.1.0",
     "sdsstools>=1.9.2",
     "uvicorn==0.35.0",
 ]
