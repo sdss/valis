@@ -374,11 +374,14 @@ class Target(Base):
                 example=None,
             ),
         ] = "daily",
+        field: Annotated[
+            int, Query(description="Optional field for selecting specific observations.", example=None)
+        ] = None,
     ):
         """Return sdss-v boss pipeline parameters for a given sdss_id"""
 
         try:
-            bb = list(get_boss_target(sdss_id, self.release, primary=primary, pk=dbid, mjd=mjd, coadd=coadd).dicts())
+            bb = list(get_boss_target(sdss_id, self.release, primary=primary, pk=dbid, mjd=mjd, coadd=coadd, field=field).dicts())
         except AttributeError as e:
             raise HTTPException(status_code=400, detail=f"Error: {e}") from e
 

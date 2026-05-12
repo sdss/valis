@@ -161,6 +161,7 @@ class BossSummary(PeeweeBase):
     specprimary: Optional[bool] = Field(None, description="flag if this is a primary spectrum")
     boss_version: Optional[BossVersion] = Field(None, exclude=True, description="the boss version info")
     location: Optional[str] = Field(None, description='the file location')
+    field: int = Field(None, description="the observed field id")
 
     @computed_field(description="The access product or file species name")
     @property

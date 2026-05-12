@@ -433,6 +433,7 @@ def get_boss_target(
     pk: int = None,
     mjd: int = None,
     coadd: str = None,
+    field: int = None,
 ) -> peewee.ModelSelect:
     """Get BHM target metadata for an sdss_id
 
@@ -452,7 +453,8 @@ def get_boss_target(
         Optional MJD of the observation, by default None
     coadd : str, optional
         Optional coadd label, either daily, epoch or allepoch, by default None
-
+    field : int, optional
+        Optional field number to filter on, by default None
     Returns
     -------
     peewee.ModelSelect
@@ -489,6 +491,10 @@ def get_boss_target(
     # filter on coadd label
     if coadd:
         query = query.join(boss.BossVersion).where(boss.BossVersion.label == coadd)
+
+    # filter on field
+    if field:
+        query = query.where(boss.BossSpectrum.field == field)
 
     return query
 
