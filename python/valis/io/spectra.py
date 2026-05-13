@@ -2,16 +2,19 @@
 # -*- coding: utf-8 -*-
 #
 
-import pathlib
 import json
+import os
+import pathlib
 from functools import lru_cache
+
 from typing import Union
 
 import astropy.units as u
+import numpy as np
 from astropy.io import fits
 from astropy.nddata import InverseVariance
 from astropy.wcs import WCS
-import numpy as np
+
 
 try:
     from specutils import Spectrum1D
@@ -23,13 +26,13 @@ except ImportError:
 
 @lru_cache
 def read_model_json() -> dict:
-    """ Read the spectrum model JSON file """
-    with open(pathlib.Path(__file__).parent / 'model_spectra_info.json') as f:
+    """Read the spectrum model JSON file"""
+    with open(pathlib.Path(__file__).parent / "model_spectra_info.json") as f:
         return json.loads(f.read())
 
 
 def get_product_model(product: str) -> dict:
-    """ Get the product spectrum model
+    """Get the product spectrum model
 
     Get the spectrum datamodel for the given product
 
@@ -44,12 +47,12 @@ def get_product_model(product: str) -> dict:
         the data model
     """
     data = read_model_json()
-    prod = [i for i in data if i['product'] == product or product in i['aliases']]
+    prod = [i for i in data if i["product"] == product or product in i["aliases"]]
     return prod[0] if prod else None
 
 
 def extract_data(product: str, filepath: str, multispec: Union[int, str] = None) -> dict:
-    """ Extract spectral data from a file
+    """Extract spectral data from a file
 
     Extract the spectral data for a given data product
     from the input filepath.  Uses the product datamodel to
@@ -77,40 +80,43 @@ def extract_data(product: str, filepath: str, multispec: Union[int, str] = None)
     # get the spectrum model
     prod = get_product_model(product)
 
+    if not filepath or not os.path.exists(filepath):
+        raise FileNotFoundError(f"No filepath found for product {product} at {filepath}")
+
     # extract the spectral data using the lookup model
     data = {}
     with fits.open(filepath) as hdulist:
         # get the header, remove keys delineating header groups
-        data['header'] = {k: v for k, v in hdulist['PRIMARY'].header.items() if k}
+        data["header"] = {k: v for k, v in hdulist["PRIMARY"].header.items() if k}
         for param, info in prod["parameters"].items():
-            extension = multispec or info['extension']
+            extension = multispec or info["extension"]
             if info["type"] == "table":
                 # get the table data
                 vals = hdulist[extension].data[info["column"]]
 
                 # convert loglam wavelengths
-                if info['column'] == 'LOGLAM':
-                    vals = 10 ** vals
+                if info["column"] == "LOGLAM":
+                    vals = 10**vals
 
                 data[param] = vals
             elif info["type"] == "wcs":
-                wcs = WCS(data['header'])
+                wcs = WCS(data["header"])
                 vals = wcs.array_index_to_world(range(info["nwave"]))
 
                 # convert loglam wavelengths
-                if info['column'] == "LOGLAM":
-                    vals = 10 ** vals
+                if info["column"] == "LOGLAM":
+                    vals = 10**vals
 
                 # convert quantity to array
                 if isinstance(vals, u.Quantity):
                     vals = vals.value
 
                 data[param] = vals
-            elif info['type'] == "wcscon":
+            elif info["type"] == "wcscon":
                 # extract the correct wcs header column
-                npixels = hdulist[extension].header[info['nwave']]
-                cdelt = hdulist[extension].header[info['cdelt']]
-                crval = hdulist[extension].header[info['crval']]
+                npixels = hdulist[extension].header[info["nwave"]]
+                cdelt = hdulist[extension].header[info["cdelt"]]
+                crval = hdulist[extension].header[info["crval"]]
 
                 data[param] = 10 ** (np.arange(npixels) * cdelt + crval)
             else:
@@ -118,9 +124,9 @@ def extract_data(product: str, filepath: str, multispec: Union[int, str] = None)
 
         # set dtype byteorder to the native
         for key, val in data.items():
-            if key == 'header':
+            if key == "header":
                 continue
-            data[key] = val.byteswap().newbyteorder('=')
+            data[key] = val.byteswap().newbyteorder("=")
 
         return data
 
@@ -155,7 +161,7 @@ def extract_data(product: str, filepath: str, multispec: Union[int, str] = None)
 
 
 def create_spectrum1d(specdata: dict, product: str, filename: str) -> Spectrum1D:
-    """ Create a Spectrum1D object
+    """Create a Spectrum1D object
 
     Create a ``specutils.Spectrum1D`` object from the extracted spectral
     data.
@@ -182,22 +188,24 @@ def create_spectrum1d(specdata: dict, product: str, filename: str) -> Spectrum1D
         when there are no flux units in the datamodel
     """
     if not Spectrum1D:
-        raise ImportError('specutils package is not installed.')
+        raise ImportError("specutils package is not installed.")
 
     name = pathlib.Path(filename).stem
     prod = get_product_model(product)
 
     # get the valid units from the datamodel
-    fu = prod['parameters']['flux'].get('units')
-    wu = prod['parameters']['wavelength'].get('units', 'Angstroms')
+    fu = prod["parameters"]["flux"].get("units")
+    wu = prod["parameters"]["wavelength"].get("units", "Angstroms")
     if not fu:
-        raise KeyError(f'spectrum datamodel for {product} does not have specified flux units.')
+        raise KeyError(f"spectrum datamodel for {product} does not have specified flux units.")
     flux_unit = u.Unit(fu)
     wave_unit = u.Unit(wu)
 
     # create the spectrum1D object
-    return Spectrum1D(flux=specdata['flux'] * flux_unit,
-                      spectral_axis=specdata['wavelength'] * wave_unit,
-                      mask=specdata['mask'] != 0,
-                      uncertainty=InverseVariance(specdata['error']),
-                      meta={'header': specdata['header'], 'name': name})
+    return Spectrum1D(
+        flux=specdata["flux"] * flux_unit,
+        spectral_axis=specdata["wavelength"] * wave_unit,
+        mask=specdata["mask"] != 0,
+        uncertainty=InverseVariance(specdata["error"]),
+        meta={"header": specdata["header"], "name": name},
+    )

@@ -788,7 +788,8 @@ def _yield_boss_spectrum(sdss_id: int, product: str, release: str) -> Generator:
     """
 
     query = get_boss_target(sdss_id, release)
-    for row in query.dicts().iterator():
+    for obj in query.iterator():
+        row = model_to_dict(obj)
         filepath = build_boss_path(row, release)
         try:
             yield extract_data(product, filepath)
@@ -817,7 +818,8 @@ def _yield_apogee_spectrum(sdss_id: int, product: str, release: str) -> Generato
         the extracted spectral data from the file
     """
     query = get_apogee_target(sdss_id, release)
-    for row in query.dicts().iterator():
+    for obj in query.iterator():
+        row = model_to_dict(obj)
         filepath = build_apogee_path(row, release)
         try:
             yield extract_data(product, filepath)
@@ -848,7 +850,8 @@ def _yield_astra_spectrum(sdss_id: int, product: str, release: str, ext: str) ->
         the extracted spectral data from the file
     """
     query = get_astra_target(sdss_id, release)
-    for row in query.dicts().iterator():
+    for obj in query.iterator():
+        row = model_to_dict(obj)
         filepath = build_astra_path(row, release)
         try:
             yield extract_data(product, filepath, multispec=ext)

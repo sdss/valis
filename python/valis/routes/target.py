@@ -241,6 +241,8 @@ class Target(Base):
         summary="Retrieve a spectrum for a target sdss_id",
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
         response_model=List[SpectrumModel],
+        response_model_exclude_unset=True,
+        response_model_exclude_none=True,
     )
     @valis_cache(namespace="valis-target")
     async def get_spectrum(
@@ -255,7 +257,7 @@ class Target(Base):
             ),
         ] = None,
     ):
-        return list(get_a_spectrum(sdss_id, product, self.release, ext=ext))
+        return [i for i in get_a_spectrum(sdss_id, product, self.release, ext=ext) if i]
 
     @router.get(
         "/catalogs/{sdss_id}",
