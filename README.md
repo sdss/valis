@@ -74,7 +74,7 @@ Host pipe
 ```
     ssh -L 6000:localhost:5432 pipe
 ```
-2. Update your `~/.pgass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 1), Utah unid (e.g. u1234567), and db password, respectively.
+2. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 1), Utah unid (e.g. u1234567), and db password, respectively.
 ```
 localhost:[port]:*:[unid]:[password]
 host.docker.internal:[port]:*:[unid]:[password]
