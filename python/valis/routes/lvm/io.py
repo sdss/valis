@@ -13,8 +13,8 @@ Path resolution runs in 3 tiers (first match wins):
   2. env var from tree dict  -- LVM_SPECTRO_REDUX / LVM_SPECTRO_ANALYSIS
   3. hardcoded sdsswork path -- SAS_BASE_DIR + known directory layout
 
-DR20 tree (4.1.2) registers: lvm_drpall, lvm_sframe, lvm_frame, lvm_dap,
-lvm_dapall, LVM_SPECTRO_ANALYSIS.
+DR20 tree (4.1.2+) registers: lvm_drpall, lvm_sframe, lvm_frame, lvm_dap,
+lvm_lv_dap, lvm_dapall, LVM_SPECTRO_ANALYSIS.
 DR19 registers: lvm_sframe, lvm_frame, LVM_SPECTRO_REDUX.
 Tier 1 activates automatically when the tree registers a new name.
 """
@@ -163,26 +163,30 @@ def _dap_build_versions(drpver: str, dapver: str, tree=None, path=None) -> List[
 
 def _manual_dap_file_path(drpver: str, dapver: str, tile_id: int, mjd: int, expnum: int,
                           daptype: str, tree=None,
-                          rspid: str = 'rsp108', snlevel: str = 'sn20') -> str:
+                          rspid: str = 'rsp108', snlevel: str = 'sn20',
+                          lv: bool = False) -> str:
     prefix = _tile_prefix(tile_id)
     suffix = str(expnum).zfill(8)
     base = _resolve_env(tree, 'LVM_SPECTRO_ANALYSIS')
     version_path = f"{drpver}/{dapver}" if dapver else drpver
-    return f"{base}/{version_path}/{prefix}/{tile_id}/{mjd}/{suffix}/dap-{rspid}-{snlevel}-{suffix}.{daptype}.fits"
+    name_prefix = 'LV_dap' if lv else 'dap'
+    return f"{base}/{version_path}/{prefix}/{tile_id}/{mjd}/{suffix}/{name_prefix}-{rspid}-{snlevel}-{suffix}.{daptype}.fits"
 
 
 def _dap_file_path_candidates(drpver: str, dapver: str, tile_id: int, mjd: int, expnum: int,
                               daptype: str, tree=None, path=None,
-                              rspid: str = 'rsp108', snlevel: str = 'sn20') -> List[str]:
+                              rspid: str = 'rsp108', snlevel: str = 'sn20',
+                              lv: bool = False) -> List[str]:
     """Resolve DAP exposure-level product path candidates.
 
-    Prefer sdss_access `lvm_dap`; keep a manual fallback for older trees/tests.
-    Caller probes .fits vs .fits.gz afterwards.
+    Prefer sdss_access `lvm_dap` (or `lvm_lv_dap` when `lv=True`); keep a manual
+    fallback for older trees/tests. Caller probes .fits vs .fits.gz afterwards.
     """
+    template_name = 'lvm_lv_dap' if lv else 'lvm_dap'
     candidates: List[str] = []
     for build_ver in _dap_build_versions(drpver, dapver, tree=tree, path=path):
         named = _resolve_named_path(
-            path, 'lvm_dap',
+            path, template_name,
             drpver=drpver, dapver=build_ver, tileid=tile_id, mjd=mjd,
             expnum=expnum, rspid=rspid, snlevel=snlevel, daptype=daptype,
         )
@@ -191,18 +195,19 @@ def _dap_file_path_candidates(drpver: str, dapver: str, tile_id: int, mjd: int, 
         _append_unique(
             candidates,
             _manual_dap_file_path(drpver, build_ver, tile_id, mjd, expnum, daptype, tree=tree,
-                                  rspid=rspid, snlevel=snlevel)
+                                  rspid=rspid, snlevel=snlevel, lv=lv)
         )
     return candidates
 
 
 def _dap_file_path(drpver: str, dapver: str, tile_id: int, mjd: int, expnum: int,
                    daptype: str, tree=None, path=None,
-                   rspid: str = 'rsp108', snlevel: str = 'sn20') -> str:
+                   rspid: str = 'rsp108', snlevel: str = 'sn20',
+                   lv: bool = False) -> str:
     """Resolve the primary DAP exposure-level product path."""
     return _dap_file_path_candidates(
         drpver, dapver, tile_id, mjd, expnum, daptype, tree=tree, path=path,
-        rspid=rspid, snlevel=snlevel,
+        rspid=rspid, snlevel=snlevel, lv=lv,
     )[0]
 
 
@@ -236,9 +241,10 @@ async def _get_sframe_filename(expnum: int, drpver: str, tree=None, path=None) -
 
 
 async def _find_dap_file(drpver: str, dapver: str, tile_id: int, mjd: int, expnum: int,
-                         daptype: str, tree=None, path=None) -> str:
+                         daptype: str, tree=None, path=None, lv: bool = False) -> str:
     checked = []
-    for base in _dap_file_path_candidates(drpver, dapver, tile_id, mjd, expnum, daptype, tree=tree, path=path):
+    for base in _dap_file_path_candidates(drpver, dapver, tile_id, mjd, expnum, daptype,
+                                          tree=tree, path=path, lv=lv):
         if await _file_exists(base):
             return base
         gz = f"{base}.gz"
@@ -257,31 +263,36 @@ def _relative_to_sas(file_path: str, tree=None) -> str:
 
 
 async def _get_dap_filename(expnum: int, dapver: str, daptype: str,
-                            drpver: Optional[str] = None, tree=None, path=None) -> Tuple[str, str]:
+                            drpver: Optional[str] = None, tree=None, path=None,
+                            lv: bool = False) -> Tuple[str, str]:
     """
     Resolve a single DAP file. Returns (file, relative_path).
-    Probes .fits first, falls back to .fits.gz.
+    Probes .fits first, falls back to .fits.gz. When `lv=True`, resolves the
+    LV_dap-* sibling product (sdss_access template `lvm_lv_dap`).
     """
     drpver = drpver or _drpver_from_dapver(dapver)
     rec = await _get_drpall_record(expnum, drpver, tree=tree, path=path)
     file_path = await _find_dap_file(
-        drpver, dapver, int(rec['tileid']), int(rec['mjd']), expnum, daptype, tree=tree, path=path
+        drpver, dapver, int(rec['tileid']), int(rec['mjd']), expnum, daptype,
+        tree=tree, path=path, lv=lv,
     )
     return file_path, _relative_to_sas(file_path, tree=tree)
 
 
 async def _get_dap_filenames(expnum: int, dapver: str, drpver: Optional[str] = None,
-                             tree=None, path=None) -> Tuple[str, str, str]:
+                             tree=None, path=None, lv: bool = False) -> Tuple[str, str, str]:
     """
     Resolve DAP spectra files. Returns (dap_file, model/output_file, relative_path).
     Probes model before output, and .fits before .fits.gz for each product.
+    When `lv=True`, resolves the LV_dap-* variant.
     """
-    dap_file, _ = await _get_dap_filename(expnum, dapver, 'dap', drpver=drpver, tree=tree, path=path)
+    dap_file, _ = await _get_dap_filename(expnum, dapver, 'dap', drpver=drpver,
+                                          tree=tree, path=path, lv=lv)
     checked_errors = []
     for daptype in ('model', 'output'):
         try:
             spectra_file, relative_path = await _get_dap_filename(
-                expnum, dapver, daptype, drpver=drpver, tree=tree, path=path
+                expnum, dapver, daptype, drpver=drpver, tree=tree, path=path, lv=lv,
             )
             return dap_file, spectra_file, relative_path
         except FileNotFoundError as e:
@@ -315,9 +326,13 @@ class LVMBase(Base):
         return await _get_sframe_filename(expnum, drpver, tree=self.tree, path=self.path)
 
     async def get_dap_filenames(self, expnum: int, dapver: str,
-                                drpver: Optional[str] = None) -> Tuple[str, str, str]:
-        return await _get_dap_filenames(expnum, dapver, drpver=drpver, tree=self.tree, path=self.path)
+                                drpver: Optional[str] = None,
+                                lv: bool = False) -> Tuple[str, str, str]:
+        return await _get_dap_filenames(expnum, dapver, drpver=drpver,
+                                        tree=self.tree, path=self.path, lv=lv)
 
     async def get_dap_filename(self, expnum: int, dapver: str, daptype: str,
-                               drpver: Optional[str] = None) -> Tuple[str, str]:
-        return await _get_dap_filename(expnum, dapver, daptype, drpver=drpver, tree=self.tree, path=self.path)
+                               drpver: Optional[str] = None,
+                               lv: bool = False) -> Tuple[str, str]:
+        return await _get_dap_filename(expnum, dapver, daptype, drpver=drpver,
+                                       tree=self.tree, path=self.path, lv=lv)

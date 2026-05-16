@@ -92,6 +92,49 @@ class TestDAPDataEndpoints:
         response = client.get('/lvm/dap/lines/?expnum=99999999&wl=6562.85')
         assert response.status_code == 404
 
+    def test_get_dap_fiber_lv_variant(self, client, setup_lvm_sas):
+        """`;lv:1` inside l= reads LV_dap-* files; response reports lv=True."""
+        response = client.get('/lvm/dap/fiber/?l=id:1.2.0/43064/3;components:all;lv:1')
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data['spectra']) == 1
+        spectrum = data['spectra'][0]
+        assert '/LV_dap-' in spectrum['filename']
+        assert spectrum['lv'] is True
+
+    def test_get_dap_fiber_default_lv_zero(self, client, setup_lvm_sas):
+        """Omitting lv and explicit `;lv:0` both read plain dap-* files."""
+        for url in (
+            '/lvm/dap/fiber/?l=id:1.2.0/43064/3;components:observed',
+            '/lvm/dap/fiber/?l=id:1.2.0/43064/3;components:observed;lv:0',
+        ):
+            response = client.get(url)
+            assert response.status_code == 200, url
+            spectrum = response.json()['spectra'][0]
+            assert '/LV_dap-' not in spectrum['filename']
+            assert '/dap-' in spectrum['filename']
+            assert spectrum['lv'] is False
+
+    def test_get_dap_fiber_mixes_lv_and_plain_in_one_request(self, client, setup_lvm_sas):
+        """Per-l flag: same request returns both dap-* and LV_dap-* variants."""
+        response = client.get(
+            '/lvm/dap/fiber/?l=id:1.2.0/43064/3;components:observed'
+            '&l=id:1.2.0/43064/3;components:observed;lv:1'
+        )
+        assert response.status_code == 200
+
+        spectra = response.json()['spectra']
+        assert len(spectra) == 2
+        assert spectra[0]['lv'] is False and '/LV_dap-' not in spectra[0]['filename']
+        assert spectra[1]['lv'] is True and '/LV_dap-' in spectra[1]['filename']
+
+    def test_get_dap_lines_lv_variant(self, client, setup_lvm_sas):
+        """/dap/lines/ has no l= so lv stays a top-level query param: &lv=1."""
+        response = client.get('/lvm/dap/lines/?expnum=43064&wl=6562.85&lv=1')
+        assert response.status_code == 200
+        assert '/LV_dap-' in response.json()['filename']
+
 
 class TestDAPPlotEndpoints:
     """Test DAP plotting endpoints"""
@@ -182,6 +225,24 @@ class TestDAPPlotEndpoints:
     def test_plot_dap_fiber_residual_np(self, client, setup_lvm_sas):
         """Test DAP plot with residual_np component"""
         response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed,residual_np')
+        assert response.status_code == 200
+        assert response.headers['content-type'] == 'image/png'
+
+    def test_plot_dap_fiber_lv_variant(self, client, setup_lvm_sas):
+        """`;lv:1` inside l= plots LV_dap-* variant; PNG renders correctly."""
+        response = client.get('/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:all;lv:1')
+        assert response.status_code == 200
+        assert response.headers['content-type'] == 'image/png'
+
+        img = Image.open(BytesIO(response.content))
+        assert img.format == 'PNG'
+
+    def test_plot_dap_fiber_overlays_lv_and_plain(self, client, setup_lvm_sas):
+        """Per-l flag lets one request overlay dap-* and LV_dap-* curves."""
+        response = client.get(
+            '/lvm/dap/fiber/plot/?l=id:1.2.0/43064/3;components:observed;color:blue'
+            '&l=id:1.2.0/43064/3;components:observed;color:red;lv:1'
+        )
         assert response.status_code == 200
         assert response.headers['content-type'] == 'image/png'
 
@@ -333,17 +394,18 @@ class TestDAPFileResolution:
             self.calls = []
 
         def lookup_names(self):
-            return ['lvm_dap']
+            return ['lvm_dap', 'lvm_lv_dap']
 
         def full(self, name, **kwargs):
-            assert name == 'lvm_dap'
-            self.calls.append(kwargs.copy())
+            assert name in ('lvm_dap', 'lvm_lv_dap')
+            self.calls.append({'_name': name, **kwargs})
             root = '/sas/dr20/spectro/lvm/analysis' if self.release == 'dr20' else '/sas/sdsswork/lvm/spectro/analysis'
             suffix = str(kwargs['expnum']).zfill(8)
             version_path = f"{kwargs['drpver']}/{kwargs['dapver']}" if kwargs['dapver'] else kwargs['drpver']
+            name_prefix = 'LV_dap' if name == 'lvm_lv_dap' else 'dap'
             return (
                 f"{root}/{version_path}/1048XX/{kwargs['tileid']}/{kwargs['mjd']}/{suffix}/"
-                f"dap-{kwargs['rspid']}-{kwargs['snlevel']}-{suffix}.{kwargs['daptype']}.fits"
+                f"{name_prefix}-{kwargs['rspid']}-{kwargs['snlevel']}-{suffix}.{kwargs['daptype']}.fits"
             )
 
     def _create_mock_drpall(self, drpall_dir, drpver, expnum, tile_id, mjd):
@@ -573,3 +635,86 @@ class TestDAPFileResolution:
 
         with pytest.raises(FileNotFoundError, match=r"\.output\.fits"):
             asyncio.run(_get_dap_filenames(expnum, dapver))
+
+    def test_dap_path_uses_lvm_lv_dap_template_when_lv_true(self):
+        """lv=True selects sdss_access `lvm_lv_dap` template and LV_dap- prefix."""
+        from valis.routes.lvm.io import _dap_file_path
+
+        path = self._FakePath('dr20')
+        resolved = _dap_file_path(
+            '1.2.0', '1.2.0.251218', 1048982, 60859, 99999, 'dap', path=path, lv=True
+        )
+
+        assert path.calls[0]['_name'] == 'lvm_lv_dap'
+        assert resolved.endswith('/LV_dap-rsp108-sn20-00099999.dap.fits')
+
+    def test_dap_path_default_lv_false_uses_lvm_dap_template(self):
+        """Default lv=False keeps the original `lvm_dap` template + dap- prefix."""
+        from valis.routes.lvm.io import _dap_file_path
+
+        path = self._FakePath('dr20')
+        resolved = _dap_file_path(
+            '1.2.0', '1.2.0.251218', 1048982, 60859, 99999, 'dap', path=path
+        )
+
+        assert path.calls[0]['_name'] == 'lvm_dap'
+        assert resolved.endswith('/dap-rsp108-sn20-00099999.dap.fits')
+
+    def test_lv_dap_manual_fallback_uses_lv_prefix(self, tmp_path, monkeypatch):
+        """Manual fallback (no sdss_access) honors lv=True with LV_dap- prefix."""
+        import asyncio
+        from valis.routes.lvm.io import _get_dap_filenames
+
+        sas_root = tmp_path / 'sas'
+        drpver = '1.2.0'
+        expnum = 99994
+        tile_id = 1048982
+        mjd = 60859
+
+        drpall_dir = sas_root / 'sdsswork/lvm/spectro/redux' / drpver
+        drpall_dir.mkdir(parents=True)
+        self._create_mock_drpall(drpall_dir, drpver, expnum, tile_id, mjd)
+
+        suffix = str(expnum).zfill(8)
+        dap_dir = sas_root / 'sdsswork/lvm/spectro/analysis' / drpver / '1048XX' / str(tile_id) / str(mjd) / suffix
+        dap_dir.mkdir(parents=True)
+
+        (dap_dir / f'LV_dap-rsp108-sn20-{suffix}.dap.fits').touch()
+        (dap_dir / f'LV_dap-rsp108-sn20-{suffix}.model.fits').touch()
+
+        monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
+
+        dap_file, model_file, relative_path = asyncio.run(
+            _get_dap_filenames(expnum, drpver, lv=True)
+        )
+
+        assert dap_file.endswith(f'LV_dap-rsp108-sn20-{suffix}.dap.fits')
+        assert model_file.endswith(f'LV_dap-rsp108-sn20-{suffix}.model.fits')
+        assert '/LV_dap-' in relative_path
+
+    def test_lv_dap_does_not_resolve_to_plain_dap_files(self, tmp_path, monkeypatch):
+        """lv=True must not silently fall back to dap-* when LV_dap-* is missing."""
+        import asyncio
+        from valis.routes.lvm.io import _get_dap_filenames
+
+        sas_root = tmp_path / 'sas'
+        drpver = '1.2.0'
+        expnum = 99993
+        tile_id = 1048982
+        mjd = 60859
+
+        drpall_dir = sas_root / 'sdsswork/lvm/spectro/redux' / drpver
+        drpall_dir.mkdir(parents=True)
+        self._create_mock_drpall(drpall_dir, drpver, expnum, tile_id, mjd)
+
+        suffix = str(expnum).zfill(8)
+        dap_dir = sas_root / 'sdsswork/lvm/spectro/analysis' / drpver / '1048XX' / str(tile_id) / str(mjd) / suffix
+        dap_dir.mkdir(parents=True)
+
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.dap.fits').touch()
+        (dap_dir / f'dap-rsp108-sn20-{suffix}.model.fits').touch()
+
+        monkeypatch.setenv('SAS_BASE_DIR', str(sas_root))
+
+        with pytest.raises(FileNotFoundError):
+            asyncio.run(_get_dap_filenames(expnum, drpver, lv=True))
