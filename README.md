@@ -70,19 +70,19 @@ Host pipe
         ForwardX11Trusted yes
         ProxyCommand ssh -A [unid]@mwm.sdss.org nc %h %p
 ```
-1. In a terminal, create an ssh tunnel to the pipelines database localhost port 5432, to a some local port. E.g. this maps the remote db localhost port 5432 to local machine on port 6000.
+2. In a terminal, create an ssh tunnel to the pipelines database localhost port 5432, to a some local port. E.g. this maps the remote db localhost port 5432 to local machine on port 6000.
 ```
     ssh -L 6000:localhost:5432 pipe
 ```
-2. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 1), Utah unid (e.g. u1234567), and db password, respectively.
+3. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 2), Utah unid (e.g. u1234567), and db password, respectively.
 ```
 localhost:[port]:*:[unid]:[password]
 host.docker.internal:[port]:*:[unid]:[password]
 ```
 
-If for some reason, you do not want to edit your .pgpass file then set the VALIS_DB_PASS environment variable with your database password. This is shown in step 3.
+Alternatively, if you don't want to edit your .pgpass file then set the VALIS_DB_PASS environment variable with your database password. See step 4.
 
-3. Set the following environment variables.
+4. Set the following environment variables.
 
 - export VALIS_DB_PORT=6000
 - export VALIS_DB_USER={unid}
