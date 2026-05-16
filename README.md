@@ -74,16 +74,19 @@ Host pipe
 ```
     ssh -L 6000:localhost:5432 pipe
 ```
-2. Optionally, update your `~/.pgass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port, Utah unid, and db password, respectively. Alternatively, just set the VALIS_DB_PASS environment variable with your database password.
+2. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 1), Utah unid (e.g. u1234567), and db password, respectively.
 ```
 localhost:[port]:*:[unid]:[password]
 host.docker.internal:[port]:*:[unid]:[password]
 ```
+
+If for some reason, you do not want to edit your .pgpass file then set the VALIS_DB_PASS environment variable with your database password. This is shown in step 3.
+
 3. Set the following environment variables.
 
 - export VALIS_DB_PORT=6000
 - export VALIS_DB_USER={unid}
-- export VALIS_DB_PASS={password} (if skipped step 2.)
+- export VALIS_DB_PASS={password} (Do this if you skipped step 2.)
 
 or optionally add them to the `~/.config/sdss/valis.yaml` configuration file.
 
