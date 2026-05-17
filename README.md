@@ -24,9 +24,11 @@ uv pip install
 ```
 
 ### datamodel Developer Install
+```
 git clone git@github.com:sdss/datamodel.git
 cd datamodel
 pip install -e ".[test]"
+```
 
 ### Solara Dependencies
 
