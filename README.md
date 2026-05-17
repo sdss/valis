@@ -32,7 +32,7 @@ pip install -e ".[test]"
 ### fastapi and uvicorn Install
 ```
 pip install "fastapi[standard]"
-pip install uvicorn
+pip install "uvicorn[standard]"
 ```
 
 ### Solara Dependencies
