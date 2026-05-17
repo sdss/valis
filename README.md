@@ -16,12 +16,17 @@ First, follow the [uv installation instructions](https://docs.astral.sh/uv/getti
 
 It is recommended to work within an isolated virtual environment like `conda` or `venv`.  You can create a uv venv with `uv venv valis --python 3.12`.  See [uv Environments](https://docs.astral.sh/uv/pip/environments/) for more info.
 
-### Developer Install
+### valis Developer Install
 ```
 git clone https://github.com/sdss/valis valis
 cd valis
 uv pip install
 ```
+
+### datamodel Developer Install
+git clone git@github.com:sdss/datamodel.git
+cd datamodel
+pip install -e ".[test]"
 
 ### Solara Dependencies
 
@@ -47,16 +52,6 @@ To install new packages and add them to the `pyproject.toml` and `uv.lock` files
 uv add [package]
 ```
 
-### Local Development
-
-To run a local instance for development, run the following from the top level of the `valis` repo.
-```
-uvicorn valis.wsgi:app --reload
-```
-This will start a local web server at `http://localhost:8000/valis/`.  The API documentation will be located at `http://localhost:8000/valis/docs`.  Or to see the alternate documentation, go to `http://localhost:8000/valis/redoc/`
-
-By default, the app will try to cache some route responses to a Redis database in localhost. If you don't have a Redis instance running you can use `in-memory` for testing (this caches the response directly in RAM). To do so, edit `~/.config/sdss/valis.yaml` and add `cache_backend: in-memory` (this should only be used in development or it could quickly use all available memory; the memory is freed when the app is stopped). Caching can be completely disabled by setting `cache_backend: null`. The time the cache is kept can be set with the `cache_ttl` (time to live) setting option.
-
 ### Database Connection
 
 Valis uses the `sdssdb` package for all connections to databases.  The most relevant database for the API is the `sdss5db` on `pipelines.sdss.org`.  The easiest way to connect is through a local SSH tunnel. To set up a tunnel,
@@ -70,19 +65,19 @@ Host pipe
         ForwardX11Trusted yes
         ProxyCommand ssh -A [unid]@mwm.sdss.org nc %h %p
 ```
-2. In a terminal, create an ssh tunnel to the pipelines database localhost port 5432, to a some local port. E.g. this maps the remote db localhost port 5432 to local machine on port 6000.
+1. In a terminal, create an ssh tunnel to the pipelines database localhost port 5432, to a some local port. E.g. this maps the remote db localhost port 5432 to local machine on port 6000.
 ```
     ssh -L 6000:localhost:5432 pipe
 ```
-3. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 2), Utah unid (e.g. u1234567), and db password, respectively.
+2. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 1), Utah unid (e.g. u1234567), and db password, respectively.
 ```
 localhost:[port]:*:[unid]:[password]
 host.docker.internal:[port]:*:[unid]:[password]
 ```
 
-Alternatively, if you don't want to edit your .pgpass file then set the VALIS_DB_PASS environment variable with your database password. See step 4.
+If for some reason, you do not want to edit your .pgpass file then set the VALIS_DB_PASS environment variable with your database password. This is shown in step 3.
 
-4. Set the following environment variables.
+3. Set the following environment variables.
 
 - export VALIS_DB_PORT=6000
 - export VALIS_DB_USER={unid}
@@ -98,6 +93,16 @@ db_user: {unid}
 ```
 
 Additionally, you can set the environment variable `VALIS_DB_RESET=false` or add `db_reset: false` to `valis.yaml`. This will prevent the DB connection to be closed after a query completes and should speed up new queries. This setting should not be used in production.
+
+### Local Development
+
+To run a local instance for development, run the following from the top level of the `valis` repo.
+```
+uvicorn valis.wsgi:app --reload
+```
+This will start a local web server at `http://localhost:8000/valis/`.  The API documentation will be located at `http://localhost:8000/valis/docs`.  Or to see the alternate documentation, go to `http://localhost:8000/valis/redoc/`
+
+By default, the app will try to cache some route responses to a Redis database in localhost. If you don't have a Redis instance running you can use `in-memory` for testing (this caches the response directly in RAM). To do so, edit `~/.config/sdss/valis.yaml` and add `cache_backend: in-memory` (this should only be used in development or it could quickly use all available memory; the memory is freed when the app is stopped). Caching can be completely disabled by setting `cache_backend: null`. The time the cache is kept can be set with the `cache_ttl` (time to live) setting option.
 
 ## Deployment
 
