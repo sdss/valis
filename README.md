@@ -116,7 +116,9 @@ By default, the app will try to cache some route responses to a Redis database i
 
 ## Deployment
 
-This section describes a variety of deployment methods.  Valis uses gunicorn as its
+This section describes a variety of valis deployment methods so you can skip this section if you are only interested in valis development.  
+
+Valis uses gunicorn as its
 wsgi http server. It binds the app both to port 8000, and a unix socket.  The default mode is to start valis with an awsgi uvicorn server, with 4 workers.
 
 Valis requires a Redis database running at the default location in `localhost:6379`.  If this is not possible, caching can be done in memory by modifying `~/.config/sdss/valis.yaml` to use `cache_backend: in-memory`.
