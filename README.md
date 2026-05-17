@@ -7,7 +7,7 @@
 
 the SDSS API for delivering and accessing remote information.
 
-This API is built using the [FastAPI](https://fastapi.tiangolo.com/) web server.  Python depdendices are managed with [uv](https://docs.astral.sh/uv/).
+This API is built using the [FastAPI](https://fastapi.tiangolo.com/) web server.  Python dependencies are managed with [uv](https://docs.astral.sh/uv/).
 
 See [uv Features](https://docs.astral.sh/uv/getting-started/features/) for what can be done with `uv`.  See their [Project Guide](https://docs.astral.sh/uv/guides/projects/) for an intro to working on python projects.
 
@@ -15,6 +15,13 @@ See [uv Features](https://docs.astral.sh/uv/getting-started/features/) for what 
 First, follow the [uv installation instructions](https://docs.astral.sh/uv/getting-started/installation/).
 
 It is recommended to work within an isolated virtual environment like `conda` or `venv`.  You can create a uv venv with `uv venv valis --python 3.12`.  See [uv Environments](https://docs.astral.sh/uv/pip/environments/) for more info.
+
+### fastapi and uvicorn Install
+As noted above, valis uses fastapi. So first install fastapi and uvicorn and get familiar with fastapi.
+```
+pip install "fastapi[standard]"
+pip install "uvicorn[standard]"
+```
 
 ### valis Developer Install
 ```
@@ -24,15 +31,11 @@ uv pip install
 ```
 
 ### datamodel Developer Install
+valis uses sdss/datamodel so install it as shown below.
 ```
 git clone git@github.com:sdss/datamodel.git
 cd datamodel
 pip install -e ".[test]"
-```
-### fastapi and uvicorn Install
-```
-pip install "fastapi[standard]"
-pip install "uvicorn[standard]"
 ```
 
 ### Solara Dependencies
@@ -76,7 +79,7 @@ Host pipe
 ```
     ssh -L 6000:localhost:5432 pipe
 ```
-2. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 1), Utah unid (e.g. u1234567), and db password, respectively.
+2. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled local port (e.g. 6000 in step 1), Utah unid (e.g. u1234567), and db password, respectively.
 ```
 localhost:[port]:*:[unid]:[password]
 host.docker.internal:[port]:*:[unid]:[password]
