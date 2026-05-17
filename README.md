@@ -29,6 +29,11 @@ git clone git@github.com:sdss/datamodel.git
 cd datamodel
 pip install -e ".[test]"
 ```
+### fastapi and uvicorn Install
+```
+pip install "fastapi[standard]"
+pip install uvicorn
+```
 
 ### Solara Dependencies
 
