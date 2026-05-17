@@ -17,7 +17,7 @@ First, follow the [uv installation instructions](https://docs.astral.sh/uv/getti
 It is recommended to work within an isolated virtual environment like `conda` or `venv`.  You can create a uv venv with `uv venv valis --python 3.12`.  See [uv Environments](https://docs.astral.sh/uv/pip/environments/) for more info.
 
 ### fastapi and uvicorn Install
-As noted above, valis uses fastapi. So first install fastapi and uvicorn.  See [fastapi tutorial](https://fastapi.tiangolo.com/tutorial/) for an introduction to fastapi.
+As noted above, valis uses fastapi. So first install fastapi and uvicorn.  See the [fastapi tutorial](https://fastapi.tiangolo.com/tutorial/) for an introduction to fastapi.
 ```
 pip install "fastapi[standard]"
 pip install "uvicorn[standard]"
