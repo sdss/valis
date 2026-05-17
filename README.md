@@ -9,7 +9,7 @@ the SDSS API for delivering and accessing remote information.
 
 This API is built using the [FastAPI](https://fastapi.tiangolo.com/) web server.  Python dependencies are managed with [uv](https://docs.astral.sh/uv/).
 
-See [uv Features](https://docs.astral.sh/uv/getting-started/features/) for what can be done with `uv`.  See their [Project Guide](https://docs.astral.sh/uv/guides/projects/) for an intro to working on python projects.
+See [uv Features](https://docs.astral.sh/uv/getting-started/features/) for what can be done with `uv`.  See their [Project Guide](https://docs.astral.sh/uv/guides/projects/) for an introduction to working on Python projects.
 
 ## Installation
 First, follow the [uv installation instructions](https://docs.astral.sh/uv/getting-started/installation/).
@@ -17,7 +17,7 @@ First, follow the [uv installation instructions](https://docs.astral.sh/uv/getti
 It is recommended to work within an isolated virtual environment like `conda` or `venv`.  You can create a uv venv with `uv venv valis --python 3.12`.  See [uv Environments](https://docs.astral.sh/uv/pip/environments/) for more info.
 
 ### fastapi and uvicorn Install
-As noted above, valis uses fastapi. So first install fastapi and uvicorn and get familiar with fastapi.
+As noted above, valis uses fastapi. So first install fastapi and uvicorn and get familiar with using fastapi.
 ```
 pip install "fastapi[standard]"
 pip install "uvicorn[standard]"
