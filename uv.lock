@@ -6060,7 +6060,7 @@ dependencies = [
 [[package]]
 name = "sdss-solara"
 version = "0.1.0.dev0"
-source = { git = "https://github.com/sdss/sdss_solara?rev=main#a52d698128d47fb0b116e0d974997b9a6376208b" }
+source = { git = "https://github.com/sdss/sdss_solara?rev=main#ded48fb85dfe8d693f572c54c190d17920a93054" }
 dependencies = [
     { name = "jdaviz" },
     { name = "markdown" },
