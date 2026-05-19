@@ -21,7 +21,7 @@ It is recommended to work within an isolated virtual environment like `conda` or
 ```
 git clone https://github.com/sdss/valis valis
 cd valis
-uv pip install
+uv sync --python 3.12
 ```
 
 ### datamodel Developer Install
