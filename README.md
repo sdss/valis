@@ -112,6 +112,11 @@ uvicorn valis.wsgi:app --reload
 ```
 This will start a local web server at `http://localhost:8000/valis/`.  The API documentation will be located at `http://localhost:8000/valis/docs`.  Or to see the alternate documentation, go to `http://localhost:8000/valis/redoc/`
 
+If you modify the valis code (e.g. by creating a new route) then
+do the below steps to so that uvicorn uses the new valis code.
+First stop uvicorn by CTRL+C and then run the above uvicorn command
+to start valis.
+
 By default, the app will try to cache some route responses to a Redis database in localhost. If you don't have a Redis instance running you can use `in-memory` for testing (this caches the response directly in RAM). To do so, edit `~/.config/sdss/valis.yaml` and add `cache_backend: in-memory` (this should only be used in development or it could quickly use all available memory; the memory is freed when the app is stopped). Caching can be completely disabled by setting `cache_backend: null`. The time the cache is kept can be set with the `cache_ttl` (time to live) setting option.
 
 ## Deployment
