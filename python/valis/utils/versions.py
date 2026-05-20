@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 from collections import ChainMap
+from functools import lru_cache
 
 try:
     from datamodel.models import releases
@@ -10,7 +11,7 @@ try:
 except ImportError:
     releases = tags = Release = None
 
-
+@lru_cache(maxsize=32)
 def get_tag_info(release: str) -> dict:
     """ Get the software tag info for a given release
 
@@ -77,6 +78,7 @@ def get_latest_tag_info() -> dict:
     return get_tag_info(rel.name)
 
 
+@lru_cache(maxsize=32)
 def get_tags(release: str) -> dict:
     """ Get the pipeline software tags
 

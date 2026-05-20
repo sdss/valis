@@ -476,6 +476,10 @@ def get_boss_target(
     # query for the target
     query = boss.BossSpectrum.select(*fields).where(boss.BossSpectrum.sdss_id == sdss_id, vercond)
 
+    # extend with boss version info
+    query = query.select_extend(boss.BossVersion.label.alias('label')).join(boss.BossVersion,
+                                                       on=(boss.BossSpectrum.boss_version == boss.BossVersion.id))
+
     # filter on primary
     if primary:
         query = query.where(boss.BossSpectrum.specprimary == 1)
@@ -490,7 +494,7 @@ def get_boss_target(
 
     # filter on coadd label
     if coadd:
-        query = query.join(boss.BossVersion).where(boss.BossVersion.label == coadd)
+        query = query.where(boss.BossVersion.label == coadd)
 
     # filter on field
     if field:
@@ -643,9 +647,8 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     # get boss pipeline target
     if pipeline == "boss" and (qq := get_boss_target(sdss_id, release, primary=False)):
         output = {pipeline: [], "files": {pipeline: []}}
-        for item in qq:
-            res = model_to_dict(item)
-            filepath = build_boss_path(res, release=release)
+        for res in qq.dicts().iterator():
+            filepath = build_boss_path(res, release=release, ignore_existence=True)
             res.update({"location": get_pathcomp(filepath, release, "location")})
             output[pipeline].append(res)
             output["files"][pipeline].append(filepath)
@@ -661,17 +664,15 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
 
         # stars
         if (qq := get_apogee_target(sdss_id, release, table='star')):
-            for item in qq:
-                res = model_to_dict(item)
-                filepath = build_apogee_path(res, release=release)
+            for res in qq.dicts().iterator():
+                filepath = build_apogee_path(res, release=release, ignore_existence=True)
                 res.update({"location": get_pathcomp(filepath, release, "location")})
                 output[pipeline]['stars'].append(res)
                 output["files"][pipeline].append(filepath)
         # visits
         if (qq := get_apogee_target(sdss_id, release, table='visit')):
-            for item in qq:
-                res = model_to_dict(item)
-                filepath = build_apogee_path(res, release=release)
+            for res in qq.dicts().iterator():
+                filepath = build_apogee_path(res, release=release, ignore_existence=True)
                 res.update({"location": get_pathcomp(filepath, release, "location")})
                 output[pipeline]['visits'].append(res)
                 output["files"][pipeline].append(filepath)
@@ -682,7 +683,7 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
         res = qq.dicts().first()
         output = {pipeline: {"source": res, 'products': []}, "files": {pipeline: []}}
         for item in ("mwmStar", "mwmVisit"):
-            filepath = build_astra_path(res, release=release, name=item)
+            filepath = build_astra_path(res, release=release, name=item, ignore_existence=True)
             output[pipeline]['products'].append({"product": item, "location": get_pathcomp(filepath, release, "location")})
             output["files"][pipeline].append(filepath)
 

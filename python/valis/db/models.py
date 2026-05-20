@@ -159,23 +159,24 @@ class BossSummary(PeeweeBase):
     id: int = Field(..., description="the unique pk identifier for the boss_spectrum row")
     mjd: int = Field(None, description="the MJD of the observation in boss_spectrum")
     specprimary: Optional[bool] = Field(None, description="flag if this is a primary spectrum")
-    boss_version: Optional[BossVersion] = Field(None, exclude=True, description="the boss version info")
+    boss_version: Optional[int] = Field(None, exclude=True, description="the boss version id")
     location: Optional[str] = Field(None, description='the file location')
     field: int = Field(None, description="the observed field id")
+    label: Optional[str] = Field(None, exclude=True, description="the boss version coadd label")
 
     @computed_field(description="The access product or file species name")
     @property
     def product(self) -> str:
         """The access product or file species name"""
         # in case boss_version is None
-        if not self.boss_version:
+        if not self.label:
             return 'specLite'
 
-        if self.boss_version.label == "daily":
+        if self.label == "daily":
             return "specLite"
-        elif self.boss_version.label == "allepoch":
+        elif self.label == "allepoch":
             return "specLite_coadd"
-        elif self.boss_version.label == "epoch":
+        elif self.label == "epoch":
             return "specLite_epoch"
         else:
             return "specLite"
@@ -184,7 +185,7 @@ class BossSummary(PeeweeBase):
     @property
     def coadd(self) -> str:
         """The name of the coadd"""
-        return self.boss_version.label if self.boss_version else None
+        return self.label if self.label else None
 
     @computed_field(description="The filestem of the product")
     @property
