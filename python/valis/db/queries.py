@@ -477,7 +477,7 @@ def get_boss_target(
     query = boss.BossSpectrum.select(*fields).where(boss.BossSpectrum.sdss_id == sdss_id, vercond)
 
     # extend with boss version info
-    query = query.select_extend(boss.BossVersion).join(boss.BossVersion,
+    query = query.select_extend(boss.BossVersion.label.alias('label')).join(boss.BossVersion,
                                                        on=(boss.BossSpectrum.boss_version == boss.BossVersion.id))
 
     # filter on primary

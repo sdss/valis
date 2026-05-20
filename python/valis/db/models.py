@@ -159,10 +159,10 @@ class BossSummary(PeeweeBase):
     id: int = Field(..., description="the unique pk identifier for the boss_spectrum row")
     mjd: int = Field(None, description="the MJD of the observation in boss_spectrum")
     specprimary: Optional[bool] = Field(None, description="flag if this is a primary spectrum")
-    boss_version: Optional[int] = Field(None, exclude=True, description="the boss version info")
+    boss_version: Optional[int] = Field(None, exclude=True, description="the boss version id")
     location: Optional[str] = Field(None, description='the file location')
     field: int = Field(None, description="the observed field id")
-    label: str = Field(None, exclude=True, description="the boss version coadd label")
+    label: Optional[str] = Field(None, exclude=True, description="the boss version coadd label")
 
     @computed_field(description="The access product or file species name")
     @property
