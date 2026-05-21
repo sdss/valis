@@ -6,7 +6,7 @@ from enum import Enum
 from functools import lru_cache
 from typing import List, Literal, Optional, Union
 
-from pydantic import AnyHttpUrl, Field, field_validator
+from pydantic import AnyHttpUrl, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from valis import config
@@ -51,7 +51,34 @@ class Settings(BaseSettings):
     db_reset: bool = True
     cache_backend: CacheBackendEnum | None = CacheBackendEnum.inmemory
     cache_ttl: int = 15552000 # 6 months
+    # Header used for app Bearer tokens when an upstream proxy owns Authorization.
+    app_auth_header: str = 'Authorization'
+    # cookie settings for the HttpOnly refresh-token cookie; secure defaults to
+    # True in production and False in dev/test to avoid HTTPS requirement locally
+    cookie_name: str = 'sdss_refresh_token'
+    cookie_secure: Optional[bool] = None
+    cookie_samesite: Literal['strict', 'lax', 'none'] = 'strict'
+    cookie_path: str = '/'
+    cookie_max_age: int = 30 * 24 * 3600
     model_config = SettingsConfigDict(env_prefix="valis_")
+
+    @model_validator(mode='after')
+    def set_cookie_secure_default(self) -> 'Settings':
+        if self.cookie_secure is None:
+            self.cookie_secure = self.env == EnvEnum.prod
+        return self
+
+    # Keep VALIS_APP_AUTH_HEADER to a plain HTTP header name: no blanks,
+    # colon, or line breaks from an accidentally pasted full header line.
+    @field_validator('app_auth_header')
+    @classmethod
+    def valid_app_auth_header(cls, value):
+        value = value.strip()
+        if not value:
+            raise ValueError('app_auth_header must not be empty')
+        if any(ch.isspace() or ch in ':\r\n' for ch in value):
+            raise ValueError('app_auth_header must be a valid HTTP header name')
+        return value
 
     @field_validator('allow_origin')
     @classmethod

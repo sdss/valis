@@ -200,18 +200,6 @@ def validate_fiberid(fiberid: int) -> None:
         raise ValueError(f"fiberid ({fiberid}) must be between 1 and 1944.")
 
 
-def validate_spectrum_type(spectrum_type: str) -> None:
-    """Validate that spectrum type is allowed."""
-    if spectrum_type not in ALLOWED_LINE_TYPES:
-        raise ValueError(f"Invalid spectrum type: {spectrum_type}. Allowed: {list(ALLOWED_LINE_TYPES)}")
-
-
-def validate_drp_version(version: str) -> None:
-    """Validate DRP version format."""
-    if not re.match(r'^\d+\.\d+\.\d+[a-z]?$', version):
-        raise ValueError(f"Invalid DRP version format: {version}. Expected format: X.Y.Z or X.Y.Za")
-
-
 # Request Builders
 def build_spectrum_requests(l_params, expnum_q, fiberid_q, drpver_q, type_q):
     """

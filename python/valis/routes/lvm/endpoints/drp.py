@@ -9,7 +9,6 @@ from fastapi_restful.cbv import cbv
 from fastapi.responses import StreamingResponse
 from astropy.io import fits
 
-from valis.routes.base import Base
 from valis.routes.files import ORJSONResponseCustom
 
 from ..common import (
@@ -17,19 +16,69 @@ from ..common import (
     parse_line_query_fiber, parse_line_query_exposure, validate_fiberid,
     build_spectrum_requests
 )
-from ..io import get_LVM_drpall_record, get_SFrame_filename, async_file_exists, run_in_executor
+from ..io import LVMBase
 from ..services import (
     extract_fiber_data, aggregate_exposure_spectrum, create_spectrum_plot,
-    process_spectrum_requests, figure_response
+    figure_response
 )
+
+
+def _decode(value):
+    """Decode bytes column values from astropy FITS records."""
+    return value.decode() if isinstance(value, bytes) else value
 
 router = APIRouter()
 FACTOR = 1e17
 
 
 @cbv(router)
-class DRP(Base):
+class DRP(LVMBase):
     """DRP fiber spectrum endpoints"""
+
+    async def _process_spectrum_requests(self, requests, factor: float = FACTOR):
+        """Resolve SFrame paths + read fiber spectra for a batch of requests.
+
+        Returns (spectra_entries, common_wave). The entry dict uses the
+        `location` field from drpall (with drpver rewrite) as the
+        user-facing filename.
+        """
+        spectra, common_wave = [], None
+        for expnum, fiberid, drpver, stype in requests:
+            try:
+                path = await self.get_sframe_filename(expnum, drpver)
+                rec = await self.get_drpall_record(expnum, drpver)
+            except IndexError:
+                raise ValueError(f"Exposure {expnum} for DRP {drpver} not found")
+            except FileNotFoundError as e:
+                raise ValueError(f"DRPall file error: {e}")
+
+            relative = _decode(rec['location'])
+            rec_drpver = _decode(rec['drpver'])
+            if rec_drpver != drpver:
+                relative = relative.replace(rec_drpver, drpver)
+
+            if not await self.file_exists(path):
+                raise ValueError(f"SFrame file not found: {path}")
+
+            def _read(p=path, fid=fiberid, st=stype):
+                with fits.open(p) as hdul:
+                    return hdul['WAVE'].data, extract_fiber_data(hdul, fid, st, factor)
+
+            wave, data = await self.run_sync(_read)
+            if common_wave is None:
+                common_wave = wave
+
+            spectra.append({
+                'filename': relative, 'drpver': drpver, 'expnum': expnum,
+                'fiberid': fiberid, 'spectrum_type': stype,
+                stype: arr2list(data),
+            })
+
+        if not spectra:
+            raise ValueError("No valid spectrum data retrieved")
+        if common_wave is None:
+            raise ValueError("Could not retrieve wavelength data")
+        return spectra, common_wave
 
     @router.get('/drp/fiber/', summary='Get LVM DRP Fiber Spectrum Data')
     async def get_drp_fiber(
@@ -80,9 +129,7 @@ class DRP(Base):
             raise HTTPException(status_code=400, detail=str(e))
 
         try:
-            spectra_data, common_wave = await process_spectrum_requests(
-                requests, get_SFrame_filename, get_LVM_drpall_record, FACTOR
-            )
+            spectra_data, common_wave = await self._process_spectrum_requests(requests)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e))
 
@@ -160,18 +207,18 @@ class DRP(Base):
             validate_fiberid(fiberid)
 
             try:
-                file = await get_SFrame_filename(expnum, drpver)
+                file = await self.get_sframe_filename(expnum, drpver)
             except FileNotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e))
 
-            if not await async_file_exists(file):
+            if not await self.file_exists(file):
                 raise HTTPException(status_code=404, detail=f"File not found for DRP {drpver}")
 
             def read_fits():
                 with fits.open(file) as hdul:
                     return hdul['WAVE'].data, extract_fiber_data(hdul, fiberid, d['type'], FACTOR)
 
-            wave_data, spectrum = await run_in_executor(read_fits)
+            wave_data, spectrum = await self.run_sync(read_fits)
             if wave is None:
                 wave = wave_data
 
@@ -268,11 +315,11 @@ class DRP(Base):
             drpver, expnum = id_parts[0], int(id_parts[1])
 
             try:
-                file = await get_SFrame_filename(expnum, drpver)
+                file = await self.get_sframe_filename(expnum, drpver)
             except FileNotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e))
 
-            if not await async_file_exists(file):
+            if not await self.file_exists(file):
                 raise HTTPException(status_code=404, detail=f"File not found for DRP {drpver}")
 
             def read_fits():
@@ -282,7 +329,7 @@ class DRP(Base):
                         d.get('fibstatus', 0), d.get('percentile_value', 50.0), FACTOR
                     )
 
-            wave_data, spectrum = await run_in_executor(read_fits)
+            wave_data, spectrum = await self.run_sync(read_fits)
             if wave is None:
                 wave = wave_data
 

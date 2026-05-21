@@ -11,11 +11,10 @@ import numpy as np
 import pandas as pd
 from astropy.io import fits
 
-from valis.routes.base import Base
 from valis.routes.files import ORJSONResponseCustom
 
 from ..common import arr2list, parse_line_query_dap_fiber, validate_fiberid
-from ..io import get_DAP_filenames, run_in_executor
+from ..io import LVMBase
 from ..services import extract_dap_fiber_data, create_spectrum_plot, figure_response
 
 # Default colors for DAP components when not specified
@@ -34,13 +33,13 @@ router = APIRouter()
 
 
 @cbv(router)
-class DAP(Base):
+class DAP(LVMBase):
     """DAP analysis endpoints"""
 
     @router.get('/dap/fiber/', summary='Get LVM DAP Fiber Output Data')
     async def get_dap_fiber(
         self,
-        l: List[str] = Query(..., description="DAP fiber definition: `id:DAPversion/expnum/fiberid[;components:...]`")
+        l: List[str] = Query(..., description="DAP fiber definition: `id:DAPversion/expnum/fiberid[;components:...][;lv:1]`")
     ) -> ORJSONResponseCustom:
         """
         # Get LVM DAP Fiber Output Data
@@ -49,7 +48,7 @@ class DAP(Base):
 
         ## Query Format
 
-        `l=id:DAPversion/expnum/fiberid[;components:observed,stellar_continuum,...]`
+        `l=id:DAPversion/expnum/fiberid[;components:observed,stellar_continuum,...][;lv:1]`
 
         ## Components
 
@@ -63,9 +62,20 @@ class DAP(Base):
         - `residual_np` - Residual (observed - full_model_np)
         - `all` - All components
 
+        ## LV Variant (Local Volume targets)
+
+        Some LVM exposures target extragalactic sources from the **Local Volume**,
+        whose spectra contain blended emission from both the Milky Way foreground
+        and the source itself. For these targets the DAP produces two parallel
+        FITS sets with identical internal structure — the default `dap-*` and a
+        sibling `LV_dap-*` (sdss_access template `lvm_lv_dap`). Append `;lv:1`
+        to an `l=` entry to read its `LV_dap-*` counterpart. Default is `lv:0`
+        (reads `dap-*`). The flag is per-`l`, so requests can mix variants
+        for side-by-side comparison of the same fiber.
+
         ## Response
 
-        `{wave: [...], spectra: [{filename, dapver, expnum, fiberid, ra, dec, mask, components: {...}}]}`
+        `{wave: [...], spectra: [{filename, dapver, expnum, fiberid, lv, ra, dec, mask, components: {...}}]}`
 
         ## Examples
 
@@ -83,6 +93,16 @@ class DAP(Base):
         ```
         /lvm/dap/fiber/?l=id:1.2.0/43064/532;components:observed&l=id:1.2.0/43064/533;components:observed
         ```
+
+        **LV_dap variant for one fiber:**
+        ```
+        /lvm/dap/fiber/?l=id:1.2.0/43064/532;components:all;lv:1
+        ```
+
+        **Compare dap-* and LV_dap-* for the same fiber in one request:**
+        ```
+        /lvm/dap/fiber/?l=id:1.2.0/43064/532;components:observed&l=id:1.2.0/43064/532;components:observed;lv:1
+        ```
         """
         if not l:
             raise HTTPException(status_code=400, detail="Query parameter 'l' is mandatory")
@@ -98,15 +118,19 @@ class DAP(Base):
         for parsed in parsed_data:
             id_parts = parsed['id'].split('/')
             dapver, expnum, fiberid = id_parts[0], int(id_parts[1]), int(id_parts[2])
+            drpver = parsed.get('drpver')
+            lv = bool(parsed.get('lv', 0))
             validate_fiberid(fiberid)
 
             try:
-                dap_file, output_file, relative_path = await get_DAP_filenames(expnum, dapver)
+                dap_file, output_file, relative_path = await self.get_dap_filenames(
+                    expnum, dapver, drpver=drpver, lv=lv,
+                )
             except FileNotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e))
 
             try:
-                result = await run_in_executor(
+                result = await self.run_sync(
                     extract_dap_fiber_data, dap_file, output_file, fiberid, parsed['components']
                 )
             except ValueError as e:
@@ -120,6 +144,7 @@ class DAP(Base):
                 'dapver': dapver,
                 'expnum': expnum,
                 'fiberid': fiberid,
+                'lv': lv,
                 'ra': result['ra'],
                 'dec': result['dec'],
                 'mask': result['mask'],
@@ -164,7 +189,7 @@ class DAP(Base):
 
         ## Query Format
 
-        `l=id:DAPversion/expnum/fiberid[;components:...][;color:red][;lw:1.5][;alpha:0.8]`
+        `l=id:DAPversion/expnum/fiberid[;components:...][;lv:1][;color:red][;lw:1.5][;alpha:0.8]`
 
         ## Components
 
@@ -177,6 +202,17 @@ class DAP(Base):
         - `residual_pm` - Residual (observed - full_model_pm)
         - `residual_np` - Residual (observed - full_model_np)
         - `all` - All components
+
+        ## LV Variant (Local Volume targets)
+
+        Some LVM exposures target extragalactic sources from the **Local Volume**,
+        whose spectra contain blended emission from both the Milky Way foreground
+        and the source itself. For these targets the DAP produces two parallel
+        FITS sets with identical internal structure — the default `dap-*` and a
+        sibling `LV_dap-*` (sdss_access template `lvm_lv_dap`). Append `;lv:1`
+        to an `l=` entry to plot its `LV_dap-*` counterpart. Default is `lv:0`.
+        The flag is per-`l`, so a single request can overlay `dap-*` and
+        `LV_dap-*` curves of the same fiber on one figure.
 
         ## Styling Options
 
@@ -224,6 +260,16 @@ class DAP(Base):
         ```
         /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:observed;color:blue&l=id:1.2.0/43064/533;components:observed;color:red&legend=short
         ```
+
+        **LV_dap variant for one fiber:**
+        ```
+        /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:all;lv:1
+        ```
+
+        **Overlay dap-* (blue) and LV_dap-* (red) for the same fiber:**
+        ```
+        /lvm/dap/fiber/plot/?l=id:1.2.0/43064/532;components:observed;color:blue&l=id:1.2.0/43064/532;components:observed;color:red;lv:1&legend=long
+        ```
         """
         if not l:
             raise HTTPException(status_code=400, detail="'l' parameter required")
@@ -238,6 +284,8 @@ class DAP(Base):
         for parsed in parsed_lines:
             id_parts = parsed['id'].split('/')
             dapver, expnum, fiberid = id_parts[0], int(id_parts[1]), int(id_parts[2])
+            drpver = parsed.get('drpver')
+            lv = bool(parsed.get('lv', 0))
 
             try:
                 validate_fiberid(fiberid)
@@ -245,12 +293,14 @@ class DAP(Base):
                 raise HTTPException(status_code=400, detail=str(e))
 
             try:
-                dap_file, output_file, _ = await get_DAP_filenames(expnum, dapver)
+                dap_file, output_file, _ = await self.get_dap_filenames(
+                    expnum, dapver, drpver=drpver, lv=lv,
+                )
             except FileNotFoundError as e:
                 raise HTTPException(status_code=404, detail=str(e))
 
             try:
-                result = await run_in_executor(
+                result = await self.run_sync(
                     extract_dap_fiber_data, dap_file, output_file, fiberid, parsed['components']
                 )
             except ValueError as e:
@@ -259,23 +309,23 @@ class DAP(Base):
             if wave is None:
                 wave = result['wave']
 
-            # Extract plot kwargs (exclude DAP-specific keys)
-            exclude_keys = {'id', 'components', 'dapver', 'expnum', 'fiberid'}
+            # Strip DAP-specific keys so only matplotlib kwargs reach the plotter
+            exclude_keys = {'id', 'components', 'dapver', 'drpver', 'expnum', 'fiberid', 'lv'}
             base_plot_kwargs = {k: v for k, v in parsed.items() if k not in exclude_keys}
 
-            # Create plot entry for each component
             for comp_name, comp_data in result['components'].items():
                 plot_kwargs = base_plot_kwargs.copy()
                 if 'color' not in plot_kwargs:
                     plot_kwargs['color'] = DAP_COMPONENT_COLORS.get(comp_name, '#333333')
 
                 label = None
+                lv_tag = ' LV' if lv else ''
                 if legend == 'short':
-                    label = f"{fiberid} {comp_name}"
+                    label = f"{fiberid}{lv_tag} {comp_name}"
                 elif legend == 'long':
-                    label = f"{expnum} {fiberid} {comp_name} {dapver}"
+                    label = f"{expnum} {fiberid}{lv_tag} {comp_name} {dapver}"
                 elif legend == 'component':
-                    label = comp_name
+                    label = f"{comp_name}{lv_tag}" if lv else comp_name
 
                 data.append({
                     'array': comp_data,
@@ -355,8 +405,10 @@ class DAP(Base):
     async def get_dap_lines(
         self,
         expnum: Annotated[int, Query(description="Exposure number", example=43064)],
-        dapver: Annotated[str, Query(description='DAP version (e.g., 1.2.0, 1.1.1)', example='1.2.0')] = '1.2.0',
+        dapver: Annotated[str, Query(description='DAP version', example='1.2.0')] = '1.2.0',
+        drpver: Annotated[Optional[str], Query(description='DRP version for DAP path resolution', example='1.2.0')] = None,
         wl: str = Query('6562.85,4861.36', description='Emission lines (wavelengths)', example='6562.85,4861.36'),
+        lv: bool = Query(False, description="For Local Volume extragalactic targets: pass `lv=1` to read `LV_dap-*` files (default `dap-*`)."),
     ):
         """
         # Get LVM DAP Emission Line Fluxes
@@ -369,6 +421,17 @@ class DAP(Base):
         - `expnum` - Exposure number
         - `dapver` - DAP version (default: 1.2.0)
         - `wl` - Comma-separated emission line wavelengths (Å)
+        - `lv` - LV variant flag for Local Volume targets (default `0`; see below)
+
+        ## LV Variant (Local Volume targets)
+
+        Some LVM exposures target extragalactic sources from the **Local Volume**,
+        whose spectra contain blended emission from both the Milky Way foreground
+        and the source itself. For these targets the DAP produces two parallel
+        FITS sets with identical internal structure — the default `dap-*` and a
+        sibling `LV_dap-*` (sdss_access template `lvm_lv_dap`) — and the `lv`
+        parameter selects which set to read. Pass `lv=1` for `LV_dap-*`;
+        default `lv=0` reads `dap-*`.
 
         ## Response
 
@@ -390,9 +453,16 @@ class DAP(Base):
         ```
         /lvm/dap/lines/?expnum=43064&wl=6562.85&dapver=1.1.1
         ```
+
+        **LV_dap variant:**
+        ```
+        /lvm/dap/lines/?expnum=43064&wl=6562.85&lv=1
+        ```
         """
         try:
-            dap_file, _, relative_path = await get_DAP_filenames(expnum, dapver)
+            dap_file, relative_path = await self.get_dap_filename(
+                expnum, dapver, 'dap', drpver=drpver, lv=lv,
+            )
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except IndexError:
@@ -421,4 +491,4 @@ class DAP(Base):
                 output[f"{w}"] = df_pivot[w].tolist()
             return output
 
-        return await run_in_executor(read_fluxes)
+        return await self.run_sync(read_fluxes)
