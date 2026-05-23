@@ -7,20 +7,28 @@
 
 the SDSS API for delivering and accessing remote information.
 
-This API is built using the [FastAPI](https://fastapi.tiangolo.com/) web server.  Python depdendices are managed with [uv](https://docs.astral.sh/uv/).
+This API is built using the [FastAPI](https://fastapi.tiangolo.com/) web server.  Python dependencies are managed with [uv](https://docs.astral.sh/uv/).
 
-See [uv Features](https://docs.astral.sh/uv/getting-started/features/) for what can be done with `uv`.  See their [Project Guide](https://docs.astral.sh/uv/guides/projects/) for an intro to working on python projects.
+See [uv Features](https://docs.astral.sh/uv/getting-started/features/) for what can be done with `uv`.  See their [Project Guide](https://docs.astral.sh/uv/guides/projects/) for an introduction to working on Python projects.
 
 ## Installation
 First, follow the [uv installation instructions](https://docs.astral.sh/uv/getting-started/installation/).
 
 It is recommended to work within an isolated virtual environment like `conda` or `venv`.  You can create a uv venv with `uv venv valis --python 3.12`.  See [uv Environments](https://docs.astral.sh/uv/pip/environments/) for more info.
 
+
 ### Developer Install
 ```
 git clone https://github.com/sdss/valis valis
 cd valis
-uv pip install
+uv sync --python 3.12
+```
+
+### datamodel Developer Install
+valis uses sdss/datamodel so install it as shown below.
+```
+git clone https://github.com/sdss/datamodel.git
+uv pip install -e /your/path/to/sdss/datamodel/
 ```
 
 ### Solara Dependencies
@@ -74,19 +82,19 @@ Host pipe
 ```
     ssh -L 6000:localhost:5432 pipe
 ```
-3. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled port (e.g. 6000 in step 2), Utah unid (e.g. u1234567), and db password, respectively.
+3. Update your `~/.pgpass` file with the following lines. Replace `port`, `unid`, and `password`, with your tunneled local port (e.g. 6000 in step 1), Utah unid (e.g. u1234567), and db password, respectively.
 ```
 localhost:[port]:*:[unid]:[password]
 host.docker.internal:[port]:*:[unid]:[password]
 ```
 
-Alternatively, if you don't want to edit your .pgpass file then set the VALIS_DB_PASS environment variable with your database password. See step 4.
+Alternatively, if you do not want to edit your .pgpass file then set the VALIS_DB_PASS environment variable with your database password. See step 4.
 
 4. Set the following environment variables.
 
 - export VALIS_DB_PORT=6000
 - export VALIS_DB_USER={unid}
-- export VALIS_DB_PASS={password} (Do this if you skipped step 2.)
+- export VALIS_DB_PASS={password} (Do this if you skipped step 3.)
 
 or optionally add them to the `~/.config/sdss/valis.yaml` configuration file.
 
@@ -101,7 +109,9 @@ Additionally, you can set the environment variable `VALIS_DB_RESET=false` or add
 
 ## Deployment
 
-This section describes a variety of deployment methods.  Valis uses gunicorn as its
+This section describes a variety of valis deployment methods. Skip this section if you are only interested in valis development.  
+
+Valis uses gunicorn as its
 wsgi http server. It binds the app both to port 8000, and a unix socket.  The default mode is to start valis with an awsgi uvicorn server, with 4 workers.
 
 Valis requires a Redis database running at the default location in `localhost:6379`.  If this is not possible, caching can be done in memory by modifying `~/.config/sdss/valis.yaml` to use `cache_backend: in-memory`.
