@@ -125,6 +125,10 @@ app.mount("/static/mocs", StaticFiles(directory=hips_dir, html=True, follow_syml
 def hello(release=Depends(release)):
     return {"Hello SDSS": "This is the FastAPI World", 'release': release}
 
+@app.get("/helloworld2", summary='Hello World route2', response_model=Dict[str, str])
+def hello(release=Depends(release)):
+    return {"Hello SDSS": "This is the FastAPI World2", 'release': release}
+
 
 app.include_router(access.router, prefix='/paths', tags=['paths'], dependencies=[Depends(set_auth)])
 app.include_router(envs.router, prefix='/envs', tags=['envs'], dependencies=[Depends(set_auth)])

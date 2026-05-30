@@ -18,11 +18,18 @@ import peewee
 from astropy.coordinates import SkyCoord
 from peewee import Case
 from playhouse.shortcuts import model_to_dict
+
+
+# psgupta
+from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+
 from sdssdb.peewee.sdss5db import apogee_drpdb as apo
 from sdssdb.peewee.sdss5db import astradb as astra
 from sdssdb.peewee.sdss5db import boss_drp as boss
 from sdssdb.peewee.sdss5db import catalogdb as cat
 from sdssdb.peewee.sdss5db import targetdb, vizdb
+
+
 
 # from valis.db.models import MapperName
 from valis.io.spectra import extract_data, get_product_model
@@ -1450,3 +1457,35 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     # return the most recent pipeline data if there are multiple entries
     # or None if none found
     return max(res, key=lambda i: i["created"]) if res else None
+
+# psgupta
+
+# based on https://github.com/sdss/valis/blob/main/python/valis/db/queries.py#L221
+
+def get_targets_by_gaia_dr3_source_id(source_id: int ) -> peewee.ModelSelect:
+    """return ra, dec for give Gaia_DR3 source_id values.
+
+    Perform a search for ra,dec using the peewee ORM in the
+    catalogdb.Gaia_DR3 table, based on a single source_id value.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+    source_id : int
+        the Gaia_DR3 source_id
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    #if type(sdss_id) in (int, str):
+    #    # rhs sdss_id is a number
+    #    # lhs sdss_id is a list
+    #    sdss_id = [sdss_id]
+
+    return Gaia_DR3.select(Gaia_DR3.source_id, Gaia_DR3.ra, Gaia_DR3.dec).where(Gaia_DR3.source_id == source_id)
+

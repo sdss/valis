@@ -11,9 +11,17 @@ from fastapi_restful.cbv import cbv
 from pydantic import BaseModel, BeforeValidator, Field
 from sdssdb.peewee.sdss5db import catalogdb, database
 
+# psgupta
+import peewee
+from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+
 from valis.cache import valis_cache
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase, SDSSModel
+
+# psgupta
+from valis.db.models import SDSSidStackedBase, SDSSModel, Gaia_DR3_Base
+from valis.db.queries import get_targets_by_gaia_dr3_source_id
+
 from valis.db.queries import (
     MapperName,
     append_pipes,
@@ -373,3 +381,34 @@ class QueryRoutes(Base):
         """Return an ordered and paged list of targets based on the mapper."""
         targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
         return list(targets)
+
+
+# psgupta
+
+# based on https://github.com/sdss/valis/blob/main/python/valis/routes/query.py#L209
+# e.g. http://127.0.0.1:8001/gaia_dr3_source_id/query/?source_id=34361129088
+# e.g. source_id=34361129088
+#psgupta
+
+    @router.get(
+        "/gaia_dr3_source_id",
+        summary="return ra,dec for an gaia_dr3 target based on the gaia_d3 source_id",
+        response_model=Union[Gaia_DR3_Base, dict],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def gaia_dr3_source_id_search(self, source_id: Annotated[int, Query(description="Value of gaia_dr3 source_id", example=34361129088)]):
+        """Perform an gaia_dr3 source_id search.
+
+        Assumes a maximum of one target per gaia_dr3 source_id.
+        Empty object returned when no match is found.
+
+        """
+
+        targets = get_targets_by_gaia_dr3_source_id(int(source_id)).dicts().first()
+
+        # throw exception when it's a bad source_id
+        if not targets:
+            raise HTTPException(status_code=400, detail=f"Invalid gaia_dr3 source_id {source_id}.")
+
+        return targets or {}
