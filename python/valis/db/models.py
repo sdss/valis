@@ -697,5 +697,5 @@ class Gaia_DR3_Base(PeeweeBase):
     """Pydantic response model for the Peewee model catalogdb.Gaia_DR3"""
 
     source_id: Optional[int] = Field(..., description="the source_id identifier")
-    ra_id: Optional[float] = Field(..., description="Right Ascension")
-    dec_id: Optional[float] = Field(..., description="Declination")
+    ra: Optional[float] = Field(..., description="Right Ascension")
+    dec: Optional[float] = Field(..., description="Declination")
