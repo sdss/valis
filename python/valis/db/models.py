@@ -24,7 +24,6 @@ from pydantic import (
 )
 from pydantic_core import to_jsonable_python
 
-from valis.db.queries import has_legacy_data
 from valis.exceptions import ValisError
 from valis.routes.maskbits import mask_values_to_labels
 from valis.utils.paths import build_legacy_path
@@ -116,6 +115,7 @@ class SDSSidPipesBase(PeeweeBase):
     release: Optional[str] = Field(None, description="the Astra release field, either sdss5 or dr17")
     obs: Optional[str] = Field(None, description="the observatory the observation is from")
     mjd: Optional[int] = Field(None, description="the MJD of the data reduction")
+    has_legacy_data: bool = Field(..., description="Flag if the target has legacy SDSS data available", examples=[False])
 
     @field_validator("has_been_observed")
     @classmethod
@@ -132,11 +132,6 @@ class SDSSModel(SDSSidStackedBase, SDSSidPipesBase):
     distance: Optional[float] = Field(
         None, description="Separation distance between input target and cone search results, in degrees"
     )
-
-    @computed_field(description="Flag if the target has legacy SDSS data available")
-    @property
-    def has_legacy_data(self) -> bool:
-        return has_legacy_data(self.sdss_id)
 
 
 class BossVersion(PeeweeBase):

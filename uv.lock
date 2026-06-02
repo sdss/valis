@@ -6039,7 +6039,7 @@ wheels = [
 [[package]]
 name = "sdss-explorer"
 version = "0.2.1"
-source = { git = "https://github.com/sdss/explorer.git#460960008ac9b3e99e1d680a859e587a8dc220d7" }
+source = { git = "https://github.com/sdss/explorer.git#b27dfbd33c7d54e238912bcf4b8e93c5f5799a0e" }
 dependencies = [
     { name = "bokeh" },
     { name = "colorcet" },
@@ -6060,7 +6060,7 @@ dependencies = [
 [[package]]
 name = "sdss-solara"
 version = "0.1.0.dev0"
-source = { git = "https://github.com/sdss/sdss_solara?rev=main#ded48fb85dfe8d693f572c54c190d17920a93054" }
+source = { git = "https://github.com/sdss/sdss_solara?rev=main#01dfd310d6abfbeddf8d420fa736aadd040f319d" }
 dependencies = [
     { name = "jdaviz" },
     { name = "markdown" },
@@ -6184,7 +6184,7 @@ dev = [
 
 [[package]]
 name = "sdssdb"
-version = "1.1.0"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy" },
@@ -6196,9 +6196,9 @@ dependencies = [
     { name = "six" },
     { name = "sqlalchemy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/bf/9217ebf336d689f8c5b2364830e415956ce9f09a25ea841265d28a38bf74/sdssdb-1.1.0.tar.gz", hash = "sha256:ee34bbd780d5fff0b70dff06d9be65168d42097b1a3589a9ff10d41d035cc5e2", size = 177645, upload-time = "2026-05-08T13:54:49.457Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/40/1754d39949d42fcd5a35a95455b03cc0df8844c807df9ea71fd09b238d6c/sdssdb-1.1.1.tar.gz", hash = "sha256:df86f592f05b7f186e74cf68bd4f52f4491a69c976f967ec2d5661deda522b16", size = 177881, upload-time = "2026-06-02T14:34:49.713Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/06/a6a613db08a401abe459961306f65f62682cacaf9f9d65927847c4e414ea/sdssdb-1.1.0-py3-none-any.whl", hash = "sha256:6d3b8de884da9c2b8201cae5b65f8f559e03c87e4ce35a9f8aa68d1836ebeaac", size = 207589, upload-time = "2026-05-08T13:54:48.016Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/b5/b32dad30ceb07e810cc85065c1ae914772fb29309a06e4253f0df6e3d344/sdssdb-1.1.1-py3-none-any.whl", hash = "sha256:97108092494354903d4ac164306c79da44317517a5d9aa03f30ff4d0ec265dcd", size = 207987, upload-time = "2026-06-02T14:34:48.208Z" },
 ]
 
 [[package]]

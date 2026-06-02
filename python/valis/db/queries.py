@@ -38,8 +38,9 @@ def lco_hack(query: peewee.ModelSelect, release: str = None) -> peewee.ModelSele
         return query
 
     return query.where(
-        (vizdb.SDSSidToPipes.obs == "apo")
-        | ((vizdb.SDSSidToPipes.obs == "lco") & (vizdb.SDSSidToPipes.release == "dr17"))
+        vizdb.SDSSidToPipes.obs.is_null(True) |
+        ((vizdb.SDSSidToPipes.obs == "apo")
+        | ((vizdb.SDSSidToPipes.obs == "lco") & (vizdb.SDSSidToPipes.release == "dr17")))
     )
 
 
@@ -94,13 +95,17 @@ def append_pipes(
             vizdb.SDSSidToPipes.release,
             vizdb.SDSSidToPipes.obs,
             vizdb.SDSSidToPipes.mjd,
+            vizdb.SDSSidToPipes.has_legacy_data,
         )
         .join(vizdb.SDSSidToPipes, on=(temp.c.sdss_id == vizdb.SDSSidToPipes.sdss_id))
         .distinct(temp.c.sdss_id)
     )
 
+    # either observed or has legacy data
     if observed:
-        qq = qq.where(vizdb.SDSSidToPipes.has_been_observed == observed)
+        qq = qq.where((vizdb.SDSSidToPipes.has_been_observed == observed)
+                      | (~vizdb.SDSSidToPipes.has_been_observed and
+                         vizdb.SDSSidToPipes.has_legacy_data))
 
     if release:
         # get the release
@@ -113,9 +118,14 @@ def append_pipes(
             rel.mjd_cutoff_lco = 0
 
         # create the mjd cutoff condition
+        cutoff_by_obs = Case(
+            vizdb.SDSSidToPipes.obs,
+            (("apo", rel.mjd_cutoff_apo), ("lco", rel.mjd_cutoff_lco)),
+            None,
+        )
         qq = qq.where(
-            vizdb.SDSSidToPipes.mjd
-            <= Case(vizdb.SDSSidToPipes.obs, (("apo", rel.mjd_cutoff_apo), ("lco", rel.mjd_cutoff_lco)), None)
+            vizdb.SDSSidToPipes.mjd.is_null(True)
+            | (vizdb.SDSSidToPipes.mjd <= cutoff_by_obs)
         )
 
     # remove SV LCO targets, this is a hack for now
