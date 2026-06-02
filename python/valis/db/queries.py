@@ -128,8 +128,9 @@ def append_pipes(
             | (vizdb.SDSSidToPipes.mjd <= cutoff_by_obs)
         )
 
-    # remove SV LCO targets, this is a hack for now
-    qq = lco_hack(qq, release)
+    # for DR19, remove SV LCO targets, this is a hack for now
+    if release.upper() in {"DR19", "IPL3"}:
+        qq = lco_hack(qq, release)
 
     return qq
 
@@ -152,7 +153,9 @@ def get_pipes(sdss_id: int, release: str) -> peewee.ModelSelect:
         the output query
     """
     qq = vizdb.SDSSidToPipes.select(vizdb.SDSSidToPipes).where(vizdb.SDSSidToPipes.sdss_id == sdss_id)
-    qq = lco_hack(qq, release)
+    # only hack out lco for DR19
+    if release.upper() in {"DR19", "IPL3"}:
+        qq = lco_hack(qq, release)
     return qq.distinct(vizdb.SDSSidToPipes.sdss_id)
 
 
