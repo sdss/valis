@@ -39,6 +39,8 @@ from valis.routes.auth import set_auth
 from valis.routes.base import release
 from valis.settings import settings
 
+# psgupta
+from valis.db.db import get_pw_db
 
 # set up the solara server
 try:
@@ -199,6 +201,7 @@ async def get_gaia_dr3_ra_dec(source_id: int):
     "/gaia_dr3_ra_dec_peewee/{source_id}",
     response_model=RA_DEC,
     response_model_exclude_unset=True,
+    dependencies=[Depends(get_pw_db), Depends(set_auth)],
 )
 async def get_gaia_dr3_ra_dec_peewee(source_id: int):
     # Below it is getting password from ~/.pgpass
@@ -210,9 +213,10 @@ async def get_gaia_dr3_ra_dec_peewee(source_id: int):
     # you will get the below error.
     # AttributeError: type object 'Gaia_DR3' has no attribute 'ra'.
     #
-    db = peewee.PostgresqlDatabase(
-        "sdss5db", user="u6030579", port=6000, host="127.0.0.1"
-    )
+    #db = peewee.PostgresqlDatabase(
+    #    "sdss5db", user="u6030579", port=6000, host="127.0.0.1"
+    #)
+    #get_pw_db()
 
     rows = Gaia_DR3.select(Gaia_DR3.ra, Gaia_DR3.dec).where(
         Gaia_DR3.source_id == source_id

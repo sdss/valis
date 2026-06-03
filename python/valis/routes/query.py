@@ -423,7 +423,7 @@ class QueryRoutes(Base):
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
     @valis_cache(namespace="valis-query")
-    async def sdss_id_search_pg22(self, sdss_id: Annotated[int, Query(description="Value of sdss_id", example=47510284)]):
+    async def sdss_id_search_pg2(self, sdss_id: Annotated[int, Query(description="Value of sdss_id", example=47510284)]):
         """Perform an sdss_id search.
 
         Assumes a maximum of one target per sdss_id.
