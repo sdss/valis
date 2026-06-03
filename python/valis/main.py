@@ -40,6 +40,9 @@ from valis.routes.base import release
 from valis.settings import settings
 
 
+# psgupta
+import peewee
+
 # set up the solara server
 try:
     os.environ['SOLARA_ROOT_PATH'] = os.getenv("SOLARA_ROOT", '/solara')
@@ -125,9 +128,109 @@ app.mount("/static/mocs", StaticFiles(directory=hips_dir, html=True, follow_syml
 def hello(release=Depends(release)):
     return {"Hello SDSS": "This is the FastAPI World", 'release': release}
 
+
+# psgupta start
 @app.get("/helloworld2", summary='Hello World route2', response_model=Dict[str, str])
 def hello(release=Depends(release)):
     return {"Hello SDSS": "This is the FastAPI World2", 'release': release}
+
+
+
+import psycopg2
+
+from pydantic import BaseModel
+from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+
+class RA_DEC(BaseModel):
+    ra: float
+    dec: float
+
+# example gaia_dr3_source source_id values
+# 34361129088
+# Below link works fine.
+# http://127.0.0.1:8001/gaia_dr3_ra_dec/34361129088
+
+# Below code uses pyscopg2.
+@app.get(
+    "/gaia_dr3_ra_dec/{source_id}",
+    response_model=RA_DEC,
+    response_model_exclude_unset=True,
+)
+async def get_gaia_dr3_ra_dec(source_id: int):
+    # Other options for connect() are password, port, and host.
+    # Below it is getting password from ~/.pgpass
+    conn = psycopg2.connect(
+        database="sdss5db", user="u6030579", port=6000, host="127.0.0.1"
+    )
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "select ra,dec from catalogdb.gaia_dr3_source where source_id=" + str(source_id)
+    )
+
+    output = cursor.fetchall()
+
+    # print(len(output))
+
+    # first index is for row and second index is for column
+    for i in range(len(output)):
+        current_selected = output[i][0]
+        ra = output[i][0]
+        dec = output[i][1]
+        # print(i, current_selected)
+
+    # In psycopg2, default is autocommit=off.
+    # Hence we must commit below.
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    # Note that below parameters must be given as keyword arguments
+    # and not as positional arguments
+    return_value = RA_DEC(ra=ra, dec=dec)
+    return return_value
+
+# Above /gaia_dr3_ra_dec uses psycopg2 and it works fine.
+#
+# Below /gaia_dr3_ra_dec_peewee uses peewee and it does not work.
+# Below link gives error AttributeError: type object 'Gaia_DR3' has no attribute 'ra'.
+# http://127.0.0.1:8001/gaia_dr3_ra_dec_peewee/34361129088
+
+@app.get(
+    "/gaia_dr3_ra_dec_peewee/{source_id}",
+    response_model=RA_DEC,
+    response_model_exclude_unset=True,
+)
+async def get_gaia_dr3_ra_dec_peewee(source_id: int):
+    # Below it is getting password from ~/.pgpass
+    #
+    # The peewee db connection must exist before
+    # the peewee models (e.g. Gaia_DR3.ra) are used.
+    #
+    # Without the below db connection,
+    # you will get the below error.
+    # AttributeError: type object 'Gaia_DR3' has no attribute 'ra'.
+    #
+    db = peewee.PostgresqlDatabase(
+        "sdss5db", user="u6030579", port=6000, host="127.0.0.1"
+    )
+
+    rows = Gaia_DR3.select(Gaia_DR3.ra, Gaia_DR3.dec).where(
+        Gaia_DR3.source_id == source_id
+    )
+
+    for row in rows:
+        # print(type(row))
+        ra = row.ra
+        dec = row.dec
+
+    # Note that below parameters must be given as keyword arguments
+    # and not as positional arguments
+    return_value = RA_DEC(ra=ra, dec=dec)
+    return return_value
+
+# psgupta end
 
 
 app.include_router(access.router, prefix='/paths', tags=['paths'], dependencies=[Depends(set_auth)])

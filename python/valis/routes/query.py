@@ -34,6 +34,7 @@ from valis.db.queries import (
     get_targets_by_altid,
     get_targets_by_catalog_id,
     get_targets_by_sdss_id,
+    get_targets_by_sdss_id_pg2,  # psgupta
     get_targets_obs,
 )
 from valis.routes.auth import set_auth
@@ -386,7 +387,7 @@ class QueryRoutes(Base):
 # psgupta
 
 # based on https://github.com/sdss/valis/blob/main/python/valis/routes/query.py#L209
-# e.g. http://127.0.0.1:8001/gaia_dr3_source_id/query/?source_id=34361129088
+# e.g. http://127.0.0.1:8001/query/gaia_dr3_source_id/?source_id=34361129088
 # e.g. source_id=34361129088
 #psgupta
 
@@ -412,3 +413,30 @@ class QueryRoutes(Base):
             raise HTTPException(status_code=400, detail=f"Invalid gaia_dr3 source_id {source_id}.")
 
         return targets or {}
+
+# psgupta 
+# below /sdssid_pg2 is copy of /sdssid
+    @router.get(
+        "/sdssid_pg2",
+        summary="Perform a search for an SDSS target based on the sdss_id",
+        response_model=Union[SDSSidStackedBase, dict],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def sdss_id_search_pg22(self, sdss_id: Annotated[int, Query(description="Value of sdss_id", example=47510284)]):
+        """Perform an sdss_id search.
+
+        Assumes a maximum of one target per sdss_id.
+        Empty object returned when no match is found.
+
+        """
+
+        targets = get_targets_by_sdss_id_pg2(int(sdss_id)).dicts().first()
+
+        # throw exception when it's a bad sdss_id
+        if not targets:
+            raise HTTPException(status_code=400, detail=f"Invalid sdss_id {sdss_id}.")
+
+        return targets or {}
+
+

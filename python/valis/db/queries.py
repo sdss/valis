@@ -1487,5 +1487,40 @@ def get_targets_by_gaia_dr3_source_id(source_id: int ) -> peewee.ModelSelect:
     #    # lhs sdss_id is a list
     #    sdss_id = [sdss_id]
 
+    db = peewee.PostgresqlDatabase(
+        "sdss5db", user="u6030579", port=6000, host="127.0.0.1"
+    )
+
     return Gaia_DR3.select(Gaia_DR3.source_id, Gaia_DR3.ra, Gaia_DR3.dec).where(Gaia_DR3.source_id == source_id)
+
+# psgupta
+# Below is copy of get_targets_by_sdss_id 
+# (I made changes to routes/query.py and db/queries.py.
+# There are no changes to db/models.py))
+# Below link works fine.
+# http://127.0.0.1:8001/query/sdssid_pg2?sdss_id=47510284
+def get_targets_by_sdss_id_pg2(sdss_id: Union[int, list[int]] = []) -> peewee.ModelSelect:
+    """Perform a search for SDSS targets on vizdb.SDSSidStacked based on sdss_id values.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.SDSSidStacked table, based on single or multiple sdss_ids values.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+    sdss_id : Union[int, list[int]]
+        the sdss_id or list of sdss_id values
+
+    Returns
+    -------
+    peewee.ModelSelect
+        the ORM query
+    """
+    if type(sdss_id) in (int, str):
+        sdss_id = [sdss_id]
+
+    return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id.in_(sdss_id))
 
