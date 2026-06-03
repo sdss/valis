@@ -6022,7 +6022,7 @@ wheels = [
 
 [[package]]
 name = "sdss-access"
-version = "3.0.10"
+version = "3.0.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
@@ -6031,9 +6031,9 @@ dependencies = [
     { name = "six" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a0/fc/36dbf7853b0c65a3abb9aada37717e67451ae7122765e47171852cbb5ccd/sdss_access-3.0.10.tar.gz", hash = "sha256:009104f509036e851d73ebc59c4b9a1f95a6e3144e2cf0b58e912bd66459a848", size = 36237, upload-time = "2025-07-10T16:59:38.068Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/aa/7ebf97aeb93ec12540777292e120b6747d55188853e613d85941173b70fb/sdss_access-3.0.11.tar.gz", hash = "sha256:4f1234f5202cc1dfb00f489cc21e0f218669720300cc776e5a3fb3920695b640", size = 37083, upload-time = "2026-06-03T20:57:34.339Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/64/e3/db8329588ac68e59a88cf02649c858a24d89259459ed9a05769bb53d466b/sdss_access-3.0.10-py3-none-any.whl", hash = "sha256:01fce3e62323002a01be22ba4d08240cea4ab38ee77b236b0b0a497e4fcea2d0", size = 39878, upload-time = "2025-07-10T16:59:36.657Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/51/0a814967ff8ab6d3547d937d01986ef7acafe00367cfe7d4a95bff60178c/sdss_access-3.0.11-py3-none-any.whl", hash = "sha256:a3120c8bde7f0abade94f542995ad33ae9d380a4157f679f84f3e9742c599fce", size = 40701, upload-time = "2026-06-03T20:57:32.963Z" },
 ]
 
 [[package]]
@@ -6076,16 +6076,16 @@ dependencies = [
 
 [[package]]
 name = "sdss-tree"
-version = "4.1.2"
+version = "4.1.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "configparser" },
     { name = "pygments" },
     { name = "sdsstools" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/5f/8469fc50f1e90fa5797870d386ca76352cd10a3a42d01d9affa2c121ed64/sdss_tree-4.1.2.tar.gz", hash = "sha256:3e5b1c4c128f3f987cdd87c216efbff4ee4f8882cdf4104df098dda7ef6fa65c", size = 60864, upload-time = "2026-03-26T19:41:47.72Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b1/77/e8fa0646ec2f4df83f96378c2ca8ab7906979c2a0eaa877c131fcb3ca183/sdss_tree-4.1.3.tar.gz", hash = "sha256:e1d578cdd0c5ef742cef0e4f8fc118428f4be155327ca31b0a4b347850d00ffb", size = 61706, upload-time = "2026-06-03T20:29:31.218Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/43/86/742c8693e71a113088c080852c8e086b8c52af0aeab61ee643da7382e784/sdss_tree-4.1.2-py3-none-any.whl", hash = "sha256:ea8592e1f0380ae82925c273d38611406b9575c29ff2595bf6a4afadcad81847", size = 67773, upload-time = "2026-03-26T19:41:46.211Z" },
+    { url = "https://files.pythonhosted.org/packages/53/90/c4f3064b6ec6085d178376257c5ebfa01bbcb65a6de79657e94c4da6c504/sdss_tree-4.1.3-py3-none-any.whl", hash = "sha256:1a191354a0affb485acc5318c6053b9ff972d39b47884a673377c7f5aee5323c", size = 68778, upload-time = "2026-06-03T20:29:29.685Z" },
 ]
 
 [[package]]
