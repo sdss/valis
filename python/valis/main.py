@@ -129,14 +129,15 @@ def hello(release=Depends(release)):
     return {"Hello SDSS": "This is the FastAPI World", 'release': release}
 
 
-# psgupta start
 @app.get("/helloworld2", summary='Hello World route2', response_model=Dict[str, str])
 def hello(release=Depends(release)):
     return {"Hello SDSS": "This is the FastAPI World2", 'release': release}
 
 
+# psgupta start
 
 import psycopg2
+import peewee
 
 from pydantic import BaseModel
 from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
@@ -150,7 +151,7 @@ class RA_DEC(BaseModel):
 # Below link works fine.
 # http://127.0.0.1:8001/gaia_dr3_ra_dec/34361129088
 
-# Below code uses pyscopg2.
+# Below code uses psycopg2.
 @app.get(
     "/gaia_dr3_ra_dec/{source_id}",
     response_model=RA_DEC,
