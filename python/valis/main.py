@@ -40,9 +40,6 @@ from valis.routes.base import release
 from valis.settings import settings
 
 
-# psgupta
-import peewee
-
 # set up the solara server
 try:
     os.environ['SOLARA_ROOT_PATH'] = os.getenv("SOLARA_ROOT", '/solara')
