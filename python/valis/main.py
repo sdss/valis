@@ -42,6 +42,7 @@ from valis.settings import settings
 # psgupta
 from valis.db.db import get_pw_db
 
+
 # set up the solara server
 try:
     os.environ['SOLARA_ROOT_PATH'] = os.getenv("SOLARA_ROOT", '/solara')
@@ -139,7 +140,16 @@ import psycopg2
 import peewee
 
 from pydantic import BaseModel
-from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+
+# do not use the below line
+# since it does not do proper reflection in catalogdb.py
+# from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+
+# use the below two lines and then use catalogdb.Gaia_DR3
+# e.g. catalogdb.Gaia_DR3.ra
+from sdssdb.peewee.sdss5db import catalogdb
+
+catalogdb.database.connect("sdss5db", user="u6030579", port=6000, host="127.0.0.1")
 
 class RA_DEC(BaseModel):
     ra: float
@@ -218,8 +228,8 @@ async def get_gaia_dr3_ra_dec_peewee(source_id: int):
     #)
     #get_pw_db()
 
-    rows = Gaia_DR3.select(Gaia_DR3.ra, Gaia_DR3.dec).where(
-        Gaia_DR3.source_id == source_id
+    rows = catalogdb.Gaia_DR3.select(catalogdb.Gaia_DR3.ra, catalogdb.Gaia_DR3.dec).where(
+        catalogdb.Gaia_DR3.source_id == source_id
     )
 
     for row in rows:
