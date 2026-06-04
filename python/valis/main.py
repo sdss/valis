@@ -203,8 +203,19 @@ async def get_gaia_dr3_ra_dec(source_id: int):
 
 # Above /gaia_dr3_ra_dec uses psycopg2 and it works fine.
 #
-# Below /gaia_dr3_ra_dec_peewee uses peewee and it does not work.
-# Below link gives error AttributeError: type object 'Gaia_DR3' has no attribute 'ra'.
+# Below /gaia_dr3_ra_dec_peewee uses peewee it works fine.
+# but it requires the below two lines which are in the code above.
+#
+# Below it is getting password from ~/.pgpass
+#
+# use the below two lines and then use catalogdb.Gaia_DR3
+# e.g. catalogdb.Gaia_DR3.ra
+#
+# from sdssdb.peewee.sdss5db import catalogdb
+# catalogdb.database.connect("sdss5db", user="u6030579", port=6000, host="127.0.0.1")
+#
+# Without the above two lines,
+# the  below link gives error AttributeError: type object 'Gaia_DR3' has no attribute 'ra'.
 # http://127.0.0.1:8001/gaia_dr3_ra_dec_peewee/34361129088
 
 @app.get(
@@ -214,19 +225,9 @@ async def get_gaia_dr3_ra_dec(source_id: int):
     dependencies=[Depends(get_pw_db), Depends(set_auth)],
 )
 async def get_gaia_dr3_ra_dec_peewee(source_id: int):
-    # Below it is getting password from ~/.pgpass
-    #
-    # The peewee db connection must exist before
-    # the peewee models (e.g. Gaia_DR3.ra) are used.
-    #
-    # Without the below db connection,
-    # you will get the below error.
-    # AttributeError: type object 'Gaia_DR3' has no attribute 'ra'.
-    #
-    #db = peewee.PostgresqlDatabase(
-    #    "sdss5db", user="u6030579", port=6000, host="127.0.0.1"
-    #)
-    #get_pw_db()
+    # See above comments for why we must use catalogdb.Gaia_DR3.ra
+    # and not Gaia_DR3.ra
+    # See https://github.com/sdss/sdssdb/issues/320
 
     rows = catalogdb.Gaia_DR3.select(catalogdb.Gaia_DR3.ra, catalogdb.Gaia_DR3.dec).where(
         catalogdb.Gaia_DR3.source_id == source_id
