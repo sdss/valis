@@ -144,9 +144,10 @@ from pydantic import BaseModel
 # do not use the below line
 # since it does not do proper reflection in catalogdb.py
 # from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
-
+#
 # use the below two lines and then use catalogdb.Gaia_DR3
-# e.g. catalogdb.Gaia_DR3.ra
+# e.g. catalogdb.Gaia_DR3.ra instead of Gaia_DR3.ra
+# Below it is getting password from ~/.pgpass
 from sdssdb.peewee.sdss5db import catalogdb
 
 catalogdb.database.connect("sdss5db", user="u6030579", port=6000, host="127.0.0.1")
@@ -209,7 +210,7 @@ async def get_gaia_dr3_ra_dec(source_id: int):
 # Below it is getting password from ~/.pgpass
 #
 # use the below two lines and then use catalogdb.Gaia_DR3
-# e.g. catalogdb.Gaia_DR3.ra
+# e.g. catalogdb.Gaia_DR3.ra instead of Gaia_DR3.ra
 #
 # from sdssdb.peewee.sdss5db import catalogdb
 # catalogdb.database.connect("sdss5db", user="u6030579", port=6000, host="127.0.0.1")

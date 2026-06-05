@@ -387,8 +387,8 @@ class QueryRoutes(Base):
 # psgupta
 
 # based on https://github.com/sdss/valis/blob/main/python/valis/routes/query.py#L209
+# below works fine
 # e.g. http://127.0.0.1:8001/query/gaia_dr3_source_id/?source_id=34361129088
-# e.g. source_id=34361129088
 #psgupta
 
     @router.get(

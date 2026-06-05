@@ -21,7 +21,10 @@ from playhouse.shortcuts import model_to_dict
 
 
 # psgupta
-from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+# Do not use below line.
+# from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+#
+# Use catalogdb.Gaia_DR3.ra and not Gaia_DR3.ra
 
 from sdssdb.peewee.sdss5db import apogee_drpdb as apo
 from sdssdb.peewee.sdss5db import astradb as astra
@@ -1458,7 +1461,7 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     # or None if none found
     return max(res, key=lambda i: i["created"]) if res else None
 
-# psgupta
+# psgupta start
 
 # based on https://github.com/sdss/valis/blob/main/python/valis/db/queries.py#L221
 
@@ -1487,11 +1490,10 @@ def get_targets_by_gaia_dr3_source_id(source_id: int ) -> peewee.ModelSelect:
     #    # lhs sdss_id is a list
     #    sdss_id = [sdss_id]
 
-    db = peewee.PostgresqlDatabase(
-        "sdss5db", user="u6030579", port=6000, host="127.0.0.1"
-    )
 
-    return Gaia_DR3.select(Gaia_DR3.source_id, Gaia_DR3.ra, Gaia_DR3.dec).where(Gaia_DR3.source_id == source_id)
+    # Below cat stands for catalogdb.
+    # Use cat.Gaia_DR3.ra and not Gaia_DR3.ra
+    return cat.Gaia_DR3.select(cat.Gaia_DR3.source_id, cat.Gaia_DR3.ra, cat.Gaia_DR3.dec).where(cat.Gaia_DR3.source_id == source_id)
 
 # psgupta
 # Below is copy of get_targets_by_sdss_id 
@@ -1524,3 +1526,5 @@ def get_targets_by_sdss_id_pg2(sdss_id: Union[int, list[int]] = []) -> peewee.Mo
 
     return vizdb.SDSSidStacked.select().where(vizdb.SDSSidStacked.sdss_id.in_(sdss_id))
 
+
+# psgupta end
