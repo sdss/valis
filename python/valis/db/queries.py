@@ -1463,3 +1463,32 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     # return the most recent pipeline data if there are multiple entries
     # or None if none found
     return max(res, key=lambda i: i["created"]) if res else None
+
+def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_id: str, file_spec: str)  -> peewee.ModelSelect: 
+
+    """Perform a search for SDSS targets on vizdb.allspace based on apred_vers, apstar_id, file_spec values.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.allspec table, based on apred_vers, apstar_id, file_spec values.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+    apred_vers: str
+    apstar_id: str
+    file_spec: str
+
+    Returns
+
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    return vizdb.AllSpec.select().where(vizdb.AllSpec.apred_vers == apred_vers,
+                                        vizdb.AllSpec.apstar_id == apstar_id,
+                                        vizdb.AllSpec.file_spec == file_spec)
+
+

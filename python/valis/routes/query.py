@@ -13,7 +13,7 @@ from sdssdb.peewee.sdss5db import catalogdb, database
 
 from valis.cache import valis_cache
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase, SDSSModel
+from valis.db.models import SDSSidStackedBase, SDSSModel, AllSpecModel
 from valis.db.queries import (
     MapperName,
     append_pipes,
@@ -27,6 +27,7 @@ from valis.db.queries import (
     get_targets_by_catalog_id,
     get_targets_by_sdss_id,
     get_targets_obs,
+    get_targets_allspec_apred_vers_apstar_id_file_spec,
 )
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
@@ -373,3 +374,30 @@ class QueryRoutes(Base):
         """Return an ordered and paged list of targets based on the mapper."""
         targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
         return list(targets)
+    
+   @router.get(
+        "/allspec_apred_vers_apstar_id_file_spec",
+        summary="Perform a search for an allspec target based on the apred_vers, apstar_id, file_spec",
+        response_model=List[AllSpecModel],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_apred_vers_apstar_id_file_spec_search(self,
+            apred_vers: Annotated[str, Query(description="Value of apred_vers", example="dr17")],
+            apstar_id: Annotated[str, Query(description="Value of apstar_id", example="apogee.apo25m.stars.116-63_MGA.2M00361095-0107384")],
+            file_spec: Annotated[str, Query(description="Value of file_spec", example="apVisit")],            
+            
+            ):
+        """Perform a search for an allspec target based on the apred_vers, apstar_id, file_spec.
+
+        Empty object returned when no match is found.
+
+        """
+
+        targets = get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers, apstar_id, file_spec)
+
+        # throw exception when it's invalid apred_vers, apstar_id, file_spec
+        if not targets:
+            raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}, apstar_id {apstar_id}, file_spec {file_spec}.")
+
+        return targets or {}
