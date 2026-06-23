@@ -374,8 +374,8 @@ class QueryRoutes(Base):
         """Return an ordered and paged list of targets based on the mapper."""
         targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
         return list(targets)
-    
-   @router.get(
+
+    @router.get(
         "/allspec_apred_vers_apstar_id_file_spec",
         summary="Perform a search for an allspec target based on the apred_vers, apstar_id, file_spec",
         response_model=List[AllSpecModel],
@@ -385,9 +385,7 @@ class QueryRoutes(Base):
     async def get_targets_allspec_apred_vers_apstar_id_file_spec_search(self,
             apred_vers: Annotated[str, Query(description="Value of apred_vers", example="dr17")],
             apstar_id: Annotated[str, Query(description="Value of apstar_id", example="apogee.apo25m.stars.116-63_MGA.2M00361095-0107384")],
-            file_spec: Annotated[str, Query(description="Value of file_spec", example="apVisit")],            
-            
-            ):
+            file_spec: Annotated[str, Query(description="Value of file_spec", example="apVisit")],):
         """Perform a search for an allspec target based on the apred_vers, apstar_id, file_spec.
 
         Empty object returned when no match is found.

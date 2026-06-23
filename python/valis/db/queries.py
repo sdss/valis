@@ -1464,7 +1464,8 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     # or None if none found
     return max(res, key=lambda i: i["created"]) if res else None
 
-def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_id: str, file_spec: str)  -> peewee.ModelSelect: 
+
+def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_id: str, file_spec: str) -> peewee.ModelSelect:
 
     """Perform a search for SDSS targets on vizdb.allspace based on apred_vers, apstar_id, file_spec values.
 
@@ -1490,5 +1491,3 @@ def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_i
     return vizdb.AllSpec.select().where(vizdb.AllSpec.apred_vers == apred_vers,
                                         vizdb.AllSpec.apstar_id == apstar_id,
                                         vizdb.AllSpec.file_spec == file_spec)
-
-
