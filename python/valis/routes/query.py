@@ -32,6 +32,17 @@ from valis.db.queries import (
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
 
+# Note for using catalogdb peewee models from sdssdb.
+#
+# Use below syntax
+#
+# from sdssdb.peewee.sdss5db import catalogdb
+# catalogdb.Gaia_DR3.ra
+# 
+# Do not use below syntax
+#
+# from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+# Gaia_DR3.ra
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -392,7 +403,11 @@ class QueryRoutes(Base):
 
         """
 
-        targets = get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers, apstar_id, file_spec)
+        # get_targets_allspec_apred_vers_apstar_id_file_spec()
+        # returns a ModelSelect object.
+        # .dicts() converts the ModelSelect object into a dictionary
+        # so that it can be serialized.
+        targets = get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers, apstar_id, file_spec).dicts()
 
         # throw exception when it's invalid apred_vers, apstar_id, file_spec
         if not targets:
