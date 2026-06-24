@@ -34,12 +34,12 @@ from valis.routes.base import Base
 
 # Note for using catalogdb peewee models from sdssdb.
 #
-# Use below syntax
+# Use the below syntax.
 #
 # from sdssdb.peewee.sdss5db import catalogdb
 # catalogdb.Gaia_DR3.ra
 # 
-# Do not use below syntax
+# Do not use the below syntax.
 #
 # from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
 # Gaia_DR3.ra
@@ -403,10 +403,11 @@ class QueryRoutes(Base):
 
         """
 
-        # get_targets_allspec_apred_vers_apstar_id_file_spec()
+        # The function get_targets_allspec_apred_vers_apstar_id_file_spec()
         # returns a ModelSelect object.
-        # .dicts() converts the ModelSelect object into a dictionary
-        # so that it can be serialized.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The dictionary can then be serialized.
         targets = get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers, apstar_id, file_spec).dicts()
 
         # throw exception when it's invalid apred_vers, apstar_id, file_spec
