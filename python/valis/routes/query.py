@@ -407,8 +407,9 @@ class QueryRoutes(Base):
         # returns a ModelSelect object.
         # The method .dicts() converts the peewee ModelSelect object
         # into a dictionary.
-        # The dictionary can then be serialized.
-        targets = get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers, apstar_id, file_spec).dicts()
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers, apstar_id, file_spec).dicts())
 
         # throw exception when it's invalid apred_vers, apstar_id, file_spec
         if not targets:
