@@ -279,6 +279,7 @@ class AstraProducts(PeeweeBase):
     """Model for the summary of astra products"""
     product: str = Field(None, description="the name of the product or file species")
     location: Optional[str] = Field(None, description='the file location')
+    has_data: Optional[bool] = Field(None, description='flag if the file has data in any extension')
 
     @computed_field(description="The filestem of the product")
     @property

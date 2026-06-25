@@ -6,6 +6,7 @@
 
 import inspect
 import itertools
+import os.path
 import uuid
 from enum import Enum
 
@@ -16,6 +17,7 @@ import deepmerge
 import packaging
 import peewee
 from astropy.coordinates import SkyCoord
+from astropy.io import fits
 from peewee import Case
 from playhouse.shortcuts import model_to_dict
 from sdssdb.peewee.sdss5db import apogee_drpdb as apo
@@ -697,8 +699,18 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
         output = {pipeline: {"source": res, 'products': []}, "files": {pipeline: []}}
         for item in ("mwmStar", "mwmVisit", "astraStarASPCAP", "astraStarThePayne", "astraStarSnowWhite", "astraVisitThePayne", "astraVisitSnowWhite"):
             filepath = build_astra_path(res, release=release, name=item, ignore_existence=False)
-            output[pipeline]['products'].append({"product": item, "location": get_pathcomp(filepath, release, "location")})
-            output["files"][pipeline].append(filepath)
+
+            if filepath and os.path.exists(filepath):
+                with fits.open(filepath) as hdul:
+                    ext_with_data = [ext for ext in range(len(hdul)) if hdul[ext].data is not None and len(hdul[ext].data) > 0]
+                    has_data = len(ext_with_data) > 0
+            else:
+                has_data = None
+
+            output[pipeline]['products'].append({"product": item, "location": get_pathcomp(filepath, release, "location"), "has_data": has_data})
+
+            if has_data:
+                output["files"][pipeline].append(filepath)
 
         return output
 
