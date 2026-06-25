@@ -4,7 +4,7 @@ name = "sdss-valis"
 version = "0.2.1-alpha"
 description = "the SDSS API for delivering and accessing remote information"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license =  "BSD-3-Clause"
 
 authors = [
@@ -12,7 +12,7 @@ authors = [
 ]
 dependencies = [
     "aiofiles>=24.1.0",
-    "astropy>=6.1.7,<7",
+    "astropy>=7.2",
     "astroquery<=0.4.7",
     "deepmerge>=2.0",
     "fastapi-cache2[redis]>=0.2.2",
@@ -71,7 +71,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-sdss-solara = { git = "https://github.com/sdss/sdss_solara", rev = "main" }
+sdss-solara = { git = "https://github.com/sdss/sdss_solara", rev = "albireox-astra-model-spectra" }
 
 [tool.setuptools]
 zip-safe = false
