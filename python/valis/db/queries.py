@@ -661,7 +661,7 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     if pipeline == "boss" and (qq := get_boss_target(sdss_id, release, primary=False)):
         output = {pipeline: [], "files": {pipeline: []}}
         for res in qq.dicts().iterator():
-            filepath = build_boss_path(res, release=release, ignore_existence=True)
+            filepath = build_boss_path(res, release=release, ignore_existence=False)
             res.update({"location": get_pathcomp(filepath, release, "location")})
             output[pipeline].append(res)
             output["files"][pipeline].append(filepath)
@@ -678,14 +678,14 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
         # stars
         if (qq := get_apogee_target(sdss_id, release, table='star')):
             for res in qq.dicts().iterator():
-                filepath = build_apogee_path(res, release=release, ignore_existence=True)
+                filepath = build_apogee_path(res, release=release, ignore_existence=False)
                 res.update({"location": get_pathcomp(filepath, release, "location")})
                 output[pipeline]['stars'].append(res)
                 output["files"][pipeline].append(filepath)
         # visits
         if (qq := get_apogee_target(sdss_id, release, table='visit')):
             for res in qq.dicts().iterator():
-                filepath = build_apogee_path(res, release=release, ignore_existence=True)
+                filepath = build_apogee_path(res, release=release, ignore_existence=False)
                 res.update({"location": get_pathcomp(filepath, release, "location")})
                 output[pipeline]['visits'].append(res)
                 output["files"][pipeline].append(filepath)
@@ -695,8 +695,8 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     elif pipeline == "astra" and (qq := get_astra_target(sdss_id, release)):
         res = qq.dicts().first()
         output = {pipeline: {"source": res, 'products': []}, "files": {pipeline: []}}
-        for item in ("mwmStar", "mwmVisit"):
-            filepath = build_astra_path(res, release=release, name=item, ignore_existence=True)
+        for item in ("mwmStar", "mwmVisit", "astraStarASPCAP", "astraStarThePayne", "astraStarSnowWhite", "astraVisitThePayne", "astraVisitSnowWhite"):
+            filepath = build_astra_path(res, release=release, name=item, ignore_existence=False)
             output[pipeline]['products'].append({"product": item, "location": get_pathcomp(filepath, release, "location")})
             output["files"][pipeline].append(filepath)
 
