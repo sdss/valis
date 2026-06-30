@@ -71,7 +71,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-sdss-solara = { git = "https://github.com/sdss/sdss_solara", rev = "albireox-astra-model-spectra" }
+sdss-solara = { git = "https://github.com/sdss/sdss_solara", rev = "main" }
 
 [tool.setuptools]
 zip-safe = false
