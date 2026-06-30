@@ -702,7 +702,7 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
 
             if filepath and os.path.exists(filepath):
                 with fits.open(filepath) as hdul:
-                    ext_with_data = [ext for ext in range(len(hdul)) if hdul[ext].data is not None and len(hdul[ext].data) > 0]
+                    ext_with_data = [ext for ext in range(len(hdul)) if hdul[ext].size > 0]
                     has_data = len(ext_with_data) > 0
             else:
                 has_data = None
