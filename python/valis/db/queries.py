@@ -6,6 +6,7 @@
 
 import inspect
 import itertools
+import os.path
 import uuid
 from enum import Enum
 
@@ -16,6 +17,7 @@ import deepmerge
 import packaging
 import peewee
 from astropy.coordinates import SkyCoord
+from astropy.io import fits
 from peewee import Case
 from playhouse.shortcuts import model_to_dict
 from sdssdb.peewee.sdss5db import apogee_drpdb as apo
@@ -661,7 +663,7 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     if pipeline == "boss" and (qq := get_boss_target(sdss_id, release, primary=False)):
         output = {pipeline: [], "files": {pipeline: []}}
         for res in qq.dicts().iterator():
-            filepath = build_boss_path(res, release=release, ignore_existence=True)
+            filepath = build_boss_path(res, release=release, ignore_existence=False)
             res.update({"location": get_pathcomp(filepath, release, "location")})
             output[pipeline].append(res)
             output["files"][pipeline].append(filepath)
@@ -678,14 +680,14 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
         # stars
         if (qq := get_apogee_target(sdss_id, release, table='star')):
             for res in qq.dicts().iterator():
-                filepath = build_apogee_path(res, release=release, ignore_existence=True)
+                filepath = build_apogee_path(res, release=release, ignore_existence=False)
                 res.update({"location": get_pathcomp(filepath, release, "location")})
                 output[pipeline]['stars'].append(res)
                 output["files"][pipeline].append(filepath)
         # visits
         if (qq := get_apogee_target(sdss_id, release, table='visit')):
             for res in qq.dicts().iterator():
-                filepath = build_apogee_path(res, release=release, ignore_existence=True)
+                filepath = build_apogee_path(res, release=release, ignore_existence=False)
                 res.update({"location": get_pathcomp(filepath, release, "location")})
                 output[pipeline]['visits'].append(res)
                 output["files"][pipeline].append(filepath)
@@ -695,10 +697,20 @@ def get_pipe_meta(sdss_id: int, release: str, pipeline: str) -> dict:
     elif pipeline == "astra" and (qq := get_astra_target(sdss_id, release)):
         res = qq.dicts().first()
         output = {pipeline: {"source": res, 'products': []}, "files": {pipeline: []}}
-        for item in ("mwmStar", "mwmVisit"):
-            filepath = build_astra_path(res, release=release, name=item, ignore_existence=True)
-            output[pipeline]['products'].append({"product": item, "location": get_pathcomp(filepath, release, "location")})
-            output["files"][pipeline].append(filepath)
+        for item in ("mwmStar", "mwmVisit", "astraStarASPCAP", "astraStarThePayne", "astraStarSnowWhite", "astraVisitThePayne", "astraVisitSnowWhite"):
+            filepath = build_astra_path(res, release=release, name=item, ignore_existence=False)
+
+            if filepath and os.path.exists(filepath):
+                with fits.open(filepath) as hdul:
+                    ext_with_data = [ext for ext in range(len(hdul)) if hdul[ext].size > 0]
+                    has_data = len(ext_with_data) > 0
+            else:
+                has_data = None
+
+            output[pipeline]['products'].append({"product": item, "location": get_pathcomp(filepath, release, "location"), "has_data": has_data})
+
+            if has_data:
+                output["files"][pipeline].append(filepath)
 
         return output
 
