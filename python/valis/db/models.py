@@ -666,7 +666,7 @@ class AllSpecModel(PeeweeBase):
     @property
     def filepath(self) -> str:
         """The legacy SAS filepath for the SDSS object"""
-        return build_legacy_path(self.__dict__, release=self.release, ignore_existence=True)
+        return build_legacy_path(self.__dict__, release=self.release, ignore_existence=False)
 
     @computed_field(description="The marvin URL identifier for the SDSS MaNGA target")
     @property
