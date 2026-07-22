@@ -317,7 +317,7 @@ class ApoVisitSummary(PeeweeBase):
     location: Optional[str] = Field(None, description='the file location')
     product: str = Field('apVisit', description="the data product name, which is apVisit for apogee visit summary")
     telescope: str = Field(None, description="the telescope used for the observation")
-    field: int = Field(None, description="the observed field id")
+    field: int | str = Field(None, description="the observed field id")
 
     @computed_field(description="The filestem of the product")
     @property
@@ -405,7 +405,7 @@ class ApogeeVisit(PeeweeBase):
     mjd: int = None
     telescope: str = None
     apred_vers: str = None
-    field: Optional[int] = None
+    field: Optional[int | str] = None
     programname: Optional[str] = None
     objtype: Optional[str] = None
     ra: float = None
