@@ -1465,12 +1465,51 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     return max(res, key=lambda i: i["created"]) if res else None
 
 
-def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_id: str, file_spec: str) -> peewee.ModelSelect:
+# Below in regex, we match plus sign due to below column.
+# sdss5db=> select max(apogee_id) from vizdb.allspec limit 4;
+#         max         
+# --------------------
+#  AP22304103+3917301
+# (1 row)
 
-    """Perform a search for SDSS targets on vizdb.allspace based on apred_vers, apstar_id, file_spec values.
+import re
+
+def is_alphanum(text):
+    # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
+    return bool(re.match(r"^[a-zA-Z0-9\_\-\+]+$", text))
+
+# make another funtion for ra, dec coen search
+def get_targets_allspec_id(
+        allspec_id: str,
+        multiplex_id: str,
+        releases_pk: int,
+        sdss_phase: int,
+        observatory: str,
+        instrument: str,
+        sdss_id: int,
+        catalogid: int,
+        fiberid: int,
+        ifudsgn: int,
+        plate: int,
+        fps_field: int,
+        plate_or_fps_field: int,
+        mjd: int,
+        run2d: str,
+        run1d: str,
+        coadd: str,
+        apred_vers: str,
+        drpver: str,
+        version: str,
+        programname: str,
+        survey: str,
+        healpix: int,
+        healpixgrp: int,
+        apogee_id: str) -> peewee.ModelSelect:
+
+    """Perform a search for SDSS targets on vizdb.allspace based on allpsec_id and other integer or string column values.
 
     Perform a search for SDSS targets using the peewee ORM in the
-    vizdb.allspec table, based on apred_vers, apstar_id, file_spec values.
+    vizdb.allspec table, based on allspec_id etc. values.
     We return the peewee ModelSelect directly here so it can be easily combined
     with other queries, if needed.
 
@@ -1478,9 +1517,31 @@ def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_i
 
     Parameters
     ----------
-    apred_vers: str
-    apstar_id: str
-    file_spec: str
+        allspec_id: str,
+        multiplex_id: str,
+        releases_pk: int,
+        sdss_phase: int,
+        observatory: str,
+        instrument: str,
+        sdss_id: int,
+        catalogid: int,
+        fiberid: int,
+        ifudsgn: int,
+        plate: int,
+        fps_field: int,
+        plate_or_fps_field: int,
+        mjd: int,
+        run2d: str,
+        run1d: str,
+        coadd: str,
+        apred_vers: str,
+        drpver: str,
+        version: str,
+        programname: str,
+        survey: str,
+        healpix: int,
+        healpixgrp: int,
+        apogee_id: str
 
     Returns
 
@@ -1488,6 +1549,153 @@ def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_i
         the ORM query
     """
 
-    return vizdb.AllSpec.select().where(vizdb.AllSpec.apred_vers == apred_vers,
+# # Safe parameterized raw SQL condition
+# query = User.select().where(SQL("username = %s", ('charlie',)))
+
+        allspec_id: str,
+        multiplex_id: str,
+        releases_pk: int,
+        sdss_phase: int,
+        observatory: str,
+        instrument: str,
+        sdss_id: int,
+        catalogid: int,
+        fiberid: int,
+        ifudsgn: int,
+        plate: int,
+        fps_field: int,
+        plate_or_fps_field: int,
+        mjd: int,
+        run2d: str,
+        run1d: str,
+        coadd: str,
+        apred_vers: str,
+        drpver: str,
+        version: str,
+        programname: str,
+
+    is_allspec_id = False
+    if (allspec_id is not None):
+        is_allspec_id = True
+        if(not is_alphanum(allspec_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid allspec_id {allspec_id}.")
+i
+
+    is_multiplex_id = False
+    if (multiplex_id is not None):
+        is_multiplex_id = True
+        if(not is_alphanum(multiplex_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid multiplex_id {multiplex_id}.")
+
+    is_releases_pk = False
+    if (releases_pk is not None): 
+        is_releases_pk = True
+        releases_pk = int(releases_pk)
+
+    is_sdss_phase = False
+    if (sdss_phase is not None): 
+        is_sdss_phase = True
+        sdss_phase = int(sdss_phase)
+
+    is_observatory = False
+    if (observatory is not None):
+        is_observatory = True
+        if (not is_alphanum(observatory)):
+            raise HTTPException(status_code=400, detail=f"Invalid observatory {observatory}.")
+
+    is_instrument = False    
+    if (instrument is not None):
+        is_instrument = True
+        if (not is_alphanum(instrument)):
+            raise HTTPException(status_code=400, detail=f"Invalid instrument {instrument}.")
+
+    is_sdss_id = False
+    if (sdss_id is not None):
+        is_sdss_id = True
+        sdss_id = int(sdss_id)
+
+    is_catalogid = False
+    if (catalogid is not None):
+        is_catalogid = True
+        catalogid = int(catalogid)
+
+    is_fiberid = False
+    if (fiberid is not None):
+        is_fiberid = True
+        fiberid = int(fiberid)
+
+    is_ifudsgn = False
+    if (ifudsgn is not None):
+        is_ifudsgn = True
+        ifudsgn = int(ifudsgn)
+
+    is_plate = False
+    if (plate is not None):
+        is_plate = True
+        plate = int(plate)
+
+    is_fps_field = False
+    if (fps_field is not None):
+        is_fps_field = True
+        fps_field = int(fps_field)
+
+    is_plate_or_fps_field  = False
+    if (plate_or_fps_field is not None):
+        is_plate_or_fps_field  = True
+        plate_or_fps_field = int(plate_or_fps_field)
+
+    is_mjd = False
+    if (mjd is not None):
+        is_mjd = True
+        mjd = int(mjd)
+
+    is_run2d = False
+    if (run2d is not None):
+        is_run2d = True
+        if (not is_alphanum(run2d)):
+            raise HTTPException(status_code=400, detail=f"Invalid run2d {run2d}.")
+
+    is_run1d = False
+    if ((run1d is not None) and not(is_alphanum(run1d)):
+        raise HTTPException(status_code=400, detail=f"Invalid run1d {run1d}.")
+
+    if ((coadd is not None) and not(is_alphanum(coadd)):
+        raise HTTPException(status_code=400, detail=f"Invalid coadd {coadd}.")
+
+    if ((apred_vers is not None) and not(is_alphanum(pred_vers)):
+        raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}.")
+
+    if ((drpver is not None) and not(is_alphanum(drpver)):
+        raise HTTPException(status_code=400, detail=f"Invalid drpver {drpver}.")
+
+    if ((version is not None) and not(is_alphanum(version)):
+        raise HTTPException(status_code=400, detail=f"Invalid version {version}.")
+
+    if ((programname is not None) and not(is_alphanum(programname)):
+        raise HTTPException(status_code=400, detail=f"Invalid programname {programname}.")
+
+    if ((survey is not None) and not(is_alphanum(survey)):
+        raise HTTPException(status_code=400, detail=f"Invalid survey {survey}.")
+
+    is_healpix = False    
+    if (healpix is not None):
+        is_healpix = True
+        healpix = int(healpix)
+
+    is_healpixgrp = False
+    if (healpixgrp is not None):
+        is_healpixgrp = True
+        healpixgrp = int(healpixgrp)
+
+    is_apogee_id = False
+    if (apogee_id is not None):
+        is_apogee_id = True
+        if (not(is_alphanum(apogee_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
+        
+
+    return vizdb.AllSpec.select().where(
+        
+        vizdb.AllSpec.apred_vers == apred_vers,
                                         vizdb.AllSpec.apstar_id == apstar_id,
                                         vizdb.AllSpec.file_spec == file_spec)
