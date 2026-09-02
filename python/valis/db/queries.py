@@ -1656,26 +1656,46 @@ i
             raise HTTPException(status_code=400, detail=f"Invalid run2d {run2d}.")
 
     is_run1d = False
-    if ((run1d is not None) and not(is_alphanum(run1d)):
-        raise HTTPException(status_code=400, detail=f"Invalid run1d {run1d}.")
+    if (run1d is not None):
+        is_run1d = True
+        if (not is_alphanum(run1d)):
+            raise HTTPException(status_code=400, detail=f"Invalid run1d {run1d}.")
 
-    if ((coadd is not None) and not(is_alphanum(coadd)):
-        raise HTTPException(status_code=400, detail=f"Invalid coadd {coadd}.")
+    is_coadd = False    
+    if (coadd is not None):
+        is_coadd = True
+        if (not is_alphanum(coadd)):
+            raise HTTPException(status_code=400, detail=f"Invalid coadd {coadd}.")
 
-    if ((apred_vers is not None) and not(is_alphanum(pred_vers)):
-        raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}.")
+    is_apred_vers = False    
+    if (apred_vers is not None):
+        is_apred_vers = True
+        if (not is_alphanum(pred_vers)):
+            raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}.")
 
-    if ((drpver is not None) and not(is_alphanum(drpver)):
-        raise HTTPException(status_code=400, detail=f"Invalid drpver {drpver}.")
+    is_drpver = False
+    if (drpver is not None):
+        is_drpver = True
+        if (not is_alphanum(drpver)):
+            raise HTTPException(status_code=400, detail=f"Invalid drpver {drpver}.")
 
-    if ((version is not None) and not(is_alphanum(version)):
-        raise HTTPException(status_code=400, detail=f"Invalid version {version}.")
+    is_version = False
+    if (version is not None):
+        is_version = True
+        if (not is_alphanum(version)):
+            raise HTTPException(status_code=400, detail=f"Invalid version {version}.")
 
-    if ((programname is not None) and not(is_alphanum(programname)):
-        raise HTTPException(status_code=400, detail=f"Invalid programname {programname}.")
+    is_programname = False
+    if (programname is not None):
+        is_programname = True
+        if (not is_alphanum(programname)):
+            raise HTTPException(status_code=400, detail=f"Invalid programname {programname}.")
 
-    if ((survey is not None) and not(is_alphanum(survey)):
-        raise HTTPException(status_code=400, detail=f"Invalid survey {survey}.")
+    is_survey = False
+    if (survey is not None):
+        is_survey = True
+        if (not is_alphanum(survey)):
+            raise HTTPException(status_code=400, detail=f"Invalid survey {survey}.")
 
     is_healpix = False    
     if (healpix is not None):
@@ -1690,7 +1710,7 @@ i
     is_apogee_id = False
     if (apogee_id is not None):
         is_apogee_id = True
-        if (not(is_alphanum(apogee_id)):
+        if (not is_alphanum(apogee_id)):
             raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
         
 
