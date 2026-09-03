@@ -1478,7 +1478,7 @@ def is_alphanum(text):
     # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
     return bool(re.match(r"^[a-zA-Z0-9\_\-\+]+$", text))
 
-# make another funtion for ra, dec coen search
+# TODO make another function for ra, dec cone search
 def get_targets_allspec_id(
         allspec_id: str,
         multiplex_id: str,
@@ -1550,41 +1550,17 @@ def get_targets_allspec_id(
     """
 
 
-        allspec_id: str,
-        multiplex_id: str,
-        releases_pk: int,
-        sdss_phase: int,
-        observatory: str,
-        instrument: str,
-        sdss_id: int,
-        catalogid: int,
-        fiberid: int,
-        ifudsgn: int,
-        plate: int,
-        fps_field: int,
-        plate_or_fps_field: int,
-        mjd: int,
-        run2d: str,
-        run1d: str,
-        coadd: str,
-        apred_vers: str,
-        drpver: str,
-        version: str,
-        programname: str,
+    # Safe parameterized raw SQL condition
+    # query = User.select().where(SQL("username = %s", ('charlie',)))
 
-
-# # Safe parameterized raw SQL condition
-# query = User.select().where(SQL("username = %s", ('charlie',)))
     sql_string = ""
     sql_list = []
-
 
     is_allspec_id = False
     if (allspec_id is not None):
         is_allspec_id = True
         if(not is_alphanum(allspec_id)):
             raise HTTPException(status_code=400, detail=f"Invalid allspec_id {allspec_id}.")
-i
         sql_string = sql_string + "allspec_id = %s and "
         sql_list = sql_list.append(allspec_id)
 

@@ -416,3 +416,86 @@ class QueryRoutes(Base):
             raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}, apstar_id {apstar_id}, file_spec {file_spec}.")
 
         return targets or {}
+
+    @router.get(
+        "/allspec_id",
+        summary="Perform a search for an allspec target based on allpsec_id and other integer and text columns",
+        response_model=List[AllSpecModel],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_apred_vers_apstar_id_file_spec_search(self,
+            apred_vers: Annotated[str, Query(description="Value of apred_vers", example="dr17")],
+            apstar_id: Annotated[str, Query(description="Value of apstar_id", example="apogee.apo25m.stars.116-63_MGA.2M00361095-0107384")],
+            file_spec: Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        allspec_id: Annotated[str,        allspec_id: str,
+        multiplex_id: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        releases_pk: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        sdss_phase: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        observatory: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        instrument: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        sdss_id: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        catalogid: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        fiberid: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        ifudsgn: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        plate: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        fps_field: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        plate_or_fps_field: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        mjd: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        run2d: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        run1d: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        coadd: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        apred_vers: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        drpver: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        version: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        programname: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        survey: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        healpix: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        healpixgrp: int  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+        apogee_id: str  Annotated[str, Query(description="Value of file_spec", example="apVisit")],
+            
+            ):
+        """Perform a search for an allspec target based on the allspec_id and other integer or text columns.
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allpsec_id()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id(
+            allspec_id,
+            multiplex_id,
+            releases_pk,
+            sdss_phase,
+            observatory,
+            instrument,
+            sdss_id,
+            catalogid,
+            fiberid,
+            ifudsgn,
+            plate,
+            fps_field,
+            plate_or_fps_field,
+            mjd,
+            run2d,
+            run1d,
+            coadd,
+            apred_vers,
+            drpver,
+            version,
+            programname,
+            survey,
+            healpix,
+            healpixgrp,
+            apogee_id).dicts())
+
+        # throw exception when it's invalid allpsec_id etc.
+        if not targets:
+            raise HTTPException(status_code=400, detail=f"Invalid input values.")
+
+        return targets or {}
