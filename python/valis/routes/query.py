@@ -425,10 +425,6 @@ class QueryRoutes(Base):
     )
     @valis_cache(namespace="valis-query")
     async def get_targets_allspec_id_search(self,
-            apred_vers: Annotated[str, Query(description="Value of apred_vers", example="dr17")],
-            apstar_id: Annotated[str, Query(description="Value of apstar_id", example="apogee.apo25m.stars.116-63_MGA.2M00361095-0107384")],
-            file_spec: Annotated[str, Query(description="Value of file_spec", example="apVisit")],
-
         allspec_id: Annotated[str, Query(description="Value of allpspec_id", example="sdss5–apo-boss–daily–v6_2_1–015000–59146–4375786564–70050164")],
         multiplex_id: Annotated[str, Query(description="Value of multiplex_id", example="sdss5–apo-boss–daily-v6_2_1–015000–59146")],
         releases_pk: Annotated[int, Query(description="Value of releases_pk", example="26")],
