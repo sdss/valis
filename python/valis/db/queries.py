@@ -1508,7 +1508,9 @@ def is_alphanum(text):
 
 # TODO make another function for ra, dec cone search
 
-# we also put this in import for routes/query.py
+# we also put get_targets_allspec_id in import for routes/query.py
+
+
 def get_targets_allspec_id(
         allspec_id: str,
         multiplex_id: str,
@@ -1779,6 +1781,6 @@ def get_targets_allspec_id(
 
     sql_tuple = tuple(sql_list)
     peewee_query = vizdb.AllSpec.select().where(
-        peewee.SQL(sql_string, sql_tuple()))
+        peewee.SQL(sql_string, sql_tuple))
 
     return peewee_query
