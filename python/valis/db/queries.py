@@ -30,6 +30,7 @@ from valis.utils.paths import build_apogee_path, build_astra_path, build_boss_pa
 from valis.utils.versions import get_software_tag
 
 from fastapi import HTTPException
+import re
 
 def lco_hack(query: peewee.ModelSelect, release: str = None) -> peewee.ModelSelect:
     """Remove SV-LCO targets from the query"""
@@ -1465,21 +1466,21 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     # or None if none found
     return max(res, key=lambda i: i["created"]) if res else None
 
-
 # Below in regex, we match plus sign due to below column.
 # sdss5db=> select max(apogee_id) from vizdb.allspec limit 4;
-#         max         
+#         max
 # --------------------
 #  AP22304103+3917301
 # (1 row)
 
-import re
 
 def is_alphanum(text):
     # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
     return bool(re.match(r"^[a-zA-Z0-9\_\-\+]+$", text))
 
 # TODO make another function for ra, dec cone search
+
+
 def get_targets_allspec_id(
         allspec_id: str,
         multiplex_id: str,
@@ -1507,7 +1508,8 @@ def get_targets_allspec_id(
         healpixgrp: int,
         apogee_id: str) -> peewee.ModelSelect:
 
-    """Perform a search for SDSS targets on vizdb.allspace based on allpsec_id and other integer or string column values.
+    """Perform a search for SDSS targets on vizdb.allspace
+    based on allpsec_id and other integer or string column values.
 
     Perform a search for SDSS targets using the peewee ORM in the
     vizdb.allspec table, based on allspec_id etc. values.
@@ -1572,20 +1574,19 @@ def get_targets_allspec_id(
         sql_string = sql_string + "multiplex_id = %s and "
         sql_list = sql_list.append(multiplex_id)
 
-
     is_releases_pk = False
-    if (releases_pk is not None): 
+    if (releases_pk is not None):
         is_releases_pk = True
         releases_pk = int(releases_pk)
         sql_string = sql_string + "releases_pk = %s and "
         sql_list = sql_list.append(str(releases_pk))
 
     is_sdss_phase = False
-    if (sdss_phase is not None): 
+    if (sdss_phase is not None):
         is_sdss_phase = True
         sdss_phase = int(sdss_phase)
         sql_string = sql_string + "sdss_phase = %s and "
-        sql_list = sql_list.append(str(sdss_phase))        
+        sql_list = sql_list.append(str(sdss_phase))
 
     is_observatory = False
     if (observatory is not None):
@@ -1595,7 +1596,7 @@ def get_targets_allspec_id(
         sql_string = sql_string + "observatory = %s and "
         sql_list = sql_list.append(observatory)
 
-    is_instrument = False    
+    is_instrument = False
     if (instrument is not None):
         is_instrument = True
         if (not is_alphanum(instrument)):
@@ -1645,7 +1646,7 @@ def get_targets_allspec_id(
         sql_string = sql_string + "fps_field = %s and "
         sql_list = sql_list.append(str(fps_field))
 
-    is_plate_or_fps_field  = False
+    is_plate_or_fps_field = False
     if (plate_or_fps_field is not None):
         is_plate_or_fps_field = True
         plate_or_fps_field = int(plate_or_fps_field)
@@ -1683,7 +1684,7 @@ def get_targets_allspec_id(
         sql_string = sql_string + "coadd = %s and "
         sql_list = sql_list.append(coadd)
 
-    is_apred_vers = False    
+    is_apred_vers = False
     if (apred_vers is not None):
         is_apred_vers = True
         if (not is_alphanum(apred_vers)):
@@ -1750,6 +1751,6 @@ def get_targets_allspec_id(
 
     sql_tuple = tuple(sql_list)
     peewee_query = vizdb.AllSpec.select().where(
-            peewee.SQL(sql_string, sql_tuple()))
+        peewee.SQL(sql_string, sql_tuple()))
 
     return peewee_query
