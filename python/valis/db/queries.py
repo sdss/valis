@@ -29,6 +29,7 @@ from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_apogee_path, build_astra_path, build_boss_path, get_pathcomp
 from valis.utils.versions import get_software_tag
 
+from fastapi import HTTPException
 
 def lco_hack(query: peewee.ModelSelect, release: str = None) -> peewee.ModelSelect:
     """Remove SV-LCO targets from the query"""
@@ -1549,7 +1550,6 @@ def get_targets_allspec_id(
         the ORM query
     """
 
-
     # Safe parameterized raw SQL condition
     # query = User.select().where(SQL("username = %s", ('charlie',)))
 
@@ -1559,7 +1559,7 @@ def get_targets_allspec_id(
     is_allspec_id = False
     if (allspec_id is not None):
         is_allspec_id = True
-        if(not is_alphanum(allspec_id)):
+        if (not is_alphanum(allspec_id)):
             raise HTTPException(status_code=400, detail=f"Invalid allspec_id {allspec_id}.")
         sql_string = sql_string + "allspec_id = %s and "
         sql_list = sql_list.append(allspec_id)
@@ -1567,7 +1567,7 @@ def get_targets_allspec_id(
     is_multiplex_id = False
     if (multiplex_id is not None):
         is_multiplex_id = True
-        if(not is_alphanum(multiplex_id)):
+        if (not is_alphanum(multiplex_id)):
             raise HTTPException(status_code=400, detail=f"Invalid multiplex_id {multiplex_id}.")
         sql_string = sql_string + "multiplex_id = %s and "
         sql_list = sql_list.append(multiplex_id)
@@ -1647,7 +1647,7 @@ def get_targets_allspec_id(
 
     is_plate_or_fps_field  = False
     if (plate_or_fps_field is not None):
-        is_plate_or_fps_field  = True
+        is_plate_or_fps_field = True
         plate_or_fps_field = int(plate_or_fps_field)
         sql_string = sql_string + "plate_or_fps_field = %s and "
         sql_list = sql_list.append(str(plate_or_fps_field))
@@ -1667,7 +1667,6 @@ def get_targets_allspec_id(
         sql_string = sql_string + "run2d = %s and "
         sql_list = sql_list.append(run2d)
 
-
     is_run1d = False
     if (run1d is not None):
         is_run1d = True
@@ -1676,7 +1675,7 @@ def get_targets_allspec_id(
         sql_string = sql_string + "run1d = %s and "
         sql_list = sql_list.append(run1d)
 
-    is_coadd = False    
+    is_coadd = False
     if (coadd is not None):
         is_coadd = True
         if (not is_alphanum(coadd)):
@@ -1687,7 +1686,7 @@ def get_targets_allspec_id(
     is_apred_vers = False    
     if (apred_vers is not None):
         is_apred_vers = True
-        if (not is_alphanum(pred_vers)):
+        if (not is_alphanum(apred_vers)):
             raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}.")
         sql_string = sql_string + "apred_vers = %s and "
         sql_list = sql_list.append(apred_vers)
@@ -1724,7 +1723,7 @@ def get_targets_allspec_id(
         sql_string = sql_string + "survey = %s and "
         sql_list = sql_list.append(survey)
 
-    is_healpix = False    
+    is_healpix = False
     if (healpix is not None):
         is_healpix = True
         healpix = int(healpix)
@@ -1746,12 +1745,11 @@ def get_targets_allspec_id(
         sql_string = sql_string + "apogee_id = %s"
         sql_list = sql_list.append(apogee_id)
 
-
-# # Safe parameterized raw SQL condition
-# query = User.select().where(SQL("username = %s", ('charlie',)))
+    # example for safe parameterized raw SQL condition
+    # query = User.select().where(SQL("username = %s", ('charlie',)))
 
     sql_tuple = tuple(sql_list)
-    pewee_query = vizdb.AllSpec.select().where(
-            SQL(sql_string, sql_tuple()))
-        
+    peewee_query = vizdb.AllSpec.select().where(
+            peewee.SQL(sql_string, sql_tuple()))
+
     return peewee_query
