@@ -1508,7 +1508,7 @@ def is_alphanum(text):
 
 # TODO make another function for ra, dec cone search
 
-
+# we also put this in import for routes/query.py
 def get_targets_allspec_id(
         allspec_id: str,
         multiplex_id: str,

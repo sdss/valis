@@ -28,6 +28,7 @@ from valis.db.queries import (
     get_targets_by_sdss_id,
     get_targets_obs,
     get_targets_allspec_apred_vers_apstar_id_file_spec,
+    get_targets_allspec_id,
 )
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
