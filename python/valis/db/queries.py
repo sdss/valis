@@ -1592,7 +1592,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(allspec_id)):
             raise HTTPException(status_code=400, detail=f"Invalid allspec_id {allspec_id}.")
         sql_string = sql_string + "allspec_id = %s and "
-        sql_list = sql_list.append(allspec_id)
+        sql_list.append(allspec_id)
 
     is_multiplex_id = False
     if (multiplex_id != "-1"):
@@ -1600,21 +1600,21 @@ def get_targets_allspec_id(
         if (not is_alphanum(multiplex_id)):
             raise HTTPException(status_code=400, detail=f"Invalid multiplex_id {multiplex_id}.")
         sql_string = sql_string + "multiplex_id = %s and "
-        sql_list = sql_list.append(multiplex_id)
+        sql_list.append(multiplex_id)
 
     is_releases_pk = False
     if (releases_pk != "-1"):
         is_releases_pk = True
         releases_pk = int(releases_pk)
         sql_string = sql_string + "releases_pk = %s and "
-        sql_list = sql_list.append(str(releases_pk))
+        sql_list.append(str(releases_pk))
 
     is_sdss_phase = False
     if (sdss_phase != "-1"):
         is_sdss_phase = True
         sdss_phase = int(sdss_phase)
         sql_string = sql_string + "sdss_phase = %s and "
-        sql_list = sql_list.append(str(sdss_phase))
+        sql_list.append(str(sdss_phase))
 
     is_observatory = False
     if (observatory != "-1"):
@@ -1622,7 +1622,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(observatory)):
             raise HTTPException(status_code=400, detail=f"Invalid observatory {observatory}.")
         sql_string = sql_string + "observatory = %s and "
-        sql_list = sql_list.append(observatory)
+        sql_list.append(observatory)
 
     is_instrument = False
     if (instrument != "-1"):
@@ -1630,63 +1630,63 @@ def get_targets_allspec_id(
         if (not is_alphanum(instrument)):
             raise HTTPException(status_code=400, detail=f"Invalid instrument {instrument}.")
         sql_string = sql_string + "instrument = %s and "
-        sql_list = sql_list.append(instrument)
+        sql_list.append(instrument)
 
     is_sdss_id = False
     if (sdss_id != "-1"):
         is_sdss_id = True
         sdss_id = int(sdss_id)
         sql_string = sql_string + "sdss_id = %s and "
-        sql_list = sql_list.append(str(sdss_id))
+        sql_list.append(str(sdss_id))
 
     is_catalogid = False
     if (catalogid != "-1"):
         is_catalogid = True
         catalogid = int(catalogid)
         sql_string = sql_string + "catalogid = %s and "
-        sql_list = sql_list.append(str(catalogid))
+        sql_list.append(str(catalogid))
 
     is_fiberid = False
     if (fiberid != "-1"):
         is_fiberid = True
         fiberid = int(fiberid)
         sql_string = sql_string + "fiberid = %s and "
-        sql_list = sql_list.append(str(fiberid))
+        sql_list.append(str(fiberid))
 
     is_ifudsgn = False
     if (ifudsgn != "-1"):
         is_ifudsgn = True
         ifudsgn = int(ifudsgn)
         sql_string = sql_string + "ifudsgn = %s and "
-        sql_list = sql_list.append(str(ifudsgn))
+        sql_list.append(str(ifudsgn))
 
     is_plate = False
     if (plate != "-1"):
         is_plate = True
         plate = int(plate)
         sql_string = sql_string + "plate = %s and "
-        sql_list = sql_list.append(str(plate))
+        sql_list.append(str(plate))
 
     is_fps_field = False
     if (fps_field != "-1"):
         is_fps_field = True
         fps_field = int(fps_field)
         sql_string = sql_string + "fps_field = %s and "
-        sql_list = sql_list.append(str(fps_field))
+        sql_list.append(str(fps_field))
 
     is_plate_or_fps_field = False
     if (plate_or_fps_field != "-1"):
         is_plate_or_fps_field = True
         plate_or_fps_field = int(plate_or_fps_field)
         sql_string = sql_string + "plate_or_fps_field = %s and "
-        sql_list = sql_list.append(str(plate_or_fps_field))
+        sql_list.append(str(plate_or_fps_field))
 
     is_mjd = False
     if (mjd != "-1"):
         is_mjd = True
         mjd = int(mjd)
         sql_string = sql_string + "mjd = %s and "
-        sql_list = sql_list.append(mjd)
+        sql_list.append(mjd)
 
     is_run2d = False
     if (run2d != "-1"):
@@ -1694,7 +1694,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(run2d)):
             raise HTTPException(status_code=400, detail=f"Invalid run2d {run2d}.")
         sql_string = sql_string + "run2d = %s and "
-        sql_list = sql_list.append(run2d)
+        sql_list.append(run2d)
 
     is_run1d = False
     if (run1d != "-1"):
@@ -1702,7 +1702,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(run1d)):
             raise HTTPException(status_code=400, detail=f"Invalid run1d {run1d}.")
         sql_string = sql_string + "run1d = %s and "
-        sql_list = sql_list.append(run1d)
+        sql_list.append(run1d)
 
     is_coadd = False
     if (coadd != "-1"):
@@ -1710,7 +1710,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(coadd)):
             raise HTTPException(status_code=400, detail=f"Invalid coadd {coadd}.")
         sql_string = sql_string + "coadd = %s and "
-        sql_list = sql_list.append(coadd)
+        sql_list.append(coadd)
 
     is_apred_vers = False
     if (apred_vers != "-1"):
@@ -1718,7 +1718,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(apred_vers)):
             raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}.")
         sql_string = sql_string + "apred_vers = %s and "
-        sql_list = sql_list.append(apred_vers)
+        sql_list.append(apred_vers)
 
     is_drpver = False
     if (drpver != "-1"):
@@ -1726,7 +1726,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(drpver)):
             raise HTTPException(status_code=400, detail=f"Invalid drpver {drpver}.")
         sql_string = sql_string + "drpver = %s and "
-        sql_list = sql_list.append(drpver)
+        sql_list.append(drpver)
 
     is_version = False
     if (version != "-1"):
@@ -1734,7 +1734,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(version)):
             raise HTTPException(status_code=400, detail=f"Invalid version {version}.")
         sql_string = sql_string + "version = %s and "
-        sql_list = sql_list.append(version)
+        sql_list.append(version)
 
     is_programname = False
     if (programname != "-1"):
@@ -1742,7 +1742,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(programname)):
             raise HTTPException(status_code=400, detail=f"Invalid programname {programname}.")
         sql_string = sql_string + "programname = %s and "
-        sql_list = sql_list.append(programname)
+        sql_list.append(programname)
 
     is_survey = False
     if (survey != "-1"):
@@ -1750,21 +1750,21 @@ def get_targets_allspec_id(
         if (not is_alphanum(survey)):
             raise HTTPException(status_code=400, detail=f"Invalid survey {survey}.")
         sql_string = sql_string + "survey = %s and "
-        sql_list = sql_list.append(survey)
+        sql_list.append(survey)
 
     is_healpix = False
     if (healpix != "-1"):
         is_healpix = True
         healpix = int(healpix)
         sql_string = sql_string + "healpix = %s and "
-        sql_list = sql_list.append(str(healpix))
+        sql_list.append(str(healpix))
 
     is_healpixgrp = False
     if (healpixgrp != "-1"):
         is_healpixgrp = True
         healpixgrp = int(healpixgrp)
         sql_string = sql_string + "healpixgrp = %s and "
-        sql_list = sql_list.append(str(healpixgrp))
+        sql_list.append(str(healpixgrp))
 
     is_apogee_id = False
     if (apogee_id != "-1"):
@@ -1772,7 +1772,7 @@ def get_targets_allspec_id(
         if (not is_alphanum(apogee_id)):
             raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
         sql_string = sql_string + "apogee_id = %s"
-        sql_list = sql_list.append(apogee_id)
+        sql_list.append(apogee_id)
 
     # example for safe parameterized raw SQL condition
     # query = User.select().where(SQL("username = %s", ('charlie',)))
