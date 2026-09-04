@@ -1609,14 +1609,14 @@ def get_targets_allspec_id(
         is_releases_pk = True
         releases_pk = int(releases_pk)
         sql_string = sql_string + "releases_pk = %s and "
-        sql_list.append(str(releases_pk))
+        sql_list.append(releases_pk)
 
     is_sdss_phase = False
     if (sdss_phase != -1):
         is_sdss_phase = True
         sdss_phase = int(sdss_phase)
         sql_string = sql_string + "sdss_phase = %s and "
-        sql_list.append(str(sdss_phase))
+        sql_list.append(sdss_phase)
 
     is_observatory = False
     if (observatory != "-1"):
@@ -1639,49 +1639,49 @@ def get_targets_allspec_id(
         is_sdss_id = True
         sdss_id = int(sdss_id)
         sql_string = sql_string + "sdss_id = %s and "
-        sql_list.append(str(sdss_id))
+        sql_list.append(sdss_id)
 
     is_catalogid = False
     if (catalogid != -1):
         is_catalogid = True
         catalogid = int(catalogid)
         sql_string = sql_string + "catalogid = %s and "
-        sql_list.append(str(catalogid))
+        sql_list.append(catalogid)
 
     is_fiberid = False
     if (fiberid != -1):
         is_fiberid = True
         fiberid = int(fiberid)
         sql_string = sql_string + "fiberid = %s and "
-        sql_list.append(str(fiberid))
+        sql_list.append(fiberid)
 
     is_ifudsgn = False
     if (ifudsgn != -1):
         is_ifudsgn = True
         ifudsgn = int(ifudsgn)
         sql_string = sql_string + "ifudsgn = %s and "
-        sql_list.append(str(ifudsgn))
+        sql_list.append(ifudsgn)
 
     is_plate = False
     if (plate != -1):
         is_plate = True
         plate = int(plate)
         sql_string = sql_string + "plate = %s and "
-        sql_list.append(str(plate))
+        sql_list.append(plate)
 
     is_fps_field = False
     if (fps_field != -1):
         is_fps_field = True
         fps_field = int(fps_field)
         sql_string = sql_string + "fps_field = %s and "
-        sql_list.append(str(fps_field))
+        sql_list.append(fps_field)
 
     is_plate_or_fps_field = False
     if (plate_or_fps_field != -1):
         is_plate_or_fps_field = True
         plate_or_fps_field = int(plate_or_fps_field)
         sql_string = sql_string + "plate_or_fps_field = %s and "
-        sql_list.append(str(plate_or_fps_field))
+        sql_list.append(plate_or_fps_field)
 
     is_mjd = False
     if (mjd != -1):
@@ -1759,14 +1759,14 @@ def get_targets_allspec_id(
         is_healpix = True
         healpix = int(healpix)
         sql_string = sql_string + "healpix = %s and "
-        sql_list.append(str(healpix))
+        sql_list.append(healpix)
 
     is_healpixgrp = False
     if (healpixgrp != -1):
         is_healpixgrp = True
         healpixgrp = int(healpixgrp)
         sql_string = sql_string + "healpixgrp = %s and "
-        sql_list.append(str(healpixgrp))
+        sql_list.append(healpixgrp)
 
     is_apogee_id = False
     if (apogee_id != "-1"):
@@ -1783,9 +1783,15 @@ def get_targets_allspec_id(
     # query = User.select().where(SQL("username = %s", ('charlie',)))
 
     print(sql_string)
+    print(sql_list)
 
     sql_tuple = tuple(sql_list)
     peewee_query = vizdb.AllSpec.select().where(
         peewee.SQL(sql_string, sql_tuple))
+
+    sql_query, sql_params = peewee_query.sql()
+
+    print("SQL template:", sql_query)
+    print("Parameters:", sql_params)
 
     return peewee_query
