@@ -685,7 +685,6 @@ class AstraPipeline(PeeweeBase):
     # additional Astra pipeline or joined columns so we allow extra fields.
     model_config = ConfigDict(extra="allow")
 
-import datetime
 
 # AllSpecModel2 is response_model for route /allspec_id in routes/query.py
 class AllSpecModel2(PeeweeBase):
