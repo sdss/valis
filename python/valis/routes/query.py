@@ -421,7 +421,7 @@ class QueryRoutes(Base):
     @router.get(
         "/allspec_id",
         summary="Perform a search for an allspec target based on allpsec_id and other integer and text columns",
-        response_model=List[AllSpecModel],
+        # response_model=List[AllSpecModel],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
     @valis_cache(namespace="valis-query")
