@@ -1794,4 +1794,10 @@ def get_targets_allspec_id(
     print("SQL template:", sql_query)
     print("Parameters:", sql_params)
 
+    where_exprs = []
+    if allspec_id is not None:
+        where_exprs.append(vizdb.AllSpec.allspec_id == allspec_id)
+
+    peewee_query = vizdb.AllSpec.select().where(*where_exprs)
+
     return peewee_query
