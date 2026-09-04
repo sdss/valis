@@ -685,6 +685,7 @@ class AstraPipeline(PeeweeBase):
     # additional Astra pipeline or joined columns so we allow extra fields.
     model_config = ConfigDict(extra="allow")
 
+import datetime
 
 # AllSpecModel2 is response_model for route /allspec_id in routes/query.py
 class AllSpecModel2(PeeweeBase):
@@ -729,8 +730,8 @@ class AllSpecModel2(PeeweeBase):
     mangaid: Optional[str] = Field(None, description="the MaNGA ID")
     file_spec: Optional[str] = Field(None, description="the data product file species name")
     specobjid: Optional[int] = Field(None, description="the spectroscopic object id")
-    created: Optional[str] = Field(None, description="created timestamp")  # new
-    modified: Optional[str] = Field(None, description="modified timestamp")  # new
-    has_mwmstar: Optional[str] = Field(None, description="has_mwmstar")  # new
+    created: Optional[datetime.datetime] = Field(None, description="created timestamp")  # new
+    modified: Optional[datetime.datetime] = Field(None, description="modified timestamp")  # new
+    has_mwmstar: Optional[bool] = Field(None, description="has_mwmstar")  # new
     astra_versions: Optional[str] = Field(None, description="astra_versions")  # new
 # release: Optional[str] = Field(None, description="the data release, e.g. DR17")
