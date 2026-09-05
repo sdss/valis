@@ -1500,7 +1500,11 @@ def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_i
 # --------------------
 #  AP22304103+3917301
 # (1 row)
-
+# if you give above in url then + becomes space.
+# google
+# how to give + sign in rest api url
+#
+# To pass a literal + sign in a REST API URL, you must use its percent-encoded format: %2B
 
 def is_alphanum(text):
     # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters

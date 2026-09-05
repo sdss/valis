@@ -732,5 +732,5 @@ class AllSpecModel2(PeeweeBase):
     created: Optional[datetime.datetime] = Field(None, description="created timestamp")  # new
     modified: Optional[datetime.datetime] = Field(None, description="modified timestamp")  # new
     has_mwmstar: Optional[bool] = Field(None, description="has_mwmstar")  # new
-    astra_versions: Optional[str] = Field(None, description="astra_versions")  # new
+    astra_versions: Optional[list[str]] = Field(None, description="astra_versions")  # new
 # release: Optional[str] = Field(None, description="the data release, e.g. DR17")
