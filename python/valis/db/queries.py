@@ -1504,7 +1504,9 @@ def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_i
 
 def is_alphanum(text):
     # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
-    return bool(re.match(r"^[a-zA-Z0-9\_\-\+]+$", text))
+    # the first dash is regular dash
+    # the second dash is em dash
+    return bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}]+$", text))
 
 # TODO make another function for ra, dec cone search
 
@@ -1582,222 +1584,123 @@ def get_targets_allspec_id(
         the ORM query
     """
 
-    # Safe parameterized raw SQL condition
-    # query = User.select().where(SQL("username = %s", ('charlie',)))
+    # Below expression has type <class 'peewee.Expression'>
+    # vizdb.AllSpec.allspec_id == allspec_id
 
-    sql_string = ""
-    sql_list = []
-
-    is_allspec_id = False
-    if (allspec_id != "-1"):
-        is_allspec_id = True
+    where_peewee_exprs = []
+    if allspec_id is not None:
         if (not is_alphanum(allspec_id)):
             raise HTTPException(status_code=400, detail=f"Invalid allspec_id {allspec_id}.")
-        sql_string = sql_string + "allspec_id = %s and "
-        sql_list.append(allspec_id)
+        where_peewee_exprs.append(vizdb.AllSpec.allspec_id == allspec_id)
 
-    is_multiplex_id = False
-    if (multiplex_id != "-1"):
-        is_multiplex_id = True
+    if multiplex_id is not None:
         if (not is_alphanum(multiplex_id)):
             raise HTTPException(status_code=400, detail=f"Invalid multiplex_id {multiplex_id}.")
-        sql_string = sql_string + "multiplex_id = %s and "
-        sql_list.append(multiplex_id)
+        where_peewee_exprs.append(vizdb.AllSpec.multiplex_id == multiplex_id)
 
-    is_releases_pk = False
-    if (releases_pk != -1):
-        is_releases_pk = True
+    if releases_pk is not None:
         releases_pk = int(releases_pk)
-        sql_string = sql_string + "releases_pk = %s and "
-        sql_list.append(releases_pk)
+        where_peewee_exprs.append(vizdb.AllSpec.releases_pk == releases_pk)
 
-    is_sdss_phase = False
-    if (sdss_phase != -1):
-        is_sdss_phase = True
+    if sdss_phase is not None:
         sdss_phase = int(sdss_phase)
-        sql_string = sql_string + "sdss_phase = %s and "
-        sql_list.append(sdss_phase)
+        where_peewee_exprs.append(vizdb.AllSpec.sdss_phase == sdss_phase)
 
-    is_observatory = False
-    if (observatory != "-1"):
-        is_observatory = True
+    if observatory is not None:
         if (not is_alphanum(observatory)):
             raise HTTPException(status_code=400, detail=f"Invalid observatory {observatory}.")
-        sql_string = sql_string + "observatory = %s and "
-        sql_list.append(observatory)
+        where_peewee_exprs.append(vizdb.AllSpec.observatory == observatory)
 
-    is_instrument = False
-    if (instrument != "-1"):
-        is_instrument = True
+    if instrument is not None:
         if (not is_alphanum(instrument)):
             raise HTTPException(status_code=400, detail=f"Invalid instrument {instrument}.")
-        sql_string = sql_string + "instrument = %s and "
-        sql_list.append(instrument)
+        where_peewee_exprs.append(vizdb.AllSpec.instrument == instrument)
 
-    is_sdss_id = False
-    if (sdss_id != -1):
-        is_sdss_id = True
+    if sdss_id is not None:
         sdss_id = int(sdss_id)
-        sql_string = sql_string + "sdss_id = %s and "
-        sql_list.append(sdss_id)
+        where_peewee_exprs.append(vizdb.AllSpec.sdss_id == sdss_id)
 
-    is_catalogid = False
-    if (catalogid != -1):
-        is_catalogid = True
+    if catalogid is not None:
         catalogid = int(catalogid)
-        sql_string = sql_string + "catalogid = %s and "
-        sql_list.append(catalogid)
+        where_peewee_exprs.append(vizdb.AllSpec.catalogid == catalogid)
 
-    is_fiberid = False
-    if (fiberid != -1):
-        is_fiberid = True
+    if fiberid is not None:
         fiberid = int(fiberid)
-        sql_string = sql_string + "fiberid = %s and "
-        sql_list.append(fiberid)
+        where_peewee_exprs.append(vizdb.AllSpec.fiberid == fiberid)
 
-    is_ifudsgn = False
-    if (ifudsgn != -1):
-        is_ifudsgn = True
+    if ifudsgn is not None:
         ifudsgn = int(ifudsgn)
-        sql_string = sql_string + "ifudsgn = %s and "
-        sql_list.append(ifudsgn)
+        where_peewee_exprs.append(vizdb.AllSpec.ifudsgn == ifudsgn)
 
-    is_plate = False
-    if (plate != -1):
-        is_plate = True
+    if plate is not None:
         plate = int(plate)
-        sql_string = sql_string + "plate = %s and "
-        sql_list.append(plate)
+        where_peewee_exprs.append(vizdb.AllSpec.plate == plate)
 
-    is_fps_field = False
-    if (fps_field != -1):
-        is_fps_field = True
+    if fps_field is not None:
         fps_field = int(fps_field)
-        sql_string = sql_string + "fps_field = %s and "
-        sql_list.append(fps_field)
+        where_peewee_exprs.append(vizdb.AllSpec.fps_field == fps_field)
 
-    is_plate_or_fps_field = False
-    if (plate_or_fps_field != -1):
-        is_plate_or_fps_field = True
+    if plate_or_fps_field is not None:
         plate_or_fps_field = int(plate_or_fps_field)
-        sql_string = sql_string + "plate_or_fps_field = %s and "
-        sql_list.append(plate_or_fps_field)
+        where_peewee_exprs.append(vizdb.AllSpec.plate_or_fps_field == plate_or_fps_field)
 
-    is_mjd = False
-    if (mjd != -1):
-        is_mjd = True
+    if mjd is not None:
         mjd = int(mjd)
-        sql_string = sql_string + "mjd = %s and "
-        sql_list.append(mjd)
+        where_peewee_exprs.append(vizdb.AllSpec.mjd == mjd)
 
-    is_run2d = False
-    if (run2d != "-1"):
-        is_run2d = True
+    if run2d is not None:
         if (not is_alphanum(run2d)):
             raise HTTPException(status_code=400, detail=f"Invalid run2d {run2d}.")
-        sql_string = sql_string + "run2d = %s and "
-        sql_list.append(run2d)
+        where_peewee_exprs.append(vizdb.AllSpec.run2d == run2d)
 
-    is_run1d = False
-    if (run1d != "-1"):
-        is_run1d = True
+    if run1d is not None:
         if (not is_alphanum(run1d)):
             raise HTTPException(status_code=400, detail=f"Invalid run1d {run1d}.")
-        sql_string = sql_string + "run1d = %s and "
-        sql_list.append(run1d)
+        where_peewee_exprs.append(vizdb.AllSpec.run1d == run1d)
 
-    is_coadd = False
-    if (coadd != "-1"):
-        is_coadd = True
+    if coadd is not None:
         if (not is_alphanum(coadd)):
             raise HTTPException(status_code=400, detail=f"Invalid coadd {coadd}.")
-        sql_string = sql_string + "coadd = %s and "
-        sql_list.append(coadd)
+        where_peewee_exprs.append(vizdb.AllSpec.coadd == coadd)
 
-    is_apred_vers = False
-    if (apred_vers != "-1"):
-        is_apred_vers = True
+    if apred_vers is not None:
         if (not is_alphanum(apred_vers)):
-            raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}.")
-        sql_string = sql_string + "apred_vers = %s and "
-        sql_list.append(apred_vers)
+            raise HTTPException(status_code=400, detail=f"apred_vers {apred_vers}.")
+        where_peewee_exprs.append(vizdb.AllSpec.apred_vers == apred_vers)
 
-    is_drpver = False
-    if (drpver != "-1"):
-        is_drpver = True
+    if drpver is not None:
         if (not is_alphanum(drpver)):
             raise HTTPException(status_code=400, detail=f"Invalid drpver {drpver}.")
-        sql_string = sql_string + "drpver = %s and "
-        sql_list.append(drpver)
+        where_peewee_exprs.append(vizdb.AllSpec.drpver == drpver)
 
-    is_version = False
-    if (version != "-1"):
-        is_version = True
+    if version is not None:
         if (not is_alphanum(version)):
             raise HTTPException(status_code=400, detail=f"Invalid version {version}.")
-        sql_string = sql_string + "version = %s and "
-        sql_list.append(version)
+        where_peewee_exprs.append(vizdb.AllSpec.version == version)
 
-    is_programname = False
-    if (programname != "-1"):
-        is_programname = True
+    if programname is not None:
         if (not is_alphanum(programname)):
             raise HTTPException(status_code=400, detail=f"Invalid programname {programname}.")
-        sql_string = sql_string + "programname = %s and "
-        sql_list.append(programname)
+        where_peewee_exprs.append(vizdb.AllSpec.programname == programname)
 
-    is_survey = False
-    if (survey != "-1"):
-        is_survey = True
+    if survey is not None:
         if (not is_alphanum(survey)):
             raise HTTPException(status_code=400, detail=f"Invalid survey {survey}.")
-        sql_string = sql_string + "survey = %s and "
-        sql_list.append(survey)
+        where_peewee_exprs.append(vizdb.AllSpec.survey == survey)
 
-    is_healpix = False
-    if (healpix != -1):
-        is_healpix = True
+    if healpix is not None:
         healpix = int(healpix)
-        sql_string = sql_string + "healpix = %s and "
-        sql_list.append(healpix)
+        where_peewee_exprs.append(vizdb.AllSpec.healpix == healpix)
 
-    is_healpixgrp = False
-    if (healpixgrp != -1):
-        is_healpixgrp = True
+    if healpixgrp is not None:
         healpixgrp = int(healpixgrp)
-        sql_string = sql_string + "healpixgrp = %s and "
-        sql_list.append(healpixgrp)
+        where_peewee_exprs.append(vizdb.AllSpec.healpixgrp == healpixgrp)
 
-    is_apogee_id = False
-    if (apogee_id != "-1"):
-        is_apogee_id = True
+    if apogee_id is not None:
         if (not is_alphanum(apogee_id)):
             raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
-        sql_string = sql_string + "apogee_id = %s"
-        sql_list.append(apogee_id)
+        where_peewee_exprs.append(vizdb.AllSpec.apogee_id == apogee_id)
 
-    print(sql_string)
-
-    sql_string = re.sub(r"and $", " ", sql_string)
-    # example for safe parameterized raw SQL condition
-    # query = User.select().where(SQL("username = %s", ('charlie',)))
-
-    print(sql_string)
-    print(sql_list)
-
-    sql_tuple = tuple(sql_list)
-    peewee_query = vizdb.AllSpec.select().where(
-        peewee.SQL(sql_string, sql_tuple))
-
-    sql_query, sql_params = peewee_query.sql()
-
-    print("SQL template:", sql_query)
-    print("Parameters:", sql_params)
-
-    where_exprs = []
-    if allspec_id is not None:
-        where_exprs.append(vizdb.AllSpec.allspec_id == allspec_id)
-
-    peewee_query = vizdb.AllSpec.select().where(*where_exprs)
+    peewee_query = vizdb.AllSpec.select().where(*where_peewee_exprs)
 
     return peewee_query
