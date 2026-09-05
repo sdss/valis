@@ -1506,11 +1506,20 @@ def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_i
 #
 # To pass a literal + sign in a REST API URL, you must use its percent-encoded format: %2B
 
+# Regular dash, en dash and em dash do not require special encoding in REST API URL
+
+# Below has en dash
+# sdss5db=> select allspec_id from vizdb.allspec limit 1;
+#              allspec_id               
+# ---------------------------------------
+#  sdss4–lco–apogee–dr17–12010–58795–220
+
 def is_alphanum(text):
     # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
     # the first dash is regular dash
     # the second dash is em dash
-    return bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}]+$", text))
+    # the third is en dash
+    return bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
 
 # TODO make another function for ra, dec cone search
 
