@@ -31,6 +31,8 @@ from valis.io.spectra import extract_data, get_product_model
 from valis.utils.paths import build_apogee_path, build_astra_path, build_boss_path, get_pathcomp
 from valis.utils.versions import get_software_tag
 
+from fastapi import HTTPException
+import re
 
 def lco_hack(query: peewee.ModelSelect, release: str = None) -> peewee.ModelSelect:
     """Remove SV-LCO targets from the query"""
@@ -1475,3 +1477,255 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     # return the most recent pipeline data if there are multiple entries
     # or None if none found
     return max(res, key=lambda i: i["created"]) if res else None
+
+
+def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_id: str, file_spec: str) -> peewee.ModelSelect:
+
+    """Perform a search for SDSS targets on vizdb.allspace based on apred_vers, apstar_id, file_spec values.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.allspec table, based on apred_vers, apstar_id, file_spec values.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+    apred_vers: str
+    apstar_id: str
+    file_spec: str
+
+    Returns
+
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    return vizdb.AllSpec.select().where(vizdb.AllSpec.apred_vers == apred_vers,
+                                        vizdb.AllSpec.apstar_id == apstar_id,
+                                        vizdb.AllSpec.file_spec == file_spec)
+
+# Below in regex, we match plus sign due to below column.
+# sdss5db=> select max(apogee_id) from vizdb.allspec limit 4;
+#         max
+# --------------------
+#  AP22304103+3917301
+# (1 row)
+# if you give above in url then + becomes space.
+# google
+# how to give + sign in rest api url
+#
+# To pass a literal + sign in a REST API URL, you must use its percent-encoded format: %2B
+
+# Regular dash, en dash and em dash do not require special encoding in REST API URL
+
+# Below has en dash
+# sdss5db=> select allspec_id from vizdb.allspec limit 1;
+#              allspec_id               
+# ---------------------------------------
+#  sdss4–lco–apogee–dr17–12010–58795–220
+
+def is_alphanum(text):
+    # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
+    # the first dash is regular dash
+    # the second dash is em dash
+    # the third is en dash
+    return bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
+
+# TODO make another function for ra, dec cone search
+
+# we also put get_targets_allspec_id in import for routes/query.py
+
+
+def get_targets_allspec_id(
+        allspec_id: str,
+        multiplex_id: str,
+        releases_pk: int,
+        sdss_phase: int,
+        observatory: str,
+        instrument: str,
+        sdss_id: int,
+        catalogid: int,
+        fiberid: int,
+        ifudsgn: int,
+        plate: int,
+        fps_field: int,
+        plate_or_fps_field: int,
+        mjd: int,
+        run2d: str,
+        run1d: str,
+        coadd: str,
+        apred_vers: str,
+        drpver: str,
+        version: str,
+        programname: str,
+        survey: str,
+        healpix: int,
+        healpixgrp: int,
+        apogee_id: str) -> peewee.ModelSelect:
+
+    """Perform a search for SDSS targets on vizdb.allspace
+    based on allpsec_id and other integer or string column values.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.allspec table, based on allspec_id etc. values.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+        allspec_id: str,
+        multiplex_id: str,
+        releases_pk: int,
+        sdss_phase: int,
+        observatory: str,
+        instrument: str,
+        sdss_id: int,
+        catalogid: int,
+        fiberid: int,
+        ifudsgn: int,
+        plate: int,
+        fps_field: int,
+        plate_or_fps_field: int,
+        mjd: int,
+        run2d: str,
+        run1d: str,
+        coadd: str,
+        apred_vers: str,
+        drpver: str,
+        version: str,
+        programname: str,
+        survey: str,
+        healpix: int,
+        healpixgrp: int,
+        apogee_id: str
+
+    Returns
+
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    # Below expression has type <class 'peewee.Expression'>
+    # vizdb.AllSpec.allspec_id == allspec_id
+
+    where_peewee_exprs = []
+    if allspec_id is not None:
+        if (not is_alphanum(allspec_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid allspec_id {allspec_id}.")
+        where_peewee_exprs.append(vizdb.AllSpec.allspec_id == allspec_id)
+
+    if multiplex_id is not None:
+        if (not is_alphanum(multiplex_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid multiplex_id {multiplex_id}.")
+        where_peewee_exprs.append(vizdb.AllSpec.multiplex_id == multiplex_id)
+
+    if releases_pk is not None:
+        releases_pk = int(releases_pk)
+        where_peewee_exprs.append(vizdb.AllSpec.releases_pk == releases_pk)
+
+    if sdss_phase is not None:
+        sdss_phase = int(sdss_phase)
+        where_peewee_exprs.append(vizdb.AllSpec.sdss_phase == sdss_phase)
+
+    if observatory is not None:
+        if (not is_alphanum(observatory)):
+            raise HTTPException(status_code=400, detail=f"Invalid observatory {observatory}.")
+        where_peewee_exprs.append(vizdb.AllSpec.observatory == observatory)
+
+    if instrument is not None:
+        if (not is_alphanum(instrument)):
+            raise HTTPException(status_code=400, detail=f"Invalid instrument {instrument}.")
+        where_peewee_exprs.append(vizdb.AllSpec.instrument == instrument)
+
+    if sdss_id is not None:
+        sdss_id = int(sdss_id)
+        where_peewee_exprs.append(vizdb.AllSpec.sdss_id == sdss_id)
+
+    if catalogid is not None:
+        catalogid = int(catalogid)
+        where_peewee_exprs.append(vizdb.AllSpec.catalogid == catalogid)
+
+    if fiberid is not None:
+        fiberid = int(fiberid)
+        where_peewee_exprs.append(vizdb.AllSpec.fiberid == fiberid)
+
+    if ifudsgn is not None:
+        ifudsgn = int(ifudsgn)
+        where_peewee_exprs.append(vizdb.AllSpec.ifudsgn == ifudsgn)
+
+    if plate is not None:
+        plate = int(plate)
+        where_peewee_exprs.append(vizdb.AllSpec.plate == plate)
+
+    if fps_field is not None:
+        fps_field = int(fps_field)
+        where_peewee_exprs.append(vizdb.AllSpec.fps_field == fps_field)
+
+    if plate_or_fps_field is not None:
+        plate_or_fps_field = int(plate_or_fps_field)
+        where_peewee_exprs.append(vizdb.AllSpec.plate_or_fps_field == plate_or_fps_field)
+
+    if mjd is not None:
+        mjd = int(mjd)
+        where_peewee_exprs.append(vizdb.AllSpec.mjd == mjd)
+
+    if run2d is not None:
+        if (not is_alphanum(run2d)):
+            raise HTTPException(status_code=400, detail=f"Invalid run2d {run2d}.")
+        where_peewee_exprs.append(vizdb.AllSpec.run2d == run2d)
+
+    if run1d is not None:
+        if (not is_alphanum(run1d)):
+            raise HTTPException(status_code=400, detail=f"Invalid run1d {run1d}.")
+        where_peewee_exprs.append(vizdb.AllSpec.run1d == run1d)
+
+    if coadd is not None:
+        if (not is_alphanum(coadd)):
+            raise HTTPException(status_code=400, detail=f"Invalid coadd {coadd}.")
+        where_peewee_exprs.append(vizdb.AllSpec.coadd == coadd)
+
+    if apred_vers is not None:
+        if (not is_alphanum(apred_vers)):
+            raise HTTPException(status_code=400, detail=f"apred_vers {apred_vers}.")
+        where_peewee_exprs.append(vizdb.AllSpec.apred_vers == apred_vers)
+
+    if drpver is not None:
+        if (not is_alphanum(drpver)):
+            raise HTTPException(status_code=400, detail=f"Invalid drpver {drpver}.")
+        where_peewee_exprs.append(vizdb.AllSpec.drpver == drpver)
+
+    if version is not None:
+        if (not is_alphanum(version)):
+            raise HTTPException(status_code=400, detail=f"Invalid version {version}.")
+        where_peewee_exprs.append(vizdb.AllSpec.version == version)
+
+    if programname is not None:
+        if (not is_alphanum(programname)):
+            raise HTTPException(status_code=400, detail=f"Invalid programname {programname}.")
+        where_peewee_exprs.append(vizdb.AllSpec.programname == programname)
+
+    if survey is not None:
+        if (not is_alphanum(survey)):
+            raise HTTPException(status_code=400, detail=f"Invalid survey {survey}.")
+        where_peewee_exprs.append(vizdb.AllSpec.survey == survey)
+
+    if healpix is not None:
+        healpix = int(healpix)
+        where_peewee_exprs.append(vizdb.AllSpec.healpix == healpix)
+
+    if healpixgrp is not None:
+        healpixgrp = int(healpixgrp)
+        where_peewee_exprs.append(vizdb.AllSpec.healpixgrp == healpixgrp)
+
+    if apogee_id is not None:
+        if (not is_alphanum(apogee_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
+        where_peewee_exprs.append(vizdb.AllSpec.apogee_id == apogee_id)
+
+    peewee_query = vizdb.AllSpec.select().where(*where_peewee_exprs)
+
+    return peewee_query

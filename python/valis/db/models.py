@@ -685,3 +685,53 @@ class AstraPipeline(PeeweeBase):
     # This model may be instantiated from query results that include
     # additional Astra pipeline or joined columns so we allow extra fields.
     model_config = ConfigDict(extra="allow")
+
+
+# AllSpecModel2 is response_model for route /allspec_id in routes/query.py
+class AllSpecModel2(PeeweeBase):
+    """Pydantic response model for all spectra"""
+    pk: int = Field(None, description="primary key for vizdb.allspec")
+    allspec_id: str = Field(None, description="a unique id for the object")
+    multiplex_id: Optional[str] = Field(None, description="the multiplex id")
+    releases_pk: int = Field(None, description="primary key for releases")
+    sdss_phase: int = Field(None, description="the SDSS phase number of the spectrum")
+    observatory: str = Field(None, description="the observatory, APO or LCO")
+    instrument: str = Field(None, description="the SDSS spectrograph instrument")
+    sdss_id: Optional[int] = Field(None, description="the SDSS identifier")
+    catalogid: Optional[int] = Field(None, description="the SDSS-V catalog id")
+    fiberid: Optional[int] = Field(None, description="the legacy SDSS fiber id")
+    ifudsgn: Optional[int] = Field(None, description="the MaNGA IFU designation")
+    plate: Optional[int] = Field(None, description="the legacy plate number")
+    fps_field: Optional[int] = Field(None, description="the FPS field number")
+    plate_or_fps_field: Optional[int] = Field(None, description="the plate or FPS field")
+    mjd: Optional[int] = Field(None, description="the MJD of the observation")
+    run2d: Optional[str] = Field(None, description="the BOSS 2d DRP version")
+    run1d: Optional[str] = Field(None, description="the BOSS 1d DRP version")
+    coadd: Optional[str] = Field(None, description="either epoch, daily, or custom (allepoch)")
+    apred_vers: Optional[str] = Field(None, description="the APOGEE DRP version")
+    drpver: Optional[str] = Field(None, description="the MaNGA DRP version")
+    version: str = Field(..., description="any valid pipeline version")
+    programname: Optional[str] = Field(None, description="the spectroscopic program name")
+    survey: str = Field(None, description="The SDSS spectroscopic survey or sub-survey")
+    sas_file: Optional[str] = Field(None, description="the SAS file name")
+    cas_url: Optional[str] = Field(None, description="the CAS URL")
+    sas_url: Optional[str] = Field(None, description="the SAS URL")
+    ra: float = Field(None, description="Right Ascension in decimal degrees")
+    dec: float = Field(None, description="Declination in decimal degrees")
+    ra_hms: Optional[str] = Field(None, description="ra_hms")  # new
+    dec_dms: Optional[str] = Field(None, description="dec_dms")  # new
+    healpix: Optional[int] = Field(None, description="healpix")  # new
+    healpixgrp: Optional[int] = Field(None, description="healpixgrp")  # new
+    apogee_id: Optional[str] = Field(None, description="the APOGEE object id")
+    apogee_field: Optional[str] = Field(None, description="the APOGEE field, pre-SDSS-V")
+    telescope: Optional[str] = Field(None, description="the SDSS telescope")
+    apstar_id: Optional[str] = Field(None, description="the APOGEE star id")
+    visit_id: Optional[str] = Field(None, description="the APOGEE visit id")
+    mangaid: Optional[str] = Field(None, description="the MaNGA ID")
+    file_spec: Optional[str] = Field(None, description="the data product file species name")
+    specobjid: Optional[int] = Field(None, description="the spectroscopic object id")
+    created: Optional[datetime.datetime] = Field(None, description="created timestamp")  # new
+    modified: Optional[datetime.datetime] = Field(None, description="modified timestamp")  # new
+    has_mwmstar: Optional[bool] = Field(None, description="has_mwmstar")  # new
+    astra_versions: Optional[list[str]] = Field(None, description="astra_versions")  # new
+# release: Optional[str] = Field(None, description="the data release, e.g. DR17")

@@ -13,7 +13,7 @@ from sdssdb.peewee.sdss5db import catalogdb, database
 
 from valis.cache import valis_cache
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase, SDSSModel
+from valis.db.models import SDSSidStackedBase, SDSSModel, AllSpecModel, AllSpecModel2
 from valis.db.queries import (
     MapperName,
     append_pipes,
@@ -27,10 +27,23 @@ from valis.db.queries import (
     get_targets_by_catalog_id,
     get_targets_by_sdss_id,
     get_targets_obs,
+    get_targets_allspec_apred_vers_apstar_id_file_spec,
+    get_targets_allspec_id,
 )
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
 
+# Note for using catalogdb peewee models from sdssdb.
+#
+# Use the below syntax.
+#
+# from sdssdb.peewee.sdss5db import catalogdb
+# catalogdb.Gaia_DR3.ra
+# 
+# Do not use the below syntax.
+#
+# from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
+# Gaia_DR3.ra
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -373,3 +386,113 @@ class QueryRoutes(Base):
         """Return an ordered and paged list of targets based on the mapper."""
         targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
         return list(targets)
+
+    @router.get(
+        "/allspec_apred_vers_apstar_id_file_spec",
+        summary="Perform a search for an allspec target based on the apred_vers, apstar_id, file_spec",
+        response_model=List[AllSpecModel],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_apred_vers_apstar_id_file_spec_search(self,
+            apred_vers: Annotated[str, Query(description="Value of apred_vers", example="dr17")],
+            apstar_id: Annotated[str, Query(description="Value of apstar_id", example="apogee.apo25m.stars.116-63_MGA.2M00361095-0107384")],
+            file_spec: Annotated[str, Query(description="Value of file_spec", example="apVisit")],):
+        """Perform a search for an allspec target based on the apred_vers, apstar_id, file_spec.
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allspec_apred_vers_apstar_id_file_spec()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers, apstar_id, file_spec).dicts())
+
+        # throw exception when it's invalid apred_vers, apstar_id, file_spec
+        if not targets:
+            raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}, apstar_id {apstar_id}, file_spec {file_spec}.")
+
+        return targets or {}
+
+    @router.get(
+        "/allspec_id",
+        summary="Perform a search for an allspec target based on allpsec_id and other integer and text columns",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_id_search(self,
+        allspec_id: Annotated[str | None, Query(description="Value of allpspec_id", example="sdss5–apo-boss–daily–v6_2_1–015000–59146–4375786564–70050164")] = None,
+        multiplex_id: Annotated[str | None, Query(description="Value of multiplex_id", example="sdss5–apo-boss–daily-v6_2_1–015000–59146")] = None,
+        releases_pk: Annotated[int | None, Query(description="Value of releases_pk", example="26")] = None,
+        sdss_phase: Annotated[int | None, Query(description="Value of sdss_phase", example="5")] = None,
+        observatory: Annotated[str | None, Query(description="Value of observatory", example="APO")] = None,
+        instrument: Annotated[str | None, Query(description="Value of instrument", example="boss")] = None,
+        sdss_id: Annotated[int | None, Query(description="Value of sdss_id", example="70050164")] = None,
+        catalogid: Annotated[int | None, Query(description="Value of catalogid", example="4375786564")] = None,
+        fiberid: Annotated[int | None, Query(description="Value of fiberid", example="1")] = None,
+        ifudsgn: Annotated[int | None, Query(description="Value of ifudsgn", example="1901")] = None,
+        plate: Annotated[int | None, Query(description="Value of plate", example="121")] = None,
+        fps_field: Annotated[int | None, Query(description="Value of fps_field", example="15000")] = None,
+        plate_or_fps_field: Annotated[int | None, Query(description="Value of plate_or_fps_field", example="266")] = None,
+        mjd: Annotated[int | None, Query(description="Value of mjd", example="51578")] = None,
+        run2d: Annotated[str | None, Query(description="Value of run2d", example="103")] = None,
+        run1d: Annotated[str | None, Query(description="Value of run1d", example="v6_1_3")] = None,
+        coadd: Annotated[str | None, Query(description="Value of coadd", example="daily")] = None,
+        apred_vers: Annotated[str | None, Query(description="Value of apred_vers", example="dr17")] = None,
+        drpver: Annotated[str | None, Query(description="Value of drp_ver", example="v3_1_1")] = None,
+        version: Annotated[str | None, Query(description="Value of version", example="103")] = None,
+        programname: Annotated[str | None, Query(description="Value of programname", example="apogee")] = None,
+        survey: Annotated[str | None, Query(description="Value of survey", example="apogee2")] = None,
+        healpix: Annotated[int | None, Query(description="Value of healpix", example="129976")] = None,
+        healpixgrp: Annotated[int | None, Query(description="Value of healpixgrp", example="2")] = None,
+        apogee_id: Annotated[str | None, Query(description="Value of apogee_id", example="2M12210623+2655354")] = None,
+             ):
+        """Perform a search for an allspec target based on the allspec_id and other integer or text columns.
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allpsec_id()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id(
+            allspec_id,
+            multiplex_id,
+            releases_pk,
+            sdss_phase,
+            observatory,
+            instrument,
+            sdss_id,
+            catalogid,
+            fiberid,
+            ifudsgn,
+            plate,
+            fps_field,
+            plate_or_fps_field,
+            mjd,
+            run2d,
+            run1d,
+            coadd,
+            apred_vers,
+            drpver,
+            version,
+            programname,
+            survey,
+            healpix,
+            healpixgrp,
+            apogee_id).dicts())
+
+        # throw exception when it's invalid allpsec_id etc.
+        if not targets:
+            raise HTTPException(status_code=400, detail=f"Invalid input values.")
+
+        return targets or {}
