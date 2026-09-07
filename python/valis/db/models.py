@@ -687,6 +687,7 @@ class AstraPipeline(PeeweeBase):
 
 
 # AllSpecModel2 is response_model for route /allspec_id in routes/query.py
+# AllspecModel2 corresponds to table vizdb.allspec.
 class AllSpecModel2(PeeweeBase):
     """Pydantic response model for all spectra"""
     pk: int = Field(None, description="primary key for vizdb.allspec")
