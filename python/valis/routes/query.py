@@ -29,6 +29,7 @@ from valis.db.queries import (
     get_targets_obs,
     get_targets_allspec_apred_vers_apstar_id_file_spec,
     get_targets_allspec_id,
+    get_targets_allspec_cone,
 )
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
@@ -494,5 +495,40 @@ class QueryRoutes(Base):
         # throw exception when it's invalid allpsec_id etc.
         if not targets:
             raise HTTPException(status_code=400, detail=f"Invalid input values.")
+
+        return targets or {}
+
+    @router.get(
+        "/allspec_cone",
+        summary="Perform a cone search for an allspec target based on ra, dec, radius",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_cone_search(self,
+        ra: Annotated[float | None, Query(description="Value of ra in degrees", example="77.363913")] = None,
+        dec: Annotated[float | None, Query(description="Value of dec in degrees", example="-68.977257")] = None,
+        radius: Annotated[float | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2")] = None,
+             ):
+        """Perform a cone search for an allspec target based on ra, dec, radius.
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allpsec_cone()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_cone(
+            ra,
+            dec,
+            radius).dicts())
+
+        # throw exception when it's invalid ra, dec etc.
+        if not targets:
+            raise HTTPException(status_code=400, detail=f"Invalid input values {ra}, {dec}, {radius}.")
 
         return targets or {}

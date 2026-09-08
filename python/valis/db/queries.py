@@ -1510,9 +1510,10 @@ def get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers: str, apstar_i
 
 # Below has en dash
 # sdss5db=> select allspec_id from vizdb.allspec limit 1;
-#              allspec_id               
+#              allspec_id
 # ---------------------------------------
 #  sdss4–lco–apogee–dr17–12010–58795–220
+
 
 def is_alphanum(text):
     # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
@@ -1715,5 +1716,68 @@ def get_targets_allspec_id(
         where_peewee_exprs.append(vizdb.AllSpec.apogee_id == apogee_id)
 
     peewee_query = vizdb.AllSpec.select().where(*where_peewee_exprs)
+
+    return peewee_query
+
+
+def get_targets_allspec_cone(
+        ra: float,
+        dec: float,
+        radius: float) -> peewee.ModelSelect:
+
+    """Perform a cone search for SDSS targets on vizdb.allspec
+    based on ra, dec, and radius of search. Units are degrees.
+    Maximum value of radius is 1 degree.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.allspec table, based on ra, dec, radius values.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+        ra: float,
+        dec: float,
+        radius: float
+
+    Returns
+
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    if ra is not None:
+        ra = float(ra)
+    else:
+        raise HTTPException(status_code=400, detail=f"Missing ra {ra}.")
+
+    if dec is not None:
+        dec = float(dec)
+    else:
+        raise HTTPException(status_code=400, detail=f"Missing dec {dec}.")
+
+    if radius is not None:
+        radius = float(radius)
+    else:
+        raise HTTPException(status_code=400, detail=f"Missing radius {radius}.")
+
+    if (ra < 0) or (ra > 360):
+        raise HTTPException(status_code=400, detail=f"Invalid ra {ra}.")
+
+    if (dec < -90) or (dec > 90):
+        raise HTTPException(status_code=400, detail=f"Invalid dec {dec}.")
+
+    if (radius < 0) or (radius > 1):
+        raise HTTPException(status_code=400, detail=f"Invalid radius {radius}.")
+
+    peewee_query = vizdb.AllSpec.select().where(
+                      peewee.fn.q3c_radial_query(
+                          vizdb.AllSpec.ra,
+                          vizdb.AllSpec.dec,
+                          ra,
+                          dec,
+                          radius))
 
     return peewee_query
