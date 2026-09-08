@@ -1554,7 +1554,7 @@ def get_targets_allspec_id(
         healpixgrp: int,
         apogee_id: str) -> peewee.ModelSelect:
 
-    """Perform a search for SDSS targets on vizdb.allspace
+    """Perform a search for SDSS targets on vizdb.allspec
     based on allpsec_id and other integer or string column values.
 
     Perform a search for SDSS targets using the peewee ORM in the
