@@ -1727,7 +1727,7 @@ def get_targets_allspec_cone(
 
     """Perform a cone search for SDSS targets on vizdb.allspec
     based on ra, dec, and radius of search. Units are degrees.
-    Maximum value of radius is 1 degree.
+    Maximum allowed value of radius is 1 degree.
 
     Perform a search for SDSS targets using the peewee ORM in the
     vizdb.allspec table, based on ra, dec, radius values.
@@ -1770,7 +1770,7 @@ def get_targets_allspec_cone(
         raise HTTPException(status_code=400, detail=f"Invalid dec {dec}.")
 
     if (radius < 0) or (radius > 1):
-        raise HTTPException(status_code=400, detail=f"Invalid radius {radius}.")
+        raise HTTPException(status_code=400, detail=f"Invalid radius {radius}. Maximum allowed value is 1 degree.")
 
     peewee_query = vizdb.AllSpec.select().where(
                       peewee.fn.q3c_radial_query(
