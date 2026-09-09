@@ -13,7 +13,7 @@ from sdssdb.peewee.sdss5db import catalogdb, database
 
 from valis.cache import valis_cache
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase, SDSSModel, AllSpecModel, AllSpecModel2
+from valis.db.models import SDSSidStackedBase, SDSSModel, AllSpecModel2
 from valis.db.queries import (
     MapperName,
     append_pipes,
@@ -33,17 +33,6 @@ from valis.db.queries import (
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
 
-# Note for using catalogdb peewee models from sdssdb.
-#
-# Use the below syntax.
-#
-# from sdssdb.peewee.sdss5db import catalogdb
-# catalogdb.Gaia_DR3.ra
-# 
-# Do not use the below syntax.
-#
-# from sdssdb.peewee.sdss5db.catalogdb import Gaia_DR3
-# Gaia_DR3.ra
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
@@ -389,7 +378,7 @@ class QueryRoutes(Base):
 
     @router.get(
         "/allspec_id",
-        summary="Perform a search for an allspec target based on allpsec_id and other integer and text columns",
+        summary="Perform a target search on the SDSS allspec table based on allpsec_id and other integer and text columns such as sdss_id.",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -421,7 +410,7 @@ class QueryRoutes(Base):
         healpixgrp: Annotated[int | None, Query(description="Value of healpixgrp", example="2")] = None,
         apogee_id: Annotated[str | None, Query(description="Value of apogee_id", example="2M12210623+2655354")] = None,
              ):
-        """Perform a search for an allspec target based on the allspec_id and other integer or text columns.
+        """Perform a target search on the SDSS allspec table based on the allspec_id and other integer or text columns such as sdss_id.
 
         Empty object returned when no match is found.
 
@@ -460,15 +449,15 @@ class QueryRoutes(Base):
             healpixgrp,
             apogee_id).dicts())
 
-        # throw exception when it's invalid allpsec_id etc.
+        # throw exception when no targets are found.
         if not targets:
-            raise HTTPException(status_code=400, detail=f"Invalid input values.")
+            raise HTTPException(status_code=400, detail=f"No targets found in the allspec table for given search inputs. Try adjusting your query.")
 
         return targets or {}
 
     @router.get(
         "/allspec_cone",
-        summary="Perform a cone search for an allspec target based on ra, dec, radius",
+        summary="Perform a cone search on the SDSS allspec table based on ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree.",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -478,7 +467,7 @@ class QueryRoutes(Base):
         dec: Annotated[float | None, Query(description="Value of dec in degrees", example="-68.977257")] = None,
         radius: Annotated[float | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2")] = None,
              ):
-        """Perform a cone search for an allspec target based on ra, dec, radius.
+        """Perform a cone search on the SDSS allspec table based on ra, dec, radius. Maximum allowed value for radius is 1 degree.
 
         Empty object returned when no match is found.
 
@@ -495,8 +484,8 @@ class QueryRoutes(Base):
             dec,
             radius).dicts())
 
-        # throw exception when it's invalid ra, dec etc.
+        # throw exception when no targets are found.
         if not targets:
-            raise HTTPException(status_code=400, detail=f"Invalid input values {ra}, {dec}, {radius}.")
+            raise HTTPException(status_code=400, detail=f"No targets found in the allspec table for given search inputs. Try adjusting your query.")
 
         return targets or {}
