@@ -389,37 +389,6 @@ class QueryRoutes(Base):
         return list(targets)
 
     @router.get(
-        "/allspec_apred_vers_apstar_id_file_spec",
-        summary="Perform a search for an allspec target based on the apred_vers, apstar_id, file_spec",
-        response_model=List[AllSpecModel],
-        dependencies=[Depends(get_pw_db), Depends(set_auth)],
-    )
-    @valis_cache(namespace="valis-query")
-    async def get_targets_allspec_apred_vers_apstar_id_file_spec_search(self,
-            apred_vers: Annotated[str, Query(description="Value of apred_vers", example="dr17")],
-            apstar_id: Annotated[str, Query(description="Value of apstar_id", example="apogee.apo25m.stars.116-63_MGA.2M00361095-0107384")],
-            file_spec: Annotated[str, Query(description="Value of file_spec", example="apVisit")],):
-        """Perform a search for an allspec target based on the apred_vers, apstar_id, file_spec.
-
-        Empty object returned when no match is found.
-
-        """
-
-        # The function get_targets_allspec_apred_vers_apstar_id_file_spec()
-        # returns a ModelSelect object.
-        # The method .dicts() converts the peewee ModelSelect object
-        # into a dictionary.
-        # The function list() converts the dictionary into a list.
-        # The list can then be serialized.
-        targets = list(get_targets_allspec_apred_vers_apstar_id_file_spec(apred_vers, apstar_id, file_spec).dicts())
-
-        # throw exception when it's invalid apred_vers, apstar_id, file_spec
-        if not targets:
-            raise HTTPException(status_code=400, detail=f"Invalid apred_vers {apred_vers}, apstar_id {apstar_id}, file_spec {file_spec}.")
-
-        return targets or {}
-
-    @router.get(
         "/allspec_id",
         summary="Perform a search for an allspec target based on allpsec_id and other integer and text columns",
         response_model=List[AllSpecModel2],
