@@ -1786,6 +1786,14 @@ def get_targets_allspec_id_like(
         raise HTTPException(status_code=400, detail=f"Missing allspec_id_like {allspec_id_like}.")
 
 
+    row_count = vizdb.AllSpec.select().where(vizdb.AllSpec.allspec_id.contains(allspec_id_like)).count()
+
+    print(row_count)
+
+    max_row_count = 10000
+    if(row_count > max_row_count):
+        raise HTTPException(status_code=400, detail=f"Query returned {row_count}rows. Please make the query more specific i.e. increase the length of the allspec_id_like string to reduce the number of returned rows.")
+
     peewee_query = vizdb.AllSpec.select().where(vizdb.AllSpec.allspec_id.contains(allspec_id_like))
 
     return peewee_query
