@@ -1687,6 +1687,10 @@ def get_targets_allspec_id(
             raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
         where_peewee_exprs.append(vizdb.AllSpec.apogee_id == apogee_id)
 
+
+    if (len(where_peewee_exprs) == 0):
+        raise HTTPException(status_code=400, detail=f"There is no column for the SQL WHERE clause of the query. Please give at least one column of the table vizdb.allspec.")
+
     peewee_query = vizdb.AllSpec.select().where(*where_peewee_exprs)
 
     return peewee_query
