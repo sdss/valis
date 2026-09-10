@@ -1792,7 +1792,7 @@ def get_targets_allspec_id_like(
 
     max_row_count = 10000
     if(row_count > max_row_count):
-        raise HTTPException(status_code=400, detail=f"Query returned {row_count} rows. Maximum number of rows allowed is {max_row_count}. Please make the query more specific i.e. increase the length of the allspec_id_like string to reduce the number of returned rows.")
+        raise HTTPException(status_code=400, detail=f"Query returned {row_count} rows. Maximum number of returned rows allowed is {max_row_count}. Please make the query more specific i.e. increase the length of the allspec_id_like string to reduce the number of returned rows.")
 
     peewee_query = vizdb.AllSpec.select().where(vizdb.AllSpec.allspec_id.contains(allspec_id_like))
 
