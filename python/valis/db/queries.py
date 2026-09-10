@@ -32,6 +32,7 @@ from valis.utils.versions import get_software_tag
 from fastapi import HTTPException
 import re
 
+
 def lco_hack(query: peewee.ModelSelect, release: str = None) -> peewee.ModelSelect:
     """Remove SV-LCO targets from the query"""
 
@@ -1750,5 +1751,41 @@ def get_targets_allspec_cone(
                           ra,
                           dec,
                           radius))
+
+    return peewee_query
+
+
+def get_targets_allspec_id_like(
+        allspec_id_like: str
+ ) -> peewee.ModelSelect:
+
+    """Perform a search for SDSS targets on vizdb.allspec
+    based on part of an allspec_id (i.e. query will use SQL LIKE).
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.allspec table, based on part of an allspec_id.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+        allspec_id_like: str
+
+    Returns
+
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    if allspec_id_like is not None:
+        if (not is_alphanum(allspec_id_like)):
+            raise HTTPException(status_code=400, detail=f"Invalid allspec_id_like {allspec_id_like}.")
+    else:
+        raise HTTPException(status_code=400, detail=f"Missing allspec_id_like {allspec_id_like}.")
+
+
+    peewee_query = vizdb.AllSpec.select().where(vizdb.AllSpec.allspec_id.contains(allspec_id_like))
 
     return peewee_query

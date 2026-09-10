@@ -29,6 +29,7 @@ from valis.db.queries import (
     get_targets_obs,
     get_targets_allspec_id,
     get_targets_allspec_cone,
+    get_targets_allspec_id_like
 )
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
@@ -483,6 +484,37 @@ class QueryRoutes(Base):
             ra,
             dec,
             radius).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail=f"No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+
+    @router.get(
+        "/allspec_id_like",
+        summary="Perform a search on the SDSS allspec table based on part of an allpsec_id (i.e. query will use SQL LIKE).",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_id_like_search(self,
+        allspec_id_like: Annotated[str | None, Query(description="part of an allspec_id", example="sdss4–lco–apogee–dr17")] = None):
+        """Perform a search on the SDSS allspec table based on part of an allpsec_id (i.e. query will use SQL LIKE).
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allpsec_allspec_id_like()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id_like(
+            allspec_id_like).dicts())
 
         # throw exception when no targets are found.
         if not targets:
