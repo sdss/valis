@@ -1690,6 +1690,14 @@ def get_targets_allspec_id(
     if (len(where_peewee_exprs) == 0):
         raise HTTPException(status_code=400, detail="There is no column for the SQL WHERE clause of the query. Please give at least one column of the table vizdb.allspec.")
 
+    row_count = vizdb.AllSpec.select().where(*where_peewee_exprs).count()
+
+    print(row_count)
+
+    max_row_count = 10000
+    if (row_count > max_row_count):
+        raise HTTPException(status_code=400, detail=f"Query returned {row_count} rows. Maximum number of returned rows allowed is {max_row_count}. Please make the query more specific i.e. add more column conditions to reduce the number of returned rows.")
+
     peewee_query = vizdb.AllSpec.select().where(*where_peewee_exprs)
 
     return peewee_query
@@ -1746,6 +1754,20 @@ def get_targets_allspec_cone(
 
     if (radius < 0) or (radius > 1):
         raise HTTPException(status_code=400, detail=f"Invalid radius {radius}. Maximum allowed value is 1 degree.")
+
+    row_count = vizdb.AllSpec.select().where(
+                      peewee.fn.q3c_radial_query(
+                          vizdb.AllSpec.ra,
+                          vizdb.AllSpec.dec,
+                          ra,
+                          dec,
+                          radius)).count()
+
+    print(row_count)
+
+    max_row_count = 10000
+    if (row_count > max_row_count):
+        raise HTTPException(status_code=400, detail=f"Query returned {row_count} rows. Maximum number of returned rows allowed is {max_row_count}. Please make the query more specific i.e. reduce the radius to reduce the number of returned rows.")
 
     peewee_query = vizdb.AllSpec.select().where(
                       peewee.fn.q3c_radial_query(
