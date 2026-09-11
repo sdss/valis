@@ -1495,10 +1495,6 @@ def is_alphanum(text):
     # the third is en dash
     return bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
 
-# we also put get_targets_allspec_id and
-# get_targets_cone in import for routes/query.py
-
-
 def get_targets_allspec_id(
         allspec_id: str,
         multiplex_id: str,
