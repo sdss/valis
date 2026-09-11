@@ -452,7 +452,7 @@ class QueryRoutes(Base):
 
         # throw exception when no targets are found.
         if not targets:
-            raise HTTPException(status_code=400, detail=f"No targets found in the allspec table for given search inputs. Try adjusting your query.")
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
 
         return targets or {}
 
@@ -487,10 +487,9 @@ class QueryRoutes(Base):
 
         # throw exception when no targets are found.
         if not targets:
-            raise HTTPException(status_code=400, detail=f"No targets found in the allspec table for given search inputs. Try adjusting your query.")
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
 
         return targets or {}
-
 
     @router.get(
         "/allspec_id_like",
@@ -518,6 +517,6 @@ class QueryRoutes(Base):
 
         # throw exception when no targets are found.
         if not targets:
-            raise HTTPException(status_code=400, detail=f"No targets found in the allspec table for given search inputs. Try adjusting your query.")
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
 
         return targets or {}

@@ -1687,9 +1687,8 @@ def get_targets_allspec_id(
             raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
         where_peewee_exprs.append(vizdb.AllSpec.apogee_id == apogee_id)
 
-
     if (len(where_peewee_exprs) == 0):
-        raise HTTPException(status_code=400, detail=f"There is no column for the SQL WHERE clause of the query. Please give at least one column of the table vizdb.allspec.")
+        raise HTTPException(status_code=400, detail="There is no column for the SQL WHERE clause of the query. Please give at least one column of the table vizdb.allspec.")
 
     peewee_query = vizdb.AllSpec.select().where(*where_peewee_exprs)
 
@@ -1789,13 +1788,12 @@ def get_targets_allspec_id_like(
     else:
         raise HTTPException(status_code=400, detail=f"Missing allspec_id_like {allspec_id_like}.")
 
-
     row_count = vizdb.AllSpec.select().where(vizdb.AllSpec.allspec_id.contains(allspec_id_like)).count()
 
     print(row_count)
 
     max_row_count = 10000
-    if(row_count > max_row_count):
+    if (row_count > max_row_count):
         raise HTTPException(status_code=400, detail=f"Query returned {row_count} rows. Maximum number of returned rows allowed is {max_row_count}. Please make the query more specific i.e. increase the length of the allspec_id_like string to reduce the number of returned rows.")
 
     peewee_query = vizdb.AllSpec.select().where(vizdb.AllSpec.allspec_id.contains(allspec_id_like))
