@@ -1566,7 +1566,8 @@ def get_targets_allspec_id(
         the ORM query
     """
 
-    # Below expression has type <class 'peewee.Expression'>
+    # The below expression is not an arithmetic expression.
+    # The below expression has type <class 'peewee.Expression'>
     # vizdb.AllSpec.allspec_id == allspec_id
 
     where_peewee_exprs = []
