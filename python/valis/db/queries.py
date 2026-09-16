@@ -1510,7 +1510,7 @@ def is_alphanum_list(text_list):
 
 
 def cast_int_list(int_list):
-    for i in range(int_list):
+    for i in range(len(int_list)):
         int_list[i] = int(int_list[i])
 
     return int_list
