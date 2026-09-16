@@ -1870,7 +1870,9 @@ def get_targets_allspec_id_in(
 
     """Perform a search for SDSS targets on vizdb.allspec
     based on allpsec_id and other integer or string column values.
-    This search uses SQL IN.
+    This search uses SQL IN. The URL can contain multiple entries
+    for the same column. For example
+    /query/allspec_id_in?sdss_id=70050164&sdss_id=92310876&instrument=boss&instrument=apogee
 
     Perform a search for SDSS targets using the peewee ORM in the
     vizdb.allspec table, based on allspec_id etc. values.
