@@ -329,7 +329,7 @@ class QueryRoutes(Base):
                 database.execute_sql("SET LOCAL enable_seqscan=false;")
 
             query = carton_program_search(name, name_type, limit=limit)
-            query = append_pipes(query, observed=observed)
+            query = append_pipes(query, observed=observed, release=self.release)
 
             # The list() is necessary here to not return a generator in the cached route.
             return list(query.dicts())
