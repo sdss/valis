@@ -29,7 +29,8 @@ from valis.db.queries import (
     get_targets_obs,
     get_targets_allspec_id,
     get_targets_allspec_cone,
-    get_targets_allspec_id_like
+    get_targets_allspec_id_like,
+    get_targets_allspec_id_in
 )
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
@@ -521,8 +522,7 @@ class QueryRoutes(Base):
 
         return targets or {}
 
-
-     @router.get(
+    @router.get(
         "/allspec_id_in",
         summary="Perform a target search on the SDSS allspec table with SQL IN based on allpsec_id and other integer and text columns such as sdss_id.",
         response_model=List[AllSpecModel2],
