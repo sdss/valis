@@ -233,7 +233,7 @@ class Target(Base):
         query = get_target_by_altid(id, idtype=idtype)
         if not query:
             return {}
-        query = append_pipes(query, observed=False)
+        query = append_pipes(query, observed=False, release=self.release)
         return query.dicts().first() or {}
 
     @router.get(
