@@ -586,6 +586,9 @@ def gen_misc_models():
             "sql_type": data["sql_type"],
         }
 
+# Below AllspecModel does not correspond to table vizdb.allspec.
+# See further below for AllspecModel2 which corresponds to table vizdb.allspec.
+
 
 class AllSpecModel(PeeweeBase):
     """Pydantic response model for all spectra"""
@@ -686,7 +689,7 @@ class AstraPipeline(PeeweeBase):
     model_config = ConfigDict(extra="allow")
 
 
-# AllSpecModel2 is response_model for route /allspec_id in routes/query.py
+# AllSpecModel2 is response_model for the allspec_id routes in routes/query.py.
 # AllspecModel2 corresponds to table vizdb.allspec.
 class AllSpecModel2(PeeweeBase):
     """Pydantic response model for all spectra"""
