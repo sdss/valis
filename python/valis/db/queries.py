@@ -1495,6 +1495,27 @@ def is_alphanum(text):
     # the third is en dash
     return bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
 
+
+def is_alphanum_list(text_list):
+    # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
+    # the first dash is regular dash
+    # the second dash is em dash
+    # the third is en dash
+    for text in text_list:
+        is_match = bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
+        if (is_match is False):
+            return False
+
+    return True
+
+
+def cast_int_list(int_list):
+    for i in range(int_list):
+        int_list[i] = int(int_list[i])
+
+    return int_list
+
+
 def get_targets_allspec_id(
         allspec_id: str,
         multiplex_id: str,
@@ -1816,5 +1837,325 @@ def get_targets_allspec_id_like(
         raise HTTPException(status_code=400, detail=f"Query returned {row_count} rows. Maximum number of returned rows allowed is {max_row_count}. Please make the query more specific i.e. increase the length of the allspec_id_like string to reduce the number of returned rows.")
 
     peewee_query = vizdb.AllSpec.select().where(vizdb.AllSpec.allspec_id.contains(allspec_id_like))
+
+    return peewee_query
+
+
+def get_targets_allspec_id_in(
+        allspec_id: list[str],
+        multiplex_id: list[str],
+        releases_pk: list[int],
+        sdss_phase: list[int],
+        observatory: list[str],
+        instrument: list[str],
+        sdss_id: list[int],
+        catalogid: list[int],
+        fiberid: list[int],
+        ifudsgn: list[int],
+        plate: list[int],
+        fps_field: list[int],
+        plate_or_fps_field: list[int],
+        mjd: list[int],
+        run2d: list[str],
+        run1d: list[str],
+        coadd: list[str],
+        apred_vers: list[str],
+        drpver: list[str],
+        version: list[str],
+        programname: list[str],
+        survey: list[str],
+        healpix: list[int],
+        healpixgrp: list[int],
+        apogee_id: list[str]) -> peewee.ModelSelect:
+
+    """Perform a search for SDSS targets on vizdb.allspec
+    based on allpsec_id and other integer or string column values.
+    This search uses SQL IN.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.allspec table, based on allspec_id etc. values.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+        allspec_id: list[str],
+        multiplex_id: list[str],
+        releases_pk: list[int],
+        sdss_phase: list[int],
+        observatory: list[str],
+        instrument: list[str],
+        sdss_id: list[int],
+        catalogid: list[int],
+        fiberid: list[int],
+        ifudsgn: list[int],
+        plate: list[int],
+        fps_field: list[int],
+        plate_or_fps_field: list[int],
+        mjd: list[int],
+        run2d: list[str],
+        run1d: list[str],
+        coadd: list[str],
+        apred_vers: list[str],
+        drpver: list[str],
+        version: list[str],
+        programname: list[str],
+        survey: list[str],
+        healpix: list[int],
+        healpixgrp: list[int],
+        apogee_id: list[str]
+
+    Returns
+
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    # The below expression is not an arithmetic expression.
+    # The below expression has type <class 'peewee.Expression'>
+    # vizdb.AllSpec.allspec_id == allspec_id
+
+    # this is max number of choices in SQL IN statement
+    max_num_choices = 100
+
+    where_peewee_exprs = []
+
+    if allspec_id is not None:
+        num_choices = len(allspec_id)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for allspec_id = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(allspec_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid allspec_id {allspec_id}.")
+
+        where_peewee_exprs.append(vizdb.AllSpec.allspec_id.in_(allspec_id))
+
+    if multiplex_id is not None:
+        num_choices = len(multiplex_id)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for multiplex_id = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(multiplex_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid multiplex_id {multiplex_id}.")
+
+        where_peewee_exprs.append(vizdb.AllSpec.multiplex_id.in_(multiplex_id))
+
+    if releases_pk is not None:
+        num_choices = len(releases_pk)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for releases_pk = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        releases_pk = cast_int_list(releases_pk)
+
+        where_peewee_exprs.append(vizdb.AllSpec.releases_pk.in_(releases_pk))
+
+    if sdss_phase is not None:
+        num_choices = len(sdss_phase)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for sdss_phase = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        sdss_phase = cast_int_list(sdss_phase)
+
+        where_peewee_exprs.append(vizdb.AllSpec.sdss_phase.in_(sdss_phase))
+
+    if observatory is not None:
+        num_choices = len(observatory)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for observatory = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(observatory)):
+            raise HTTPException(status_code=400, detail=f"Invalid observatory {observatory}.")
+
+        where_peewee_exprs.append(vizdb.AllSpec.in_(observatory))
+
+    if instrument is not None:
+        num_choices = len(instrument)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for instrument = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(instrument)):
+            raise HTTPException(status_code=400, detail=f"Invalid instrument {instrument}.")
+
+        where_peewee_exprs.append(vizdb.AllSpec.in_(instrument))
+
+    if sdss_id is not None:
+        num_choices = len(sdss_id)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for sdss_id = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        sdss_id = cast_int_list(sdss_id)
+
+        where_peewee_exprs.append(vizdb.AllSpec.in_(sdss_id))
+
+    if catalogid is not None:
+        num_choices = len(catalogid)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for catalogid = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        catalogid = cast_int_list(catalogid)
+
+        where_peewee_exprs.append(vizdb.AllSpec.in_(catalogid))
+
+    if fiberid is not None:
+        num_choices = len(fiberid)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for fiberid = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        fiberid = cast_int_list(fiberid)
+
+        where_peewee_exprs.append(vizdb.AllSpec.in_(fiberid))
+
+    if ifudsgn is not None:
+        num_choices = len(ifudsgn)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for ifudsgn = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        ifudsgn = cast_int_list(ifudsgn)
+
+        where_peewee_exprs.append(vizdb.AllSpec.in_(ifudsgn))
+
+    if plate is not None:
+        num_choices = len(plate)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for plate = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        plate = cast_int_list(plate)
+        where_peewee_exprs.append(vizdb.AllSpec.in_(plate))
+
+    if fps_field is not None:
+        num_choices = len(fps_field)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for fps_field = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        fps_field = cast_int_list(fps_field)
+        where_peewee_exprs.append(vizdb.AllSpec.in_(fps_field))
+
+    if plate_or_fps_field is not None:
+        num_choices = len(plate_or_fps_field)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for plate_or_fps_field = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        plate_or_fps_field = cast_int_list(plate_or_fps_field)
+        where_peewee_exprs.append(vizdb.AllSpec.in_(plate_or_fps_field))
+
+    if mjd is not None:
+        num_choices = len(mjd)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for mjd = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        mjd = cast_int_list(mjd)
+        where_peewee_exprs.append(vizdb.AllSpec.in_(mjd))
+
+    if run2d is not None:
+        num_choices = len(run2d)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for run2d = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(run2d)):
+            raise HTTPException(status_code=400, detail=f"Invalid run2d {run2d}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(run2d))
+
+    if run1d is not None:
+        num_choices = len(run1d)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for run1d = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(run1d)):
+            raise HTTPException(status_code=400, detail=f"Invalid run1d {run1d}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(run1d))
+
+    if coadd is not None:
+        num_choices = len(coadd)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for coadd = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(coadd)):
+            raise HTTPException(status_code=400, detail=f"Invalid coadd {coadd}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(coadd))
+
+    if apred_vers is not None:
+        num_choices = len(apred_vers)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for apred_vers = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(apred_vers)):
+            raise HTTPException(status_code=400, detail=f"apred_vers {apred_vers}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(apred_vers))
+
+    if drpver is not None:
+        num_choices = len(drpver)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for drpver = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(drpver)):
+            raise HTTPException(status_code=400, detail=f"Invalid drpver {drpver}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(drpver))
+
+    if version is not None:
+        num_choices = len(version)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for version = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(version)):
+            raise HTTPException(status_code=400, detail=f"Invalid version {version}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(version))
+
+    if programname is not None:
+        num_choices = len(programname)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for programname = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(programname)):
+            raise HTTPException(status_code=400, detail=f"Invalid programname {programname}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(programname))
+
+    if survey is not None:
+        num_choices = len(survey)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for survey = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(survey)):
+            raise HTTPException(status_code=400, detail=f"Invalid survey {survey}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(survey))
+
+    if healpix is not None:
+        num_choices = len(healpix)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for healpix = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        healpix = cast_int_list(healpix)
+        where_peewee_exprs.append(vizdb.AllSpec.in_(healpix))
+
+    if healpixgrp is not None:
+        num_choices = len(healpixgrp)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for healpixgrp = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        healpixgrp = cast_int_list(healpixgrp)
+        where_peewee_exprs.append(vizdb.AllSpec.in_(healpixgrp))
+
+    if apogee_id is not None:
+        num_choices = len(apogee_id)
+        if (num_choices > max_num_choices):
+            raise HTTPException(status_code=400, detail=f"Number of choices for apogee_id = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
+
+        if (not is_alphanum_list(apogee_id)):
+            raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
+        where_peewee_exprs.append(vizdb.AllSpec.in_(apogee_id))
+
+    if (len(where_peewee_exprs) == 0):
+        raise HTTPException(status_code=400, detail="There is no column for the SQL WHERE clause of the query. Please give at least one column of the table vizdb.allspec.")
+
+    row_count = vizdb.AllSpec.select().where(*where_peewee_exprs).count()
+
+    print(row_count)
+
+    max_row_count = 10000
+    if (row_count > max_row_count):
+        raise HTTPException(status_code=400, detail=f"Query returned {row_count} rows. Maximum number of returned rows allowed is {max_row_count}. Please make the query more specific i.e. add more column conditions to reduce the number of returned rows.")
+
+    peewee_query = vizdb.AllSpec.select().where(*where_peewee_exprs)
 
     return peewee_query
