@@ -520,3 +520,83 @@ class QueryRoutes(Base):
             raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
 
         return targets or {}
+
+
+     @router.get(
+        "/allspec_id_in",
+        summary="Perform a target search on the SDSS allspec table with SQL IN based on allpsec_id and other integer and text columns such as sdss_id.",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_id_in_search(self,
+        allspec_id: Annotated[list[str] | None, Query(description="Value of allpspec_id", example="sdss5–apo-boss–daily–v6_2_1–015000–59146–4375786564–70050164")] = None,
+        multiplex_id: Annotated[list[str] | None, Query(description="Value of multiplex_id", example="sdss5–apo-boss–daily-v6_2_1–015000–59146")] = None,
+        releases_pk: Annotated[list[int] | None, Query(description="Value of releases_pk", example="26")] = None,
+        sdss_phase: Annotated[list[int] | None, Query(description="Value of sdss_phase", example="5")] = None,
+        observatory: Annotated[list[str] | None, Query(description="Value of observatory", example="APO")] = None,
+        instrument: Annotated[list[str] | None, Query(description="Value of instrument", example="boss")] = None,
+        sdss_id: Annotated[list[int] | None, Query(description="Value of sdss_id", example="70050164")] = None,
+        catalogid: Annotated[list[int] | None, Query(description="Value of catalogid", example="4375786564")] = None,
+        fiberid: Annotated[list[int] | None, Query(description="Value of fiberid", example="1")] = None,
+        ifudsgn: Annotated[list[int] | None, Query(description="Value of ifudsgn", example="1901")] = None,
+        plate: Annotated[list[int] | None, Query(description="Value of plate", example="121")] = None,
+        fps_field: Annotated[list[int] | None, Query(description="Value of fps_field", example="15000")] = None,
+        plate_or_fps_field: Annotated[list[int] | None, Query(description="Value of plate_or_fps_field", example="266")] = None,
+        mjd: Annotated[list[int] | None, Query(description="Value of mjd", example="51578")] = None,
+        run2d: Annotated[list[str] | None, Query(description="Value of run2d", example="103")] = None,
+        run1d: Annotated[list[str] | None, Query(description="Value of run1d", example="v6_1_3")] = None,
+        coadd: Annotated[list[str] | None, Query(description="Value of coadd", example="daily")] = None,
+        apred_vers: Annotated[list[str] | None, Query(description="Value of apred_vers", example="dr17")] = None,
+        drpver: Annotated[list[str] | None, Query(description="Value of drp_ver", example="v3_1_1")] = None,
+        version: Annotated[list[str] | None, Query(description="Value of version", example="103")] = None,
+        programname: Annotated[list[str] | None, Query(description="Value of programname", example="apogee")] = None,
+        survey: Annotated[list[str] | None, Query(description="Value of survey", example="apogee2")] = None,
+        healpix: Annotated[list[int] | None, Query(description="Value of healpix", example="129976")] = None,
+        healpixgrp: Annotated[list[int] | None, Query(description="Value of healpixgrp", example="2")] = None,
+        apogee_id: Annotated[list[str] | None, Query(description="Value of apogee_id", example="2M12210623+2655354")] = None,
+             ):
+        """Perform a target search on the SDSS allspec table with SQL IN based on the allspec_id and other integer or text columns such as sdss_id.
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allpsec_id_in()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id_in(
+            allspec_id,
+            multiplex_id,
+            releases_pk,
+            sdss_phase,
+            observatory,
+            instrument,
+            sdss_id,
+            catalogid,
+            fiberid,
+            ifudsgn,
+            plate,
+            fps_field,
+            plate_or_fps_field,
+            mjd,
+            run2d,
+            run1d,
+            coadd,
+            apred_vers,
+            drpver,
+            version,
+            programname,
+            survey,
+            healpix,
+            healpixgrp,
+            apogee_id).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
