@@ -1968,7 +1968,7 @@ def get_targets_allspec_id_in(
         if (not is_alphanum_list(observatory)):
             raise HTTPException(status_code=400, detail=f"Invalid observatory {observatory}.")
 
-        where_peewee_exprs.append(vizdb.AllSpec.in_(observatory))
+        where_peewee_exprs.append(vizdb.AllSpec.observatory.in_(observatory))
 
     if instrument is not None:
         num_choices = len(instrument)
@@ -1978,7 +1978,7 @@ def get_targets_allspec_id_in(
         if (not is_alphanum_list(instrument)):
             raise HTTPException(status_code=400, detail=f"Invalid instrument {instrument}.")
 
-        where_peewee_exprs.append(vizdb.AllSpec.in_(instrument))
+        where_peewee_exprs.append(vizdb.AllSpec.instrument.in_(instrument))
 
     if sdss_id is not None:
         num_choices = len(sdss_id)
@@ -1987,7 +1987,7 @@ def get_targets_allspec_id_in(
 
         sdss_id = cast_int_list(sdss_id)
 
-        where_peewee_exprs.append(vizdb.AllSpec.in_(sdss_id))
+        where_peewee_exprs.append(vizdb.AllSpec.sdss_id.in_(sdss_id))
 
     if catalogid is not None:
         num_choices = len(catalogid)
@@ -1996,7 +1996,7 @@ def get_targets_allspec_id_in(
 
         catalogid = cast_int_list(catalogid)
 
-        where_peewee_exprs.append(vizdb.AllSpec.in_(catalogid))
+        where_peewee_exprs.append(vizdb.AllSpec.catalogid.in_(catalogid))
 
     if fiberid is not None:
         num_choices = len(fiberid)
@@ -2005,7 +2005,7 @@ def get_targets_allspec_id_in(
 
         fiberid = cast_int_list(fiberid)
 
-        where_peewee_exprs.append(vizdb.AllSpec.in_(fiberid))
+        where_peewee_exprs.append(vizdb.AllSpec.fiberid.in_(fiberid))
 
     if ifudsgn is not None:
         num_choices = len(ifudsgn)
@@ -2014,7 +2014,7 @@ def get_targets_allspec_id_in(
 
         ifudsgn = cast_int_list(ifudsgn)
 
-        where_peewee_exprs.append(vizdb.AllSpec.in_(ifudsgn))
+        where_peewee_exprs.append(vizdb.AllSpec.ifudsgn.in_(ifudsgn))
 
     if plate is not None:
         num_choices = len(plate)
@@ -2022,7 +2022,7 @@ def get_targets_allspec_id_in(
             raise HTTPException(status_code=400, detail=f"Number of choices for plate = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
 
         plate = cast_int_list(plate)
-        where_peewee_exprs.append(vizdb.AllSpec.in_(plate))
+        where_peewee_exprs.append(vizdb.AllSpec.plate.in_(plate))
 
     if fps_field is not None:
         num_choices = len(fps_field)
@@ -2030,7 +2030,7 @@ def get_targets_allspec_id_in(
             raise HTTPException(status_code=400, detail=f"Number of choices for fps_field = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
 
         fps_field = cast_int_list(fps_field)
-        where_peewee_exprs.append(vizdb.AllSpec.in_(fps_field))
+        where_peewee_exprs.append(vizdb.AllSpec.fps_field.in_(fps_field))
 
     if plate_or_fps_field is not None:
         num_choices = len(plate_or_fps_field)
@@ -2038,7 +2038,7 @@ def get_targets_allspec_id_in(
             raise HTTPException(status_code=400, detail=f"Number of choices for plate_or_fps_field = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
 
         plate_or_fps_field = cast_int_list(plate_or_fps_field)
-        where_peewee_exprs.append(vizdb.AllSpec.in_(plate_or_fps_field))
+        where_peewee_exprs.append(vizdb.AllSpec.plate_or_fps_field.in_(plate_or_fps_field))
 
     if mjd is not None:
         num_choices = len(mjd)
@@ -2046,7 +2046,7 @@ def get_targets_allspec_id_in(
             raise HTTPException(status_code=400, detail=f"Number of choices for mjd = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
 
         mjd = cast_int_list(mjd)
-        where_peewee_exprs.append(vizdb.AllSpec.in_(mjd))
+        where_peewee_exprs.append(vizdb.AllSpec.mjd.in_(mjd))
 
     if run2d is not None:
         num_choices = len(run2d)
@@ -2055,7 +2055,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(run2d)):
             raise HTTPException(status_code=400, detail=f"Invalid run2d {run2d}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(run2d))
+        where_peewee_exprs.append(vizdb.AllSpec.run2d.in_(run2d))
 
     if run1d is not None:
         num_choices = len(run1d)
@@ -2064,7 +2064,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(run1d)):
             raise HTTPException(status_code=400, detail=f"Invalid run1d {run1d}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(run1d))
+        where_peewee_exprs.append(vizdb.AllSpec.run1d.in_(run1d))
 
     if coadd is not None:
         num_choices = len(coadd)
@@ -2073,7 +2073,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(coadd)):
             raise HTTPException(status_code=400, detail=f"Invalid coadd {coadd}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(coadd))
+        where_peewee_exprs.append(vizdb.AllSpec.coadd.in_(coadd))
 
     if apred_vers is not None:
         num_choices = len(apred_vers)
@@ -2082,7 +2082,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(apred_vers)):
             raise HTTPException(status_code=400, detail=f"apred_vers {apred_vers}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(apred_vers))
+        where_peewee_exprs.append(vizdb.AllSpec.apred_vers.in_(apred_vers))
 
     if drpver is not None:
         num_choices = len(drpver)
@@ -2091,7 +2091,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(drpver)):
             raise HTTPException(status_code=400, detail=f"Invalid drpver {drpver}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(drpver))
+        where_peewee_exprs.append(vizdb.AllSpec.drpver.in_(drpver))
 
     if version is not None:
         num_choices = len(version)
@@ -2100,7 +2100,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(version)):
             raise HTTPException(status_code=400, detail=f"Invalid version {version}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(version))
+        where_peewee_exprs.append(vizdb.AllSpec.version.in_(version))
 
     if programname is not None:
         num_choices = len(programname)
@@ -2109,7 +2109,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(programname)):
             raise HTTPException(status_code=400, detail=f"Invalid programname {programname}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(programname))
+        where_peewee_exprs.append(vizdb.AllSpec.programname.in_(programname))
 
     if survey is not None:
         num_choices = len(survey)
@@ -2118,7 +2118,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(survey)):
             raise HTTPException(status_code=400, detail=f"Invalid survey {survey}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(survey))
+        where_peewee_exprs.append(vizdb.AllSpec.survey.in_(survey))
 
     if healpix is not None:
         num_choices = len(healpix)
@@ -2126,7 +2126,7 @@ def get_targets_allspec_id_in(
             raise HTTPException(status_code=400, detail=f"Number of choices for healpix = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
 
         healpix = cast_int_list(healpix)
-        where_peewee_exprs.append(vizdb.AllSpec.in_(healpix))
+        where_peewee_exprs.append(vizdb.AllSpec.healpix.in_(healpix))
 
     if healpixgrp is not None:
         num_choices = len(healpixgrp)
@@ -2134,7 +2134,7 @@ def get_targets_allspec_id_in(
             raise HTTPException(status_code=400, detail=f"Number of choices for healpixgrp = {num_choices}. Maximum number of choices allowed is {max_num_choices}. Please reduce the number of choices.")
 
         healpixgrp = cast_int_list(healpixgrp)
-        where_peewee_exprs.append(vizdb.AllSpec.in_(healpixgrp))
+        where_peewee_exprs.append(vizdb.AllSpec.healpixgrp.in_(healpixgrp))
 
     if apogee_id is not None:
         num_choices = len(apogee_id)
@@ -2143,7 +2143,7 @@ def get_targets_allspec_id_in(
 
         if (not is_alphanum_list(apogee_id)):
             raise HTTPException(status_code=400, detail=f"Invalid apogee_id {apogee_id}.")
-        where_peewee_exprs.append(vizdb.AllSpec.in_(apogee_id))
+        where_peewee_exprs.append(vizdb.AllSpec.apogee_id.in_(apogee_id))
 
     if (len(where_peewee_exprs) == 0):
         raise HTTPException(status_code=400, detail="There is no column for the SQL WHERE clause of the query. Please give at least one column of the table vizdb.allspec.")
