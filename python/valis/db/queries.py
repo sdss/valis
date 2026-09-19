@@ -1493,6 +1493,8 @@ def is_alphanum(text):
     # the first dash is regular dash
     # the second dash is em dash
     # the third is en dash
+    if len(text) > 100:
+        return False
     return bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
 
 
@@ -1502,6 +1504,8 @@ def is_alphanum_list(text_list):
     # the second dash is em dash
     # the third is en dash
     for text in text_list:
+        if len(text) > 100:
+            return False
         is_match = bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
         if (is_match is False):
             return False
@@ -1708,6 +1712,8 @@ def get_targets_allspec_id(
     if (len(where_peewee_exprs) == 0):
         raise HTTPException(status_code=400, detail="There is no column for the SQL WHERE clause of the query. Please give at least one column of the table vizdb.allspec.")
 
+    # The below "select count" takes very little time compared
+    # to the peewee_query below. So we run it before running the peewee_query.
     row_count = vizdb.AllSpec.select().where(*where_peewee_exprs).count()
 
     print(row_count)
@@ -1773,6 +1779,8 @@ def get_targets_allspec_cone(
     if (radius < 0) or (radius > 1):
         raise HTTPException(status_code=400, detail=f"Invalid radius {radius}. Maximum allowed value is 1 degree.")
 
+    # The below "select count" takes very little time compared
+    # to the peewee_query below. So we run it before running the peewee_query.
     row_count = vizdb.AllSpec.select().where(
                       peewee.fn.q3c_radial_query(
                           vizdb.AllSpec.ra,
@@ -1828,6 +1836,8 @@ def get_targets_allspec_id_like(
     else:
         raise HTTPException(status_code=400, detail=f"Missing allspec_id_like {allspec_id_like}.")
 
+    # The below "select count" takes very little time compared
+    # to the peewee_query below. So we run it before running the peewee_query.
     row_count = vizdb.AllSpec.select().where(vizdb.AllSpec.allspec_id.contains(allspec_id_like)).count()
 
     print(row_count)
@@ -2151,6 +2161,8 @@ def get_targets_allspec_id_in(
     if (len(where_peewee_exprs) == 0):
         raise HTTPException(status_code=400, detail="There is no column for the SQL WHERE clause of the query. Please give at least one column of the table vizdb.allspec.")
 
+    # The below "select count" takes very little time compared
+    # to the peewee_query below. So we run it before running the peewee_query.
     row_count = vizdb.AllSpec.select().where(*where_peewee_exprs).count()
 
     print(row_count)
