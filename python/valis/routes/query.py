@@ -84,6 +84,35 @@ class SDSSIdsModel(BaseModel):
     sdss_id_list: List[int] = Field(description="List of sdss_id values", example=[67660076, 67151446])
 
 
+class AllSpecIDModel(BaseModel):
+    """Request body for the endpoint /allspec/in"""
+    allspec_id: List[str] | None = Field(default=None, description="Value of allpspec_id", example=["sdss5–apo-boss–daily–v6_2_1–015000–59146–4375786564–70050164"])
+    multiplex_id: List[str] | None = Field(default=None, description="Value of multiplex_id", example=["sdss5–apo-boss–daily-v6_2_1–015000–59146"])
+    releases_pk: List[int] | None = Field(default=None, description="Value of releases_pk", example=["26"])
+    sdss_phase: List[int] | None = Field(default=None, description="Value of sdss_phase", example=["5"])
+    observatory: List[str] | None = Field(default=None, description="Value of observatory", example=["APO"])
+    instrument: List[str] | None = Field(default=None, description="Value of instrument", example=["boss"])
+    sdss_id: List[int] | None = Field(default=None, description="Value of sdss_id", example=["70050164"])
+    catalogid: List[int] | None = Field(default=None, description="Value of catalogid", example=["4375786564"])
+    fiberid: List[int] | None = Field(description="Value of fiberid", example=["1"])
+    ifudsgn: List[int] | None = Field(default=None, description="Value of ifudsgn", example=["1901"])
+    plate: List[int] | None = Field(default=None, description="Value of plate", example=["121"])
+    fps_field: List[int] | None = Field(default=None, description="Value of fps_field", example=["15000"])
+    plate_or_fps_field: List[int] | None = Field(default=None, description="Value of plate_or_fps_field", example=["266"])
+    mjd: List[int] | None = Field(default=None, description="Value of mjd", example=["51578"])
+    run2d: List[str] | None = Field(default=None, description="Value of run2d", example=["103"])
+    run1d: List[str] | None = Field(default=None, description="Value of run1d", example=["v6_1_3"])
+    coadd: List[str] | None = Field(default=None, description="Value of coadd", example=["daily"])
+    apred_vers: List[str] | None = Field(default=None, description="Value of apred_vers", example=["dr17"])
+    drpver: List[str] | None = Field(default=None, description="Value of drp_ver", example=["v3_1_1"])
+    version: List[str] | None = Field(default=None, description="Value of version", example=["103"])
+    programname: List[str] | None = Field(default=None, description="Value of programname", example=["apogee"])
+    survey: List[str] | None = Field(default=None, description="Value of survey", example=["apogee2"])
+    healpix: List[int] | None = Field(default=None, description="Value of healpix", example=["129976"])
+    healpixgrp: List[int] | None = Field(default=None, description="Value of healpixgrp", example=["2"])
+    apogee_id: List[str] | None = Field(default=None, description="Value of apogee_id", example=["2M12210623+2655354"])
+
+
 class AltEnum(str, Enum):
     """Enum for the alternative id types"""
 
@@ -378,19 +407,18 @@ class QueryRoutes(Base):
         targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
         return list(targets)
 
-
     # We do not use the "pattern" option of Query()
     # because below \N{EM DASH} is not recognized by pydantic.
     # pydantic returns the "error: "unrecognized escape sequence"
     #
     # alpha_num_pattern = r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$"
     #
-    # Hence checking of strings is done by 
+    # Hence checking of strings is done by
     # is_alphanum() and is_alphanum_list() in db/queries.py.
 
     @router.get(
         "/allspec/id",
-        summary="Perform a target search on the SDSS allspec table based on allpsec_id and other integer and text columns such as sdss_id.",
+        summary="Perform a target search on the SDSS allspec table based on allspec_id and other integer and text columns such as sdss_id.",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -573,6 +601,84 @@ Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "s
         Empty object returned when no match is found.
 
         """
+
+        # The function get_targets_allpsec_id_in()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id_in(
+            allspec_id,
+            multiplex_id,
+            releases_pk,
+            sdss_phase,
+            observatory,
+            instrument,
+            sdss_id,
+            catalogid,
+            fiberid,
+            ifudsgn,
+            plate,
+            fps_field,
+            plate_or_fps_field,
+            mjd,
+            run2d,
+            run1d,
+            coadd,
+            apred_vers,
+            drpver,
+            version,
+            programname,
+            survey,
+            healpix,
+            healpixgrp,
+            apogee_id).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    @router.post(
+        "/allspec/in",
+        summary="Perform a target search on the SDSS allspec table with SQL IN based on allspec_id and other integer and text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_id_in_search_post(self, body: AllSpecIDModel):
+        """Perform a target search on the SDSS allspec table with SQL IN based on the allspec_id and other integer or text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns
+
+        Empty object returned when no match is found.
+
+        """
+        allspec_id = body.allspec_id
+        multiplex_id = body.multilpex_id
+        releases_pk = body.releases_pk
+        sdss_phase = body.sdss_phase
+        observatory = body.observatory
+        instrument = body.instrument
+        sdss_id = body.sdss_id
+        catalogid = body.catalogid
+        fiberid = body.fiberid
+        ifudsgn = body.ifudsgn
+        plate = body.plate
+        fps_field = body.fps_field
+        plate_or_fps_field = body.plate_or_fps_field
+        mjd = body.mjd
+        run2d = body.run2d
+        run1d = body.run1d
+        coadd = body.coadd
+        apred_vers = body.apred_vers
+        drpver = body.drpver
+        version = body.version
+        programname = body.programname
+        survey = body.survey
+        healpix = body.healpix
+        healpixgrp = body.healpixgrp
+        apogee_id = body.apogee_id
 
         # The function get_targets_allpsec_id_in()
         # returns a ModelSelect object.
