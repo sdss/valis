@@ -94,7 +94,7 @@ class AllSpecIDModel(BaseModel):
     instrument: List[str] | None = Field(default=None, description="Value of instrument", example=["boss"])
     sdss_id: List[int] | None = Field(default=None, description="Value of sdss_id", example=["70050164"])
     catalogid: List[int] | None = Field(default=None, description="Value of catalogid", example=["4375786564"])
-    fiberid: List[int] | None = Field(description="Value of fiberid", example=["1"])
+    fiberid: List[int] | None = Field(default=None, description="Value of fiberid", example=["1"])
     ifudsgn: List[int] | None = Field(default=None, description="Value of ifudsgn", example=["1901"])
     plate: List[int] | None = Field(default=None, description="Value of plate", example=["121"])
     fps_field: List[int] | None = Field(default=None, description="Value of fps_field", example=["15000"])
