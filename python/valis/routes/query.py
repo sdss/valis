@@ -655,7 +655,7 @@ Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "s
 
         """
         allspec_id = body.allspec_id
-        multiplex_id = body.multilpex_id
+        multiplex_id = body.multiplex_id
         releases_pk = body.releases_pk
         sdss_phase = body.sdss_phase
         observatory = body.observatory
