@@ -1467,6 +1467,12 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
     # or None if none found
     return max(res, key=lambda i: i["created"]) if res else None
 
+# Initial validation of the input in the allspec routes GET and POST URL
+# is done in routes/query.py
+#
+# Final validation of the input is done by the below functions
+# is_alphanum(), is_alphanum_list(), and cast_int_list()
+#
 # Below in regex, we match plus sign due to below column.
 # sdss5db=> select max(apogee_id) from vizdb.allspec limit 4;
 #         max
