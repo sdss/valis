@@ -40,6 +40,18 @@ from valis.routes.base import Base
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
 
 
+# Below in regex, we match plus sign due to below column.
+# sdss5db=> select max(apogee_id) from vizdb.allspec limit 4;
+#         max
+# --------------------
+#  AP22304103+3917301
+# (1 row)
+# if you give above in url then + becomes space.
+# google
+# how to give + sign in rest api url
+#
+# To pass a literal + sign in a REST API URL, you must use its percent-encoded format: %2B
+
 alpha_num_pattern = r"^[a-zA-Z0-9\_\-\+]+$"
 
 

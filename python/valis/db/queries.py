@@ -1479,34 +1479,20 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
 #
 # To pass a literal + sign in a REST API URL, you must use its percent-encoded format: %2B
 
-# Regular dash, en dash and em dash do not require special encoding in REST API URL
-
-# Below has en dash
-# sdss5db=> select allspec_id from vizdb.allspec limit 1;
-#              allspec_id
-# ---------------------------------------
-#  sdss4–lco–apogee–dr17–12010–58795–220
-
 
 def is_alphanum(text):
     # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
-    # the first dash is regular dash
-    # the second dash is em dash
-    # the third is en dash
     if len(text) > 100:
         return False
-    return bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
+    return bool(re.match(r"^[a-zA-Z0-9\_\-\+]+$", text))
 
 
 def is_alphanum_list(text_list):
     # ^ matches start, $ matches end, [a-zA-Z0-9]+ matches 1 or more alphanumeric characters
-    # the first dash is regular dash
-    # the second dash is em dash
-    # the third is en dash
     for text in text_list:
         if len(text) > 100:
             return False
-        is_match = bool(re.match(r"^[a-zA-Z0-9\_\-\+\N{EM DASH}\N{EN DASH}]+$", text))
+        is_match = bool(re.match(r"^[a-zA-Z0-9\_\-\+]+$", text))
         if (is_match is False):
             return False
 
@@ -1883,7 +1869,7 @@ def get_targets_allspec_id_in(
     This search uses SQL IN. The URL can contain multiple entries
     for the same column. For example:
     Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "sdss_id  in (70050164, 92310876)".
-    /query/allspec_id_in?sdss_id=70050164&sdss_id=92310876&instrument=boss
+    /query/allspec/in?sdss_id=70050164&sdss_id=92310876&instrument=boss
 
     Perform a search for SDSS targets using the peewee ORM in the
     vizdb.allspec table, based on allspec_id etc. values.
