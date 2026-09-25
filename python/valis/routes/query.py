@@ -503,7 +503,7 @@ class QueryRoutes(Base):
 
     @router.get(
         "/allspec/cone",
-        summary="Perform a cone search on the SDSS allspec table based on ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree.",
+        summary="Perform a cone search on the SDSS allspec table based on ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -513,7 +513,7 @@ class QueryRoutes(Base):
         dec: Annotated[float | None, Query(description="Value of dec in degrees", example="-68.977257", ge=-90, le=90)] = None,
         radius: Annotated[float | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2", ge=0, lt=1)] = None,
              ):
-        """Perform a cone search on the SDSS allspec table based on ra, dec, radius. Maximum allowed value for radius is 1 degree.
+        """Perform a cone search on the SDSS allspec table based on ra, dec, radius. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01
 
         Empty object returned when no match is found.
 
@@ -538,7 +538,7 @@ class QueryRoutes(Base):
 
     @router.get(
         "/allspec/like",
-        summary="Perform a search on the SDSS allspec table based on part of an allpsec_id (i.e. query will use SQL LIKE).",
+        summary="Perform a search on the SDSS allspec table based on part of an allpsec_id (i.e. query will use SQL LIKE). For example /query/allspec/like?allspec_id_like=sdss5--apo--boss--epoch--v6_2_1--015002--59252--4375786564",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -546,7 +546,8 @@ class QueryRoutes(Base):
     async def get_targets_allspec_id_like_search(self,
         allspec_id_like: Annotated[str | None, Query(description="part of an allspec_id", example="sdss5--apo--boss--daily--v6_1_3--015000--59192", min_length=20, max_length=100, pattern=alpha_num_pattern)] = None):
 
-        """Perform a search on the SDSS allspec table based on part of an allpsec_id (i.e. query will use SQL LIKE).
+        """Perform a search on the SDSS allspec table based on part of an allpsec_id (i.e. query will use SQL LIKE). For example
+        /query/allspec/like?allspec_id_like=sdss5--apo--boss--epoch--v6_2_1--015002--59252--4375786564
 
         Empty object returned when no match is found.
 
@@ -650,14 +651,20 @@ Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "s
 
     @router.post(
         "/allspec/in",
-        summary="Perform a target search on the SDSS allspec table with SQL IN based on allspec_id and other integer and text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns",
+        summary="Perform a target search on the SDSS allspec table with SQL IN based on allspec_id and other integer and text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns.",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
     @valis_cache(namespace="valis-query")
     async def get_targets_allspec_id_in_search_post(self, body: AllSpecIDModel):
-        """Perform a target search on the SDSS allspec table with SQL IN based on the allspec_id and other integer or text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns
-
+        """Perform a target search on the SDSS allspec table with SQL IN based on the allspec_id and other integer or text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns. For example
+the POST request can contain the below JSON request body.
+{
+  "sdss_id": [
+    70050164,
+    92310876
+  ]
+}
         Empty object returned when no match is found.
 
         """
