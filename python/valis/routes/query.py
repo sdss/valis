@@ -761,6 +761,15 @@ the POST request can contain the below JSON request body.
 
         """
 
+        if ra is None:
+            raise HTTPException(status_code=400, detail=f"Missing ra {ra}.")
+
+        if dec is None:
+            raise HTTPException(status_code=400, detail=f"Missing dec {dec}.")
+
+        if radius is None:
+            raise HTTPException(status_code=400, detail=f"Missing radius {radius}.")
+
         max_length_ra = 100
         if (len(ra) > max_length_ra):
             raise HTTPException(status_code=400, detail="len(ra) must be less than " +
@@ -830,6 +839,15 @@ the POST request can contain the below JSON request body.
         ra = body.ra
         dec = body.dec
         radius = body.radius
+
+        if ra is None:
+            raise HTTPException(status_code=400, detail=f"Missing ra {ra}.")
+
+        if dec is None:
+            raise HTTPException(status_code=400, detail=f"Missing dec {dec}.")
+
+        if radius is None:
+            raise HTTPException(status_code=400, detail=f"Missing radius {radius}.")
 
         max_length_ra = 100
         if (len(ra) > max_length_ra):
