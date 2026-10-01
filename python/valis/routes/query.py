@@ -99,14 +99,16 @@ class SDSSIdsModel(BaseModel):
     sdss_id_list: List[int] = Field(description="List of sdss_id values", example=[67660076, 67151446])
 
 
+# Field() options max_length and pattern do not work with List[str]
+# so they are not used below.
 class AllSpecIDModel(BaseModel):
     """Request body for the endpoint /allspec/in"""
-    allspec_id: List[str] | None = Field(default=None, description="Value of allpspec_id", example=["sdss5--apo--boss--daily--v6_1_3--015000--59192--4375786564--70050164"], max_length=100, pattern=alpha_num_pattern)
-    multiplex_id: List[str] | None = Field(default=None, description="Value of multiplex_id", example=["sdss5--apo--apogee--0--8688--57650"], max_length=100, pattern=alpha_num_pattern)
+    allspec_id: List[str] | None = Field(default=None, description="Value of allpspec_id", example=["sdss5--apo--boss--daily--v6_1_3--015000--59192--4375786564--70050164"])
+    multiplex_id: List[str] | None = Field(default=None, description="Value of multiplex_id", example=["sdss5--apo--apogee--0--8688--57650"])
     releases_pk: List[int] | None = Field(default=None, description="Value of releases_pk", example=["26"])
     sdss_phase: List[int] | None = Field(default=None, description="Value of sdss_phase", example=["5"])
-    observatory: List[str] | None = Field(default=None, description="Value of observatory", example=["APO"], max_length=50, pattern=alpha_num_pattern)
-    instrument: List[str] | None = Field(default=None, description="Value of instrument", example=["boss"], max_length=50, pattern=alpha_num_pattern)
+    observatory: List[str] | None = Field(default=None, description="Value of observatory", example=["APO"])
+    instrument: List[str] | None = Field(default=None, description="Value of instrument", example=["boss"])
     sdss_id: List[int] | None = Field(default=None, description="Value of sdss_id", example=["70050164"])
     catalogid: List[int] | None = Field(default=None, description="Value of catalogid", example=["4375786564"])
     fiberid: List[int] | None = Field(default=None, description="Value of fiberid", example=["1"])
@@ -115,17 +117,17 @@ class AllSpecIDModel(BaseModel):
     fps_field: List[int] | None = Field(default=None, description="Value of fps_field", example=["15000"])
     plate_or_fps_field: List[int] | None = Field(default=None, description="Value of plate_or_fps_field", example=["266"])
     mjd: List[int] | None = Field(default=None, description="Value of mjd", example=["51578"])
-    run2d: List[str] | None = Field(default=None, description="Value of run2d", example=["103"], max_length=50, pattern=alpha_num_pattern)
-    run1d: List[str] | None = Field(default=None, description="Value of run1d", example=["v6_1_3"], max_length=50, pattern=alpha_num_pattern)
-    coadd: List[str] | None = Field(default=None, description="Value of coadd", example=["daily"], max_length=50, pattern=alpha_num_pattern)
-    apred_vers: List[str] | None = Field(default=None, description="Value of apred_vers", example=["dr17"], max_length=50, pattern=alpha_num_pattern)
-    drpver: List[str] | None = Field(default=None, description="Value of drp_ver", example=["v3_1_1"], max_length=50, pattern=alpha_num_pattern)
-    version: List[str] | None = Field(default=None, description="Value of version", example=["103"], max_length=50, pattern=alpha_num_pattern)
-    programname: List[str] | None = Field(default=None, description="Value of programname", example=["apogee"], max_length=50, pattern=alpha_num_pattern)
-    survey: List[str] | None = Field(default=None, description="Value of survey", example=["apogee2"], max_length=50, pattern=alpha_num_pattern)
+    run2d: List[str] | None = Field(default=None, description="Value of run2d", example=["103"])
+    run1d: List[str] | None = Field(default=None, description="Value of run1d", example=["v6_1_3"])
+    coadd: List[str] | None = Field(default=None, description="Value of coadd", example=["daily"])
+    apred_vers: List[str] | None = Field(default=None, description="Value of apred_vers", example=["dr17"])
+    drpver: List[str] | None = Field(default=None, description="Value of drp_ver", example=["v3_1_1"])
+    version: List[str] | None = Field(default=None, description="Value of version", example=["103"])
+    programname: List[str] | None = Field(default=None, description="Value of programname", example=["apogee"])
+    survey: List[str] | None = Field(default=None, description="Value of survey", example=["apogee2"])
     healpix: List[int] | None = Field(default=None, description="Value of healpix", example=["129976"])
     healpixgrp: List[int] | None = Field(default=None, description="Value of healpixgrp", example=["2"])
-    apogee_id: List[str] | None = Field(default=None, description="Value of apogee_id", example=["2M12210623+2655354"], max_length=50, pattern=alpha_num_pattern)
+    apogee_id: List[str] | None = Field(default=None, description="Value of apogee_id", example=["2M12210623+2655354"])
 
 
 class AllSpecConeModel(BaseModel):
@@ -584,12 +586,12 @@ class QueryRoutes(Base):
     )
     @valis_cache(namespace="valis-query")
     async def get_targets_allspec_id_in_search(self,
-        allspec_id: Annotated[list[str] | None, Query(description="Value of allpspec_id", example="sdss5--apo--boss--daily--v6_1_3--015000--59192--4375786564--70050164", max_length=100, pattern=alpha_num_pattern)] = None,
-        multiplex_id: Annotated[list[str] | None, Query(description="Value of multiplex_id", example="sdss5--apo--apogee--0--8688--57650", max_length=100, pattern=alpha_num_pattern)] = None,
+        allspec_id: Annotated[list[str] | None, Query(description="Value of allpspec_id", example="sdss5--apo--boss--daily--v6_1_3--015000--59192--4375786564--70050164")] = None,
+        multiplex_id: Annotated[list[str] | None, Query(description="Value of multiplex_id", example="sdss5--apo--apogee--0--8688--57650")] = None,
         releases_pk: Annotated[list[int] | None, Query(description="Value of releases_pk", example="26")] = None,
         sdss_phase: Annotated[list[int] | None, Query(description="Value of sdss_phase", example="5")] = None,
-        observatory: Annotated[list[str] | None, Query(description="Value of observatory", example="APO", max_length=50, pattern=alpha_num_pattern)] = None,
-        instrument: Annotated[list[str] | None, Query(description="Value of instrument", example="boss", max_length=50, pattern=alpha_num_pattern)] = None,
+        observatory: Annotated[list[str] | None, Query(description="Value of observatory", example="APO")] = None,
+        instrument: Annotated[list[str] | None, Query(description="Value of instrument", example="boss")] = None,
         sdss_id: Annotated[list[int] | None, Query(description="Value of sdss_id", example="70050164")] = None,
         catalogid: Annotated[list[int] | None, Query(description="Value of catalogid", example="4375786564")] = None,
         fiberid: Annotated[list[int] | None, Query(description="Value of fiberid", example="1")] = None,
@@ -598,17 +600,17 @@ class QueryRoutes(Base):
         fps_field: Annotated[list[int] | None, Query(description="Value of fps_field", example="15000")] = None,
         plate_or_fps_field: Annotated[list[int] | None, Query(description="Value of plate_or_fps_field", example="266")] = None,
         mjd: Annotated[list[int] | None, Query(description="Value of mjd", example="51578")] = None,
-        run2d: Annotated[list[str] | None, Query(description="Value of run2d", example="103", max_length=50, pattern=alpha_num_pattern)] = None,
-        run1d: Annotated[list[str] | None, Query(description="Value of run1d", example="v6_1_3", max_length=50, pattern=alpha_num_pattern)] = None,
+        run2d: Annotated[list[str] | None, Query(description="Value of run2d", example="103")] = None,
+        run1d: Annotated[list[str] | None, Query(description="Value of run1d", example="v6_1_3")] = None,
         coadd: Annotated[list[str] | None, Query(description="Value of coadd", example="daily", pattern=alpha_num_pattern)] = None,
-        apred_vers: Annotated[list[str] | None, Query(description="Value of apred_vers", example="dr17", max_length=50, pattern=alpha_num_pattern)] = None,
-        drpver: Annotated[list[str] | None, Query(description="Value of drp_ver", example="v3_1_1", max_length=50, pattern=alpha_num_pattern)] = None,
-        version: Annotated[list[str] | None, Query(description="Value of version", example="103", max_length=50, pattern=alpha_num_pattern)] = None,
-        programname: Annotated[list[str] | None, Query(description="Value of programname", example="apogee", max_length=50, pattern=alpha_num_pattern)] = None,
-        survey: Annotated[list[str] | None, Query(description="Value of survey", example="apogee2", max_length=50, pattern=alpha_num_pattern)] = None,
+        apred_vers: Annotated[list[str] | None, Query(description="Value of apred_vers", example="dr17")] = None,
+        drpver: Annotated[list[str] | None, Query(description="Value of drp_ver", example="v3_1_1")] = None,
+        version: Annotated[list[str] | None, Query(description="Value of version", example="103")] = None,
+        programname: Annotated[list[str] | None, Query(description="Value of programname", example="apogee")] = None,
+        survey: Annotated[list[str] | None, Query(description="Value of survey", example="apogee2")] = None,
         healpix: Annotated[list[int] | None, Query(description="Value of healpix", example="129976")] = None,
         healpixgrp: Annotated[list[int] | None, Query(description="Value of healpixgrp", example="2")] = None,
-        apogee_id: Annotated[list[str] | None, Query(description="Value of apogee_id", example="2M12210623+2655354", max_length=50, pattern=alpha_num_pattern)] = None,
+        apogee_id: Annotated[list[str] | None, Query(description="Value of apogee_id", example="2M12210623+2655354")] = None,
              ):
         """Perform a target search on the SDSS allspec table with SQL IN based on the allspec_id and other integer or text columns such as sdss_id. The URL can contain multiple entries for the same column. For example:
 Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "sdss_id  in (70050164, 92310876)".

@@ -1469,6 +1469,9 @@ def get_astra_pipeline(sdss_id: int, release: str, pipeline: str) -> dict:
 
 # Initial validation of the input in the allspec routes GET and POST URL
 # is done in routes/query.py
+# However, that validation does not validate lists
+# since "max_length", "pattern", "gt", "lt" options used in routes/query.py
+# do not work with lists.
 #
 # Final validation of the input is done by the below functions
 # is_alphanum(), is_alphanum_list(), and cast_int_list()
