@@ -742,6 +742,7 @@ the POST request can contain the below JSON request body.
 
         return targets or {}
 
+    # TODO write custom validator for ra list[float]
     # Below route has a GET version and a POST version.
     @router.get(
         "/allspec/cone_list",
@@ -799,7 +800,9 @@ the POST request can contain the below JSON request body.
                 current_dec,
                 current_radius).dicts())
 
-        targets = list(set(targets))
+        # TODO remove duplicates from targets
+        # below is not allowed since targets contains dictionaries.
+        # targets = list(set(targets))
 
         # throw exception when no targets are found.
         if not targets:
@@ -807,6 +810,7 @@ the POST request can contain the below JSON request body.
 
         return targets or {}
 
+    # TODO write custom validator for ra list[float]
     # Below route has a GET version and a POST version.
     @router.post(
         "/allspec/cone_list",
@@ -878,7 +882,9 @@ the POST request can contain the below JSON request body.
                 current_dec,
                 current_radius).dicts())
 
-        targets = list(set(targets))
+        # TODO remove duplicates from targets
+        # below is not allowed since targets contains dictionaries.
+        # targets = list(set(targets))
 
         # throw exception when no targets are found.
         if not targets:
