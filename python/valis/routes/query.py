@@ -751,9 +751,9 @@ the POST request can contain the below JSON request body.
     )
     @valis_cache(namespace="valis-query")
     async def get_targets_allspec_cone_search_list(self,
-        ra_list: Annotated[list[float] | None, Query(description="Value of ra in degrees", example="77.363913", ge=0, lt=360)] = None,
-        dec_list: Annotated[list[float] | None, Query(description="Value of dec in degrees", example="-68.977257", ge=-90, le=90)] = None,
-        radius_list: Annotated[list[float] | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2", ge=0, lt=1)] = None,
+        ra: Annotated[list[float] | None, Query(description="Value of ra in degrees", example="77.363913", ge=0, lt=360)] = None,
+        dec: Annotated[list[float] | None, Query(description="Value of dec in degrees", example="-68.977257", ge=-90, le=90)] = None,
+        radius: Annotated[list[float] | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2", ge=0, lt=1)] = None,
              ):
         """Perform a cone search on the SDSS allspec table based on ra, dec, radius. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01
 
@@ -761,16 +761,16 @@ the POST request can contain the below JSON request body.
 
         """
 
-        max_length_ra_list = 100
-        if (len(ra_list) > max_length_ra_list):
-            raise HTTPException(status_code=400, detail="len(ra_list) must be less than " +
-                 str(max_length_ra_list) + ". The len(ra_list) = " + str(len(ra_list)))
+        max_length_ra = 100
+        if (len(ra) > max_length_ra):
+            raise HTTPException(status_code=400, detail="len(ra) must be less than " +
+                 str(max_length_ra) + ". The len(ra) = " + str(len(ra)))
 
-        if (len(ra_list) != len(dec_list)):
-            raise HTTPException(status_code=400, detail="len(ra_list) != len(dec_list)")
+        if (len(ra) != len(dec)):
+            raise HTTPException(status_code=400, detail="len(ra) != len(dec)")
 
-        if (len(ra_list) != len(radius_list)):
-            raise HTTPException(status_code=400, detail="len(ra_list) != len(radius_list)")
+        if (len(ra) != len(radius)):
+            raise HTTPException(status_code=400, detail="len(ra) != len(radius)")
 
         # The function get_targets_allspec_cone()
         # returns a ModelSelect object.
@@ -780,15 +780,15 @@ the POST request can contain the below JSON request body.
         # The list can then be serialized.
 
         targets = None
-        for i in range(len(ra_list)):
-            ra = ra_list[i]
-            dec = dec_list[i]
-            radius = radius_list[i]
+        for i in range(len(ra)):
+            current_ra = ra[i]
+            current_dec = dec[i]
+            current_radius = radius[i]
 
             targets = targets + list(get_targets_allspec_cone(
-                ra,
-                dec,
-                radius).dicts())
+                current_ra,
+                current_dec,
+                current_radius).dicts())
 
         targets = list(set(targets))
 
@@ -827,20 +827,20 @@ the POST request can contain the below JSON request body.
         Empty object returned when no match is found.
 
         """
-        ra_list = body.ra
-        dec_list = body.dec
-        radius_list = body.radius
+        ra = body.ra
+        dec = body.dec
+        radius = body.radius
 
-        max_length_ra_list = 100
-        if (len(ra_list) > max_length_ra_list):
-            raise HTTPException(status_code=400, detail="len(ra_list) must be less than " +
-                 str(max_length_ra_list) + ". The len(ra_list) = " + str(len(ra_list)))
+        max_length_ra = 100
+        if (len(ra) > max_length_ra):
+            raise HTTPException(status_code=400, detail="len(ra) must be less than " +
+                 str(max_length_ra) + ". The len(ra) = " + str(len(ra)))
 
-        if (len(ra_list) != len(dec_list)):
-            raise HTTPException(status_code=400, detail="len(ra_list) != len(dec_list)")
+        if (len(ra) != len(dec)):
+            raise HTTPException(status_code=400, detail="len(ra) != len(dec)")
 
-        if (len(ra_list) != len(radius_list)):
-            raise HTTPException(status_code=400, detail="len(ra_list) != len(radius_list)")
+        if (len(ra) != len(radius)):
+            raise HTTPException(status_code=400, detail="len(ra) != len(radius)")
 
         # The function get_targets_allspec_cone()
         # returns a ModelSelect object.
@@ -850,15 +850,15 @@ the POST request can contain the below JSON request body.
         # The list can then be serialized.
 
         targets = None
-        for i in range(len(ra_list)):
-            ra = ra_list[i]
-            dec = dec_list[i]
-            radius = radius_list[i]
+        for i in range(len(ra)):
+            current_ra = ra[i]
+            current_dec = dec[i]
+            current_radius = radius[i]
 
             targets = targets + list(get_targets_allspec_cone(
-                ra,
-                dec,
-                radius).dicts())
+                current_ra,
+                current_dec,
+                current_radius).dicts())
 
         targets = list(set(targets))
 
