@@ -130,9 +130,9 @@ class AllSpecIDModel(BaseModel):
 
 class AllSpecConeModel(BaseModel):
     """Request body for the endpoint /allspec/cone_list"""
-    ra_list: List[float] | None = Field(default=None, description="Values of ra", example=["77.5"], ge=0, lt=360)
-    dec_list: List[float] | None = Field(default=None, description="Values of dec", example=["-68.4"], ge=-90, le=90)
-    radius_list: List[float] | None = Field(default=None, description="Values of radius", example=["0.5"], ge=0, lt=1)
+    ra: List[float] | None = Field(default=None, description="Values of ra", example=["77.5"], ge=0, lt=360)
+    dec: List[float] | None = Field(default=None, description="Values of dec", example=["-68.4"], ge=-90, le=90)
+    radius: List[float] | None = Field(default=None, description="Values of radius", example=["0.5"], ge=0, lt=1)
 
 
 class AltEnum(str, Enum):
