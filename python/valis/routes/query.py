@@ -128,6 +128,13 @@ class AllSpecIDModel(BaseModel):
     apogee_id: List[str] | None = Field(default=None, description="Value of apogee_id", example=["2M12210623+2655354"], max_length=50, pattern=alpha_num_pattern)
 
 
+class AllSpecConeModel(BaseModel):
+    """Request body for the endpoint /allspec/cone_list"""
+    ra_list: List[float] | None = Field(default=None, description="Values of ra", example=["77.5"], ge=0, lt=360)
+    dec_list: List[float] | None = Field(default=None, description="Values of dec", example=["-68.4"], ge=-90, le=90)
+    radius_list: List[float] | None = Field(default=None, description="Values of radius", example=["0.5"], ge=0, lt=1)
+
+
 class AltEnum(str, Enum):
     """Enum for the alternative id types"""
 
@@ -462,7 +469,7 @@ class QueryRoutes(Base):
 
         """
 
-        # The function get_targets_allpsec_id()
+        # The function get_targets_allspec_id()
         # returns a ModelSelect object.
         # The method .dicts() converts the peewee ModelSelect object
         # into a dictionary.
@@ -519,7 +526,7 @@ class QueryRoutes(Base):
 
         """
 
-        # The function get_targets_allpsec_cone()
+        # The function get_targets_allspec_cone()
         # returns a ModelSelect object.
         # The method .dicts() converts the peewee ModelSelect object
         # into a dictionary.
@@ -538,7 +545,7 @@ class QueryRoutes(Base):
 
     @router.get(
         "/allspec/like",
-        summary="Perform a search on the SDSS allspec table based on part of an allpsec_id (i.e. query will use SQL LIKE). For example /query/allspec/like?allspec_id_like=sdss5--apo--boss--epoch--v6_2_1--015002--59252--4375786564",
+        summary="Perform a search on the SDSS allspec table based on part of an allspec_id (i.e. query will use SQL LIKE). For example /query/allspec/like?allspec_id_like=sdss5--apo--boss--epoch--v6_2_1--015002--59252--4375786564",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -546,14 +553,14 @@ class QueryRoutes(Base):
     async def get_targets_allspec_id_like_search(self,
         allspec_id_like: Annotated[str | None, Query(description="part of an allspec_id", example="sdss5--apo--boss--daily--v6_1_3--015000--59192", min_length=20, max_length=100, pattern=alpha_num_pattern)] = None):
 
-        """Perform a search on the SDSS allspec table based on part of an allpsec_id (i.e. query will use SQL LIKE). For example
+        """Perform a search on the SDSS allspec table based on part of an allspec_id (i.e. query will use SQL LIKE). For example
         /query/allspec/like?allspec_id_like=sdss5--apo--boss--epoch--v6_2_1--015002--59252--4375786564
 
         Empty object returned when no match is found.
 
         """
 
-        # The function get_targets_allpsec_allspec_id_like()
+        # The function get_targets_allspec_allspec_id_like()
         # returns a ModelSelect object.
         # The method .dicts() converts the peewee ModelSelect object
         # into a dictionary.
@@ -568,9 +575,10 @@ class QueryRoutes(Base):
 
         return targets or {}
 
+    # Below route has a GET version and a POST version.
     @router.get(
         "/allspec/in",
-        summary="Perform a target search on the SDSS allspec table with SQL IN based on allpsec_id and other integer and text columns such as sdss_id. The URL can contain multiple entries for the same column. For example /query/allspec/in?sdss_id=70050164&sdss_id=92310876&instrument=boss",
+        summary="Perform a target search on the SDSS allspec table with SQL IN based on allspec_id and other integer and text columns such as sdss_id. The URL can contain multiple entries for the same column. For example /query/allspec/in?sdss_id=70050164&sdss_id=92310876&instrument=boss",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -610,7 +618,7 @@ Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "s
 
         """
 
-        # The function get_targets_allpsec_id_in()
+        # The function get_targets_allspec_id_in()
         # returns a ModelSelect object.
         # The method .dicts() converts the peewee ModelSelect object
         # into a dictionary.
@@ -649,6 +657,7 @@ Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "s
 
         return targets or {}
 
+    # Below route has a GET version and a POST version.
     @router.post(
         "/allspec/in",
         summary="Perform a target search on the SDSS allspec table with SQL IN based on allspec_id and other integer and text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns.",
@@ -694,7 +703,7 @@ the POST request can contain the below JSON request body.
         healpixgrp = body.healpixgrp
         apogee_id = body.apogee_id
 
-        # The function get_targets_allpsec_id_in()
+        # The function get_targets_allspec_id_in()
         # returns a ModelSelect object.
         # The method .dicts() converts the peewee ModelSelect object
         # into a dictionary.
@@ -726,6 +735,132 @@ the POST request can contain the below JSON request body.
             healpix,
             healpixgrp,
             apogee_id).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    # Below route has a GET version and a POST version.
+    @router.get(
+        "/allspec/cone_list",
+        summary="Perform a cone search on the SDSS allspec table based on a list of ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_cone_search_list(self,
+        ra_list: Annotated[list[float] | None, Query(description="Value of ra in degrees", example="77.363913", ge=0, lt=360)] = None,
+        dec_list: Annotated[list[float] | None, Query(description="Value of dec in degrees", example="-68.977257", ge=-90, le=90)] = None,
+        radius_list: Annotated[list[float] | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2", ge=0, lt=1)] = None,
+             ):
+        """Perform a cone search on the SDSS allspec table based on ra, dec, radius. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01
+
+        Empty object returned when no match is found.
+
+        """
+
+        max_length_ra_list = 100
+        if (len(ra_list) > max_length_ra_list):
+            raise HTTPException(status_code=400, detail="len(ra_list) must be less than " +
+                 str(max_length_ra_list) + ". The len(ra_list) = " + str(len(ra_list)))
+
+        if (len(ra_list) != len(dec_list)):
+            raise HTTPException(status_code=400, detail="len(ra_list) != len(dec_list)")
+
+        if (len(ra_list) != len(radius_list)):
+            raise HTTPException(status_code=400, detail="len(ra_list) != len(radius_list)")
+
+        # The function get_targets_allspec_cone()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+
+        targets = None
+        for i in range(len(ra_list)):
+            ra = ra_list[i]
+            dec = dec_list[i]
+            radius = radius_list[i]
+
+            targets = targets + list(get_targets_allspec_cone(
+                ra,
+                dec,
+                radius).dicts())
+
+        targets = list(set(targets))
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    # Below route has a GET version and a POST version.
+    @router.post(
+        "/allspec/cone_list",
+        summary="Perform a cone search on the SDSS allspec table based on a list of ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. The POST request will contain a list of values ra, dec, and radius.",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_cone_search_post(self, body: AllSpecConeModel):
+        """Perform a cone search on the SDSS allspec table based on a list of ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. The POST request will contain a list of values ra, dec, and radius. For example
+the POST request can contain the below JSON request body.
+{
+  "ra": [
+    77.5,
+    78.4
+  ],
+  "dec": [
+    -68.2,
+    -70.5
+  ],
+  "radius": [
+    0.8,
+    0.9
+  ],
+  ,
+}
+        Empty object returned when no match is found.
+
+        """
+        ra_list = body.ra
+        dec_list = body.dec
+        radius_list = body.radius
+
+        max_length_ra_list = 100
+        if (len(ra_list) > max_length_ra_list):
+            raise HTTPException(status_code=400, detail="len(ra_list) must be less than " +
+                 str(max_length_ra_list) + ". The len(ra_list) = " + str(len(ra_list)))
+
+        if (len(ra_list) != len(dec_list)):
+            raise HTTPException(status_code=400, detail="len(ra_list) != len(dec_list)")
+
+        if (len(ra_list) != len(radius_list)):
+            raise HTTPException(status_code=400, detail="len(ra_list) != len(radius_list)")
+
+        # The function get_targets_allspec_cone()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+
+        targets = None
+        for i in range(len(ra_list)):
+            ra = ra_list[i]
+            dec = dec_list[i]
+            radius = radius_list[i]
+
+            targets = targets + list(get_targets_allspec_cone(
+                ra,
+                dec,
+                radius).dicts())
+
+        targets = list(set(targets))
 
         # throw exception when no targets are found.
         if not targets:

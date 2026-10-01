@@ -1540,7 +1540,7 @@ def get_targets_allspec_id(
         apogee_id: str) -> peewee.ModelSelect:
 
     """Perform a search for SDSS targets on vizdb.allspec
-    based on allpsec_id and other integer or string column values.
+    based on allspec_id and other integer or string column values.
 
     Perform a search for SDSS targets using the peewee ORM in the
     vizdb.allspec table, based on allspec_id etc. values.
@@ -1871,7 +1871,7 @@ def get_targets_allspec_id_in(
         apogee_id: list[str]) -> peewee.ModelSelect:
 
     """Perform a search for SDSS targets on vizdb.allspec
-    based on allpsec_id and other integer or string column values.
+    based on allspec_id and other integer or string column values.
     This search uses SQL IN. The URL can contain multiple entries
     for the same column. For example:
     Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "sdss_id  in (70050164, 92310876)".
