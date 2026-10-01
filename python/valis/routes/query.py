@@ -130,9 +130,9 @@ class AllSpecIDModel(BaseModel):
 
 class AllSpecConeModel(BaseModel):
     """Request body for the endpoint /allspec/cone_list"""
-    ra: List[float] | None = Field(default=None, description="Values of ra", example=["77.5"], ge=0, lt=360)
-    dec: List[float] | None = Field(default=None, description="Values of dec", example=["-68.4"], ge=-90, le=90)
-    radius: List[float] | None = Field(default=None, description="Values of radius", example=["0.5"], ge=0, lt=1)
+    ra: List[float] | None = Field(default=None, description="Values of ra", example=["77.5"])
+    dec: List[float] | None = Field(default=None, description="Values of dec", example=["-68.4"])
+    radius: List[float] | None = Field(default=None, description="Values of radius", example=["0.5"])
 
 
 class AltEnum(str, Enum):
@@ -751,9 +751,9 @@ the POST request can contain the below JSON request body.
     )
     @valis_cache(namespace="valis-query")
     async def get_targets_allspec_cone_search_list(self,
-        ra: Annotated[list[float] | None, Query(description="Value of ra in degrees", example="77.363913", ge=0, lt=360)] = None,
-        dec: Annotated[list[float] | None, Query(description="Value of dec in degrees", example="-68.977257", ge=-90, le=90)] = None,
-        radius: Annotated[list[float] | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2", ge=0, lt=1)] = None,
+        ra: Annotated[list[float] | None, Query(description="Value of ra in degrees", example="77.363913")] = None,
+        dec: Annotated[list[float] | None, Query(description="Value of dec in degrees", example="-68.977257")] = None,
+        radius: Annotated[list[float] | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2")] = None,
              ):
         """Perform a cone search on the SDSS allspec table based on ra, dec, radius. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01
 
@@ -788,7 +788,7 @@ the POST request can contain the below JSON request body.
         # The function list() converts the dictionary into a list.
         # The list can then be serialized.
 
-        targets = None
+        targets = []
         for i in range(len(ra)):
             current_ra = ra[i]
             current_dec = dec[i]
@@ -867,7 +867,7 @@ the POST request can contain the below JSON request body.
         # The function list() converts the dictionary into a list.
         # The list can then be serialized.
 
-        targets = None
+        targets = []
         for i in range(len(ra)):
             current_ra = ra[i]
             current_dec = dec[i]
