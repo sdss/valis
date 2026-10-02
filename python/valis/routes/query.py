@@ -29,6 +29,7 @@ from valis.db.queries import (
     get_targets_obs,
     get_targets_allspec_id,
     get_targets_allspec_cone,
+    get_targets_allspec_cone_list,
     get_targets_allspec_id_like,
     get_targets_allspec_id_in
 )
@@ -784,27 +785,15 @@ the POST request can contain the below JSON request body.
         if (len(ra) != len(radius)):
             raise HTTPException(status_code=400, detail="len(ra) != len(radius)")
 
-        # The function get_targets_allspec_cone()
+        # The function get_targets_allspec_cone_list()
         # returns a ModelSelect object.
         # The method .dicts() converts the peewee ModelSelect object
         # into a dictionary.
         # The function list() converts the dictionary into a list.
         # The list can then be serialized.
 
-        targets = []
-        for i in range(len(ra)):
-            current_ra = ra[i]
-            current_dec = dec[i]
-            current_radius = radius[i]
-
-            targets = targets + list(get_targets_allspec_cone(
-                current_ra,
-                current_dec,
-                current_radius).dicts())
-
-        # TODO remove duplicates from targets
-        # below is not allowed since targets contains dictionaries.
-        # targets = list(set(targets))
+        targets = list(get_targets_allspec_cone_list(
+                       ra, dec, radius).dicts())
 
         # throw exception when no targets are found.
         if not targets:
@@ -873,20 +862,8 @@ the POST request can contain the below JSON request body.
         # The function list() converts the dictionary into a list.
         # The list can then be serialized.
 
-        targets = []
-        for i in range(len(ra)):
-            current_ra = ra[i]
-            current_dec = dec[i]
-            current_radius = radius[i]
-
-            targets = targets + list(get_targets_allspec_cone(
-                current_ra,
-                current_dec,
-                current_radius).dicts())
-
-        # TODO remove duplicates from targets
-        # below is not allowed since targets contains dictionaries.
-        # targets = list(set(targets))
+        targets = list(get_targets_allspec_cone_list(
+                       ra, dec, radius).dicts())
 
         # throw exception when no targets are found.
         if not targets:

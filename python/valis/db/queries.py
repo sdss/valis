@@ -1515,6 +1515,13 @@ def cast_int_list(int_list):
     return int_list
 
 
+def cast_float_list(float_list):
+    for i in range(len(float_list)):
+        float_list[i] = int(float_list[i])
+
+    return float_list
+
+
 def get_targets_allspec_id(
         allspec_id: str,
         multiplex_id: str,
@@ -1797,6 +1804,111 @@ def get_targets_allspec_cone(
                           ra,
                           dec,
                           radius))
+
+    return peewee_query
+
+
+def get_targets_allspec_cone_list(
+        ra: list[float],
+        dec: list[float],
+        radius: list[float]) -> peewee.ModelSelect:
+
+    """Perform a cone search for SDSS targets on vizdb.allspec
+    based on list of ra, dec, and radius of search. Units are degrees.
+    Maximum allowed value of radius is 1 degree.
+
+    Perform a search for SDSS targets using the peewee ORM in the
+    vizdb.allspec table, based on ra, dec, radius values.
+    We return the peewee ModelSelect directly here so it can be easily combined
+    with other queries, if needed.
+
+    In the route endpoint itself, remember to return wrap this in a list.
+
+    Parameters
+    ----------
+        ra: list[float,
+        dec: list[float,
+        radius: list[float]
+
+    Returns
+
+    peewee.ModelSelect
+        the ORM query
+    """
+
+    if ra is None:
+        raise HTTPException(status_code=400, detail=f"Missing ra {ra}.")
+
+    if dec is None:
+        raise HTTPException(status_code=400, detail=f"Missing dec {dec}.")
+
+    if radius is None:
+        raise HTTPException(status_code=400, detail=f"Missing radius {radius}.")
+
+    max_length_ra = 100
+    if (len(ra) > max_length_ra):
+        raise HTTPException(status_code=400, detail="len(ra) must be less than " + str(max_length_ra) + ". The len(ra) = " + str(len(ra)))
+
+    if (len(ra) != len(dec)):
+        raise HTTPException(status_code=400, detail="len(ra) != len(dec)")
+
+    if (len(ra) != len(radius)):
+        raise HTTPException(status_code=400, detail="len(ra) != len(radius)")
+                              
+    ra = cast_float_list(ra)
+    dec = cast_float_list(dec)
+    radius = cast_float_list(radius)
+
+    for i in range(len(ra)):
+        if (ra[i] < 0) or (ra[i] > 360):
+            raise HTTPException(status_code=400, detail=f"Invalid ra[{i}]={ra}.")
+
+        if (dec[i] < -90) or (dec[i] > 90):
+            raise HTTPException(status_code=400, detail=f"Invalid dec[{i}]={dec}.")
+
+        if (radius[i] < 0) or (radius[i] > 1):
+            raise HTTPException(status_code=400, detail=f"Invalid radius[{i}]={radius}. Maximum allowed value is 1 degree.")
+
+    # The below "select count" takes very little time compared
+    # to the peewee_query below. So we run it before running the peewee_query.
+
+    for i in range(len(ra)):
+        row_count = vizdb.AllSpec.select().where(
+                        peewee.fn.q3c_radial_query(
+                            vizdb.AllSpec.ra,
+                            vizdb.AllSpec.dec,
+                            ra[i],
+                            dec[i],
+                            radius[i])).count()
+
+        print(row_count)
+        current_ra = ra[i]
+        current_dec = dec[i]
+        current_radius = radius[i]
+
+        max_row_count = 10000
+        if (row_count > max_row_count):
+            raise HTTPException(status_code=400, detail=f"Query returned {row_count} rows. Maximum number of returned rows allowed is {max_row_count}. Please make the query more specific i.e. reduce the radius to reduce the number of returned rows. The values are ra[{i}]={current_ra}, dec[{i}]={current_dec}, radius[{i}]={current_radius}")
+
+    # We now construct the peewee query with SQL UNION.
+    # Below is the initial query.
+    peewee_query = vizdb.AllSpec.select().where(
+                      peewee.fn.q3c_radial_query(
+                          vizdb.AllSpec.ra,
+                          vizdb.AllSpec.dec,
+                          ra[0],
+                          dec[0],
+                          radius[0]))
+
+    # Below pipe | is peewee operator for SQL UNION
+    for i in range(1, len(ra)):
+        peewee_query = peewee_query | vizdb.AllSpec.select().where(
+                      peewee.fn.q3c_radial_query(
+                          vizdb.AllSpec.ra,
+                          vizdb.AllSpec.dec,
+                          ra[i],
+                          dec[i],
+                          radius[i]))
 
     return peewee_query
 
