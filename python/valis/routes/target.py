@@ -18,6 +18,8 @@ from valis.cache import valis_cache
 from valis.db.db import get_pw_db
 from valis.db.models import (
     AllSpecModel,
+    ApMadgicSpectrum,
+    ApMadgicVisit,
     ApogeeResponse,
     AstraPipeline,
     BossSpectrum,
@@ -26,6 +28,7 @@ from valis.db.models import (
     ParentCatalogModel,
     PipesModel,
     SDSSModel,
+    VacModel,
 )
 from valis.db.queries import (
     append_pipes,
@@ -41,6 +44,7 @@ from valis.db.queries import (
     get_target_meta,
     get_target_pipeline,
 )
+from valis.io.apmadgics import get_madgic_rows, get_madgic_spectrum
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
 
@@ -499,3 +503,48 @@ class Target(Base):
             )
 
         return result
+
+    @router.get(
+            "/vacs/{sdss_id}",
+            summary="Retrieve VAC data for a target by sdss_id",
+            dependencies=[Depends(set_auth)],
+            response_model=VacModel,
+            response_model_exclude_unset=True,
+            response_model_exclude_none=True,
+        )
+    @valis_cache(namespace="valis-target")
+    async def get_vac(self,
+                      sdss_id: Annotated[int, Path(description="The sdss_id of the target to get", example=55499273)]
+                      ):
+        """Get VAC info for a given sdss_id. Currently only retrieves apMADGICS info."""
+        try:
+            # fix to th to get the rv_verr_sys value
+            rows = get_madgic_rows(sdss_id)
+        except ValueError:
+            return {"apmadgics": None}
+        else:
+            return {"apmadgics": ApMadgicVisit.from_table(rows).model_dump(exclude_unset=True, exclude_none=True)}
+
+
+    @router.get(
+            "/apmadgics/{sdss_id}",
+            summary="Retrieve apMADGICS spectrum for a target by sdss_id",
+            dependencies=[Depends(set_auth)],
+            response_model=ApMadgicSpectrum,
+            response_model_exclude_unset=True
+        )
+    @valis_cache(namespace="valis-target")
+    async def get_apmadgic_spec(self,
+        sdss_id: Annotated[int, Path(description="The sdss_id of the target to get", example=55750505)],
+        magic_id: Annotated[int, Query(description="The magic_id of the apMADGICS spectrum to get")] = None,
+        mjd: Annotated[int, Query(description="The MJD of the apMADGICS spectrum to get")] = None,
+        plate: Annotated[int, Query(description="The plate of the apMADGICS spectrum to get")] = None,
+        fiberid: Annotated[int, Query(description="The fiberid of the apMADGICS spectrum to get")] = None,
+        star_prior: Annotated[str, Query(enum=["dd", "th"], description="The star prior type for the apMADGICS spectrum to get", example="dd")] = 'dd',
+    ):
+        """Get a spectrum from the apMADGICs hdf5 file for a given sdss_id"""
+        try:
+            return get_madgic_spectrum(sdss_id=sdss_id, magicid=magic_id, mjd=mjd, plate=plate, fiberid=fiberid,
+                                       star_prior=star_prior)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Error: {e}") from e
