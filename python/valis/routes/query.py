@@ -748,7 +748,7 @@ the POST request can contain the below JSON request body.
     # Below route has a GET version and a POST version.
     @router.get(
         "/allspec/cone_list",
-        summary="Perform a cone search on the SDSS allspec table based on a list of ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01",
+        summary="Perform a cone search on the SDSS allspec table based on a list of ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone_list?ra=77.0&dec=-68.0&radius=0.8&ra=78.0&dec=-70.0&radius=0.7",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -813,19 +813,19 @@ the POST request can contain the below JSON request body.
 the POST request can contain the below JSON request body.
 {
   "ra": [
-    77.5,
-    78.4
+    77.0,
+    78.0
   ],
   "dec": [
-    -68.2,
-    -70.5
+    -68.0,
+    -70.0
   ],
   "radius": [
-    0.8,
-    0.9
-  ],
-  ,
+    0.5,
+    0.3
+  ]
 }
+
         Empty object returned when no match is found.
 
         """
