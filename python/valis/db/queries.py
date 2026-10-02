@@ -1517,7 +1517,7 @@ def cast_int_list(int_list):
 
 def cast_float_list(float_list):
     for i in range(len(float_list)):
-        float_list[i] = int(float_list[i])
+        float_list[i] = float(float_list[i])
 
     return float_list
 
