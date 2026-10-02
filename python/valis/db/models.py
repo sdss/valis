@@ -17,6 +17,7 @@ from pydantic import (
     Field,
     FieldSerializationInfo,
     FieldValidationInfo,
+    RootModel,
     computed_field,
     field_serializer,
     field_validator,
@@ -685,3 +686,39 @@ class AstraPipeline(PeeweeBase):
     # This model may be instantiated from query results that include
     # additional Astra pipeline or joined columns so we allow extra fields.
     model_config = ConfigDict(extra="allow")
+
+
+class ApMadgicVisitRow(PeeweeBase):
+    """Pydantic model for apMADGICS spectra"""
+
+    sdss_id: Annotated[int, Field(description="The SDSS ID associated with the apMADGICS spectrum")]
+    mjd: Annotated[int, Field(description="The MJD of the observation")]
+    plate: Annotated[int, Field(description="The plate id of the observation")]
+    fiberid: Annotated[int, Field(description="The fiber ID for the observation")]
+    map2madgics: Annotated[int, Field(description="The map2madgics lookup index associated with the apMADGICS spectrum")]
+    rv_verr_sys_th: Annotated[float | None, Field(description="Stellar radial velocity error with systematic corrections")] = None
+
+    # Extra fields
+    model_config = ConfigDict(extra="allow")
+
+class ApMadgicVisit(RootModel[list[ApMadgicVisitRow]]):
+    """Root model for list of visit rows"""
+    @classmethod
+    def from_table(cls, table: Any) -> "ApMadgicVisit":
+        records = table.to_df("pandas").reset_index().to_dict(orient="records")
+        return cls.model_validate(records)
+
+class ApMadgicSpectrum(PeeweeBase):
+    """Pydantic model for an apMADGICS spectrum"""
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
+    flux: Annotated[list[FloatNaN], Field(description="The flux array for the apMADGICS spectrum")]
+    wavelength: Annotated[list[float], Field(description="The wavelength array for the apMADGICS spectrum")]
+    unit_wavelength: Annotated[str, Field(description="The unit of the wavelength array for the apMADGICS spectrum")]
+    unit_flux: Annotated[str, Field(description="The unit of the flux array for the apMADGICS spectrum")]
+
+
+class VacModel(PeeweeBase):
+    """Model for VAC data"""
+    apmadgics: Annotated[ApMadgicVisit | None,
+                         Field(description="The apMADGICS visit data associated with the VAC model")] = None

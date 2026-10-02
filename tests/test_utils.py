@@ -52,7 +52,7 @@ def test_build_astra_path(name):
     assert name in path
 
 @pytest.mark.parametrize('piece, exp',
-                         [('url', 'https://data.sdss5.org/sas/dr20/spectro'),
+                         [('url', 'https://data.sdss.org/sas/dr20/spectro'),
                           ('location', 'dr20/spectro/astra/'),
                           ('dir', '/tmp/sas/dr20/spectro'),
                           ('name', 'mwmStar-0.8.1-54459273.fits')],
