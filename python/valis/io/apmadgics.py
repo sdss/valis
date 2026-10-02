@@ -62,7 +62,7 @@ def _read_columns(path: str, select=None) -> dict[str, np.ndarray]:
         out = {}
         #rv_cols = ['rv_bary', 'rv_flag', 'rv_verr_sys']
         cols = ['sdss_id', 'map2madgics', 'mjd', 'plate', 'fiberid', 'field', 'telescope', 'apogee_id', 'gaiaedr3_source_id',
-                   'cartVisit', 'ra', 'dec', 'glon', 'glat', 'rv_bary', 'rv_flag', 'rv_verr_sys']
+                   'cartvisit', 'ra', 'dec', 'glon', 'glat', 'rv_bary', 'rv_flag', 'rv_verr_sys']
         lnames = list(map(str.lower, data.columns.names))
         for name in (n.lower() for n in cols if n in lnames):
             if select and not select(name):

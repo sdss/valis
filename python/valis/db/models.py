@@ -698,8 +698,7 @@ class ApMadgicVisitRow(PeeweeBase):
     map2madgics: Annotated[int, Field(description="The map2madgics lookup index associated with the apMADGICS spectrum")]
     rv_verr_sys_th: Annotated[float | None, Field(description="Stellar radial velocity error with systematic corrections")] = None
 
-    # This model may be instantiated from query results that include
-    # additional apMADGICS or joined columns so we allow extra fields.
+    # Extra fields
     model_config = ConfigDict(extra="allow")
 
 class ApMadgicVisit(RootModel[list[ApMadgicVisitRow]]):
