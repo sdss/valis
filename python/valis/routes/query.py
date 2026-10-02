@@ -745,7 +745,6 @@ the POST request can contain the below JSON request body.
 
         return targets or {}
 
-    # TODO write custom validator for ra list[float]
     # Below route has a GET version and a POST version.
     @router.get(
         "/allspec/cone_list",
@@ -801,7 +800,6 @@ the POST request can contain the below JSON request body.
 
         return targets or {}
 
-    # TODO write custom validator for ra list[float]
     # Below route has a GET version and a POST version.
     @router.post(
         "/allspec/cone_list",
