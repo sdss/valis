@@ -13,7 +13,7 @@ from sdssdb.peewee.sdss5db import catalogdb, database
 
 from valis.cache import valis_cache
 from valis.db.db import get_pw_db
-from valis.db.models import SDSSidStackedBase, SDSSModel
+from valis.db.models import SDSSidStackedBase, SDSSModel, AllSpecModel2
 from valis.db.queries import (
     MapperName,
     append_pipes,
@@ -27,6 +27,11 @@ from valis.db.queries import (
     get_targets_by_catalog_id,
     get_targets_by_sdss_id,
     get_targets_obs,
+    get_targets_allspec_id,
+    get_targets_allspec_cone,
+    get_targets_allspec_cone_list,
+    get_targets_allspec_id_like,
+    get_targets_allspec_id_in
 )
 from valis.routes.auth import set_auth
 from valis.routes.base import Base
@@ -34,6 +39,21 @@ from valis.routes.base import Base
 
 # convert string floats to proper floats
 Float = Annotated[Union[float, str], BeforeValidator(lambda x: float(x) if x and isinstance(x, str) else x)]
+
+
+# Below in regex, we match plus sign due to below column.
+# sdss5db=> select max(apogee_id) from vizdb.allspec limit 4;
+#         max
+# --------------------
+#  AP22304103+3917301
+# (1 row)
+# if you give above in url then + becomes space.
+# google
+# how to give + sign in rest api url
+#
+# To pass a literal + sign in a REST API URL, you must use its percent-encoded format: %2B
+
+alpha_num_pattern = r"^[a-zA-Z0-9\_\-\+]+$"
 
 
 class SearchCoordUnits(str, Enum):
@@ -78,6 +98,44 @@ class SDSSIdsModel(BaseModel):
     """Request body for the endpoint returning targets from an sdss_id list"""
 
     sdss_id_list: List[int] = Field(description="List of sdss_id values", example=[67660076, 67151446])
+
+
+# Field() options max_length and pattern do not work with List[str]
+# so they are not used below.
+class AllSpecIDModel(BaseModel):
+    """Request body for the endpoint /allspec/in"""
+    allspec_id: List[str] | None = Field(default=None, description="Value of allpspec_id", example=["sdss5--apo--boss--daily--v6_1_3--015000--59192--4375786564--70050164"])
+    multiplex_id: List[str] | None = Field(default=None, description="Value of multiplex_id", example=["sdss5--apo--apogee--0--8688--57650"])
+    releases_pk: List[int] | None = Field(default=None, description="Value of releases_pk", example=["26"])
+    sdss_phase: List[int] | None = Field(default=None, description="Value of sdss_phase", example=["5"])
+    observatory: List[str] | None = Field(default=None, description="Value of observatory", example=["APO"])
+    instrument: List[str] | None = Field(default=None, description="Value of instrument", example=["boss"])
+    sdss_id: List[int] | None = Field(default=None, description="Value of sdss_id", example=["70050164"])
+    catalogid: List[int] | None = Field(default=None, description="Value of catalogid", example=["4375786564"])
+    fiberid: List[int] | None = Field(default=None, description="Value of fiberid", example=["1"])
+    ifudsgn: List[int] | None = Field(default=None, description="Value of ifudsgn", example=["1901"])
+    plate: List[int] | None = Field(default=None, description="Value of plate", example=["121"])
+    fps_field: List[int] | None = Field(default=None, description="Value of fps_field", example=["15000"])
+    plate_or_fps_field: List[int] | None = Field(default=None, description="Value of plate_or_fps_field", example=["266"])
+    mjd: List[int] | None = Field(default=None, description="Value of mjd", example=["51578"])
+    run2d: List[str] | None = Field(default=None, description="Value of run2d", example=["103"])
+    run1d: List[str] | None = Field(default=None, description="Value of run1d", example=["v6_1_3"])
+    coadd: List[str] | None = Field(default=None, description="Value of coadd", example=["daily"])
+    apred_vers: List[str] | None = Field(default=None, description="Value of apred_vers", example=["dr17"])
+    drpver: List[str] | None = Field(default=None, description="Value of drp_ver", example=["v3_1_1"])
+    version: List[str] | None = Field(default=None, description="Value of version", example=["103"])
+    programname: List[str] | None = Field(default=None, description="Value of programname", example=["apogee"])
+    survey: List[str] | None = Field(default=None, description="Value of survey", example=["apogee2"])
+    healpix: List[int] | None = Field(default=None, description="Value of healpix", example=["129976"])
+    healpixgrp: List[int] | None = Field(default=None, description="Value of healpixgrp", example=["2"])
+    apogee_id: List[str] | None = Field(default=None, description="Value of apogee_id", example=["2M12210623+2655354"])
+
+
+class AllSpecConeModel(BaseModel):
+    """Request body for the endpoint /allspec/cone_list"""
+    ra: List[float] | None = Field(default=None, description="Values of ra", example=["77.5"])
+    dec: List[float] | None = Field(default=None, description="Values of dec", example=["-68.4"])
+    radius: List[float] | None = Field(default=None, description="Values of radius", example=["0.5"])
 
 
 class AltEnum(str, Enum):
@@ -373,3 +431,440 @@ class QueryRoutes(Base):
         """Return an ordered and paged list of targets based on the mapper."""
         targets = get_paged_target_list_by_mapper(mapper, page_number, items_per_page)
         return list(targets)
+
+    @router.get(
+        "/allspec/id",
+        summary="Perform a target search on the SDSS allspec table based on allspec_id and other integer and text columns such as sdss_id. For example /query/allspec/id?sdss_id=70050164&instrument=boss",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_id_search(self,
+        allspec_id: Annotated[str | None, Query(description="Value of allpspec_id", example="sdss5--apo--boss--daily--v6_1_3--015000--59192--4375786564--70050164", max_length=100, pattern=alpha_num_pattern)] = None,
+        multiplex_id: Annotated[str | None, Query(description="Value of multiplex_id", example="sdss5--apo--apogee--0--8688--57650", max_length=100, pattern=alpha_num_pattern)] = None,
+        releases_pk: Annotated[int | None, Query(description="Value of releases_pk", example="26")] = None,
+        sdss_phase: Annotated[int | None, Query(description="Value of sdss_phase", example="5")] = None,
+        observatory: Annotated[str | None, Query(description="Value of observatory", example="APO", max_length=50, pattern=alpha_num_pattern)] = None,
+        instrument: Annotated[str | None, Query(description="Value of instrument", example="boss", max_length=50, pattern=alpha_num_pattern)] = None,
+        sdss_id: Annotated[int | None, Query(description="Value of sdss_id", example="70050164")] = None,
+        catalogid: Annotated[int | None, Query(description="Value of catalogid", example="4375786564")] = None,
+        fiberid: Annotated[int | None, Query(description="Value of fiberid", example="1")] = None,
+        ifudsgn: Annotated[int | None, Query(description="Value of ifudsgn", example="1901")] = None,
+        plate: Annotated[int | None, Query(description="Value of plate", example="121")] = None,
+        fps_field: Annotated[int | None, Query(description="Value of fps_field", example="15000")] = None,
+        plate_or_fps_field: Annotated[int | None, Query(description="Value of plate_or_fps_field", example="266")] = None,
+        mjd: Annotated[int | None, Query(description="Value of mjd", example="51578")] = None,
+        run2d: Annotated[str | None, Query(description="Value of run2d", example="103", max_length=50, pattern=alpha_num_pattern)] = None,
+        run1d: Annotated[str | None, Query(description="Value of run1d", example="v6_1_3", max_length=50, pattern=alpha_num_pattern)] = None,
+        coadd: Annotated[str | None, Query(description="Value of coadd", example="daily", pattern=alpha_num_pattern)] = None,
+        apred_vers: Annotated[str | None, Query(description="Value of apred_vers", example="dr17", max_length=50, pattern=alpha_num_pattern)] = None,
+        drpver: Annotated[str | None, Query(description="Value of drp_ver", example="v3_1_1", max_length=50, pattern=alpha_num_pattern)] = None,
+        version: Annotated[str | None, Query(description="Value of version", example="103", max_length=50, pattern=alpha_num_pattern)] = None,
+        programname: Annotated[str | None, Query(description="Value of programname", example="apogee", max_length=50, pattern=alpha_num_pattern)] = None,
+        survey: Annotated[str | None, Query(description="Value of survey", example="apogee2", max_length=50, pattern=alpha_num_pattern)] = None,
+        healpix: Annotated[int | None, Query(description="Value of healpix", example="129976")] = None,
+        healpixgrp: Annotated[int | None, Query(description="Value of healpixgrp", example="2")] = None,
+        apogee_id: Annotated[str | None, Query(description="Value of apogee_id", example="2M12210623+2655354", max_length=50, pattern=alpha_num_pattern)] = None,
+             ):
+        """Perform a target search on the SDSS allspec table based on the allspec_id and other integer or text columns such as sdss_id. For example /query/allspec/id?sdss_id=70050164&instrument=boss
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allspec_id()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id(
+            allspec_id,
+            multiplex_id,
+            releases_pk,
+            sdss_phase,
+            observatory,
+            instrument,
+            sdss_id,
+            catalogid,
+            fiberid,
+            ifudsgn,
+            plate,
+            fps_field,
+            plate_or_fps_field,
+            mjd,
+            run2d,
+            run1d,
+            coadd,
+            apred_vers,
+            drpver,
+            version,
+            programname,
+            survey,
+            healpix,
+            healpixgrp,
+            apogee_id).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    @router.get(
+        "/allspec/cone",
+        summary="Perform a cone search on the SDSS allspec table based on ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_cone_search(self,
+        ra: Annotated[float | None, Query(description="Value of ra in degrees", example="77.363913", ge=0, lt=360)] = None,
+        dec: Annotated[float | None, Query(description="Value of dec in degrees", example="-68.977257", ge=-90, le=90)] = None,
+        radius: Annotated[float | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2", ge=0, lt=1)] = None,
+             ):
+        """Perform a cone search on the SDSS allspec table based on ra, dec, radius. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allspec_cone()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_cone(
+            ra,
+            dec,
+            radius).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    @router.get(
+        "/allspec/like",
+        summary="Perform a search on the SDSS allspec table based on part of an allspec_id (i.e. query will use SQL LIKE). For example /query/allspec/like?allspec_id_like=sdss5--apo--boss--epoch--v6_2_1--015002--59252--4375786564",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_id_like_search(self,
+        allspec_id_like: Annotated[str | None, Query(description="part of an allspec_id", example="sdss5--apo--boss--daily--v6_1_3--015000--59192", min_length=20, max_length=100, pattern=alpha_num_pattern)] = None):
+
+        """Perform a search on the SDSS allspec table based on part of an allspec_id (i.e. query will use SQL LIKE). For example
+        /query/allspec/like?allspec_id_like=sdss5--apo--boss--epoch--v6_2_1--015002--59252--4375786564
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allspec_allspec_id_like()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id_like(
+            allspec_id_like).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    # Below route has a GET version and a POST version.
+    @router.get(
+        "/allspec/in",
+        summary="Perform a target search on the SDSS allspec table with SQL IN based on allspec_id and other integer and text columns such as sdss_id. The URL can contain multiple entries for the same column. For example /query/allspec/in?sdss_id=70050164&sdss_id=92310876&instrument=boss",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_id_in_search(self,
+        allspec_id: Annotated[list[str] | None, Query(description="Value of allpspec_id", example="sdss5--apo--boss--daily--v6_1_3--015000--59192--4375786564--70050164")] = None,
+        multiplex_id: Annotated[list[str] | None, Query(description="Value of multiplex_id", example="sdss5--apo--apogee--0--8688--57650")] = None,
+        releases_pk: Annotated[list[int] | None, Query(description="Value of releases_pk", example="26")] = None,
+        sdss_phase: Annotated[list[int] | None, Query(description="Value of sdss_phase", example="5")] = None,
+        observatory: Annotated[list[str] | None, Query(description="Value of observatory", example="APO")] = None,
+        instrument: Annotated[list[str] | None, Query(description="Value of instrument", example="boss")] = None,
+        sdss_id: Annotated[list[int] | None, Query(description="Value of sdss_id", example="70050164")] = None,
+        catalogid: Annotated[list[int] | None, Query(description="Value of catalogid", example="4375786564")] = None,
+        fiberid: Annotated[list[int] | None, Query(description="Value of fiberid", example="1")] = None,
+        ifudsgn: Annotated[list[int] | None, Query(description="Value of ifudsgn", example="1901")] = None,
+        plate: Annotated[list[int] | None, Query(description="Value of plate", example="121")] = None,
+        fps_field: Annotated[list[int] | None, Query(description="Value of fps_field", example="15000")] = None,
+        plate_or_fps_field: Annotated[list[int] | None, Query(description="Value of plate_or_fps_field", example="266")] = None,
+        mjd: Annotated[list[int] | None, Query(description="Value of mjd", example="51578")] = None,
+        run2d: Annotated[list[str] | None, Query(description="Value of run2d", example="103")] = None,
+        run1d: Annotated[list[str] | None, Query(description="Value of run1d", example="v6_1_3")] = None,
+        coadd: Annotated[list[str] | None, Query(description="Value of coadd", example="daily", pattern=alpha_num_pattern)] = None,
+        apred_vers: Annotated[list[str] | None, Query(description="Value of apred_vers", example="dr17")] = None,
+        drpver: Annotated[list[str] | None, Query(description="Value of drp_ver", example="v3_1_1")] = None,
+        version: Annotated[list[str] | None, Query(description="Value of version", example="103")] = None,
+        programname: Annotated[list[str] | None, Query(description="Value of programname", example="apogee")] = None,
+        survey: Annotated[list[str] | None, Query(description="Value of survey", example="apogee2")] = None,
+        healpix: Annotated[list[int] | None, Query(description="Value of healpix", example="129976")] = None,
+        healpixgrp: Annotated[list[int] | None, Query(description="Value of healpixgrp", example="2")] = None,
+        apogee_id: Annotated[list[str] | None, Query(description="Value of apogee_id", example="2M12210623+2655354")] = None,
+             ):
+        """Perform a target search on the SDSS allspec table with SQL IN based on the allspec_id and other integer or text columns such as sdss_id. The URL can contain multiple entries for the same column. For example:
+Below sdss_id is repeated two times. So it is equivalent to the SQL IN clause "sdss_id  in (70050164, 92310876)".
+    /query/allspec/in?sdss_id=70050164&sdss_id=92310876&instrument=boss
+
+        Empty object returned when no match is found.
+
+        """
+
+        # The function get_targets_allspec_id_in()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id_in(
+            allspec_id,
+            multiplex_id,
+            releases_pk,
+            sdss_phase,
+            observatory,
+            instrument,
+            sdss_id,
+            catalogid,
+            fiberid,
+            ifudsgn,
+            plate,
+            fps_field,
+            plate_or_fps_field,
+            mjd,
+            run2d,
+            run1d,
+            coadd,
+            apred_vers,
+            drpver,
+            version,
+            programname,
+            survey,
+            healpix,
+            healpixgrp,
+            apogee_id).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    # Below route has a GET version and a POST version.
+    @router.post(
+        "/allspec/in",
+        summary="Perform a target search on the SDSS allspec table with SQL IN based on allspec_id and other integer and text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns.",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_id_in_search_post(self, body: AllSpecIDModel):
+        """Perform a target search on the SDSS allspec table with SQL IN based on the allspec_id and other integer or text columns such as sdss_id. The POST request will contain a list of values for such integer and text columns. For example
+the POST request can contain the below JSON request body.
+{
+  "sdss_id": [
+    70050164,
+    92310876
+  ]
+}
+        Empty object returned when no match is found.
+
+        """
+        allspec_id = body.allspec_id
+        multiplex_id = body.multiplex_id
+        releases_pk = body.releases_pk
+        sdss_phase = body.sdss_phase
+        observatory = body.observatory
+        instrument = body.instrument
+        sdss_id = body.sdss_id
+        catalogid = body.catalogid
+        fiberid = body.fiberid
+        ifudsgn = body.ifudsgn
+        plate = body.plate
+        fps_field = body.fps_field
+        plate_or_fps_field = body.plate_or_fps_field
+        mjd = body.mjd
+        run2d = body.run2d
+        run1d = body.run1d
+        coadd = body.coadd
+        apred_vers = body.apred_vers
+        drpver = body.drpver
+        version = body.version
+        programname = body.programname
+        survey = body.survey
+        healpix = body.healpix
+        healpixgrp = body.healpixgrp
+        apogee_id = body.apogee_id
+
+        # The function get_targets_allspec_id_in()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+        targets = list(get_targets_allspec_id_in(
+            allspec_id,
+            multiplex_id,
+            releases_pk,
+            sdss_phase,
+            observatory,
+            instrument,
+            sdss_id,
+            catalogid,
+            fiberid,
+            ifudsgn,
+            plate,
+            fps_field,
+            plate_or_fps_field,
+            mjd,
+            run2d,
+            run1d,
+            coadd,
+            apred_vers,
+            drpver,
+            version,
+            programname,
+            survey,
+            healpix,
+            healpixgrp,
+            apogee_id).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    # Below route has a GET version and a POST version.
+    @router.get(
+        "/allspec/cone_list",
+        summary="Perform a cone search on the SDSS allspec table based on a list of ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone_list?ra=77.0&dec=-68.0&radius=0.8&ra=78.0&dec=-70.0&radius=0.7",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_cone_search_list(self,
+        ra: Annotated[list[float] | None, Query(description="Value of ra in degrees", example="77.363913")] = None,
+        dec: Annotated[list[float] | None, Query(description="Value of dec in degrees", example="-68.977257")] = None,
+        radius: Annotated[list[float] | None, Query(description="Value of radius of search in degrees (maximum is 1 degree)", example="0.2")] = None,
+             ):
+        """Perform a cone search on the SDSS allspec table based on ra, dec, radius. Maximum allowed value for radius is 1 degree. For example /query/allspec/cone?ra=77&dec=-68&radius=0.01
+
+        Empty object returned when no match is found.
+
+        """
+
+        if ra is None:
+            raise HTTPException(status_code=400, detail=f"Missing ra {ra}.")
+
+        if dec is None:
+            raise HTTPException(status_code=400, detail=f"Missing dec {dec}.")
+
+        if radius is None:
+            raise HTTPException(status_code=400, detail=f"Missing radius {radius}.")
+
+        max_length_ra = 100
+        if (len(ra) > max_length_ra):
+            raise HTTPException(status_code=400, detail="len(ra) must be less than " +
+                 str(max_length_ra) + ". The len(ra) = " + str(len(ra)))
+
+        if (len(ra) != len(dec)):
+            raise HTTPException(status_code=400, detail="len(ra) != len(dec)")
+
+        if (len(ra) != len(radius)):
+            raise HTTPException(status_code=400, detail="len(ra) != len(radius)")
+
+        # The function get_targets_allspec_cone_list()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+
+        targets = list(get_targets_allspec_cone_list(
+                       ra, dec, radius).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
+
+    # Below route has a GET version and a POST version.
+    @router.post(
+        "/allspec/cone_list",
+        summary="Perform a cone search on the SDSS allspec table based on a list of ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. The POST request will contain a list of values ra, dec, and radius.",
+        response_model=List[AllSpecModel2],
+        dependencies=[Depends(get_pw_db), Depends(set_auth)],
+    )
+    @valis_cache(namespace="valis-query")
+    async def get_targets_allspec_cone_search_post(self, body: AllSpecConeModel):
+        """Perform a cone search on the SDSS allspec table based on a list of ra, dec, radius. Units are degrees. Maximum allowed value for radius is 1 degree. The POST request will contain a list of values ra, dec, and radius. For example
+the POST request can contain the below JSON request body.
+{
+  "ra": [
+    77.0,
+    78.0
+  ],
+  "dec": [
+    -68.0,
+    -70.0
+  ],
+  "radius": [
+    0.5,
+    0.3
+  ]
+}
+
+        Empty object returned when no match is found.
+
+        """
+        ra = body.ra
+        dec = body.dec
+        radius = body.radius
+
+        if ra is None:
+            raise HTTPException(status_code=400, detail=f"Missing ra {ra}.")
+
+        if dec is None:
+            raise HTTPException(status_code=400, detail=f"Missing dec {dec}.")
+
+        if radius is None:
+            raise HTTPException(status_code=400, detail=f"Missing radius {radius}.")
+
+        max_length_ra = 100
+        if (len(ra) > max_length_ra):
+            raise HTTPException(status_code=400, detail="len(ra) must be less than " +
+                 str(max_length_ra) + ". The len(ra) = " + str(len(ra)))
+
+        if (len(ra) != len(dec)):
+            raise HTTPException(status_code=400, detail="len(ra) != len(dec)")
+
+        if (len(ra) != len(radius)):
+            raise HTTPException(status_code=400, detail="len(ra) != len(radius)")
+
+        # The function get_targets_allspec_cone()
+        # returns a ModelSelect object.
+        # The method .dicts() converts the peewee ModelSelect object
+        # into a dictionary.
+        # The function list() converts the dictionary into a list.
+        # The list can then be serialized.
+
+        targets = list(get_targets_allspec_cone_list(
+                       ra, dec, radius).dicts())
+
+        # throw exception when no targets are found.
+        if not targets:
+            raise HTTPException(status_code=400, detail="No targets found in the allspec table for given search inputs. Try adjusting your query.")
+
+        return targets or {}
