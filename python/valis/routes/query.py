@@ -434,7 +434,7 @@ class QueryRoutes(Base):
 
     @router.get(
         "/allspec/id",
-        summary="Perform a target search on the SDSS allspec table based on allspec_id and other integer and text columns such as sdss_id.",
+        summary="Perform a target search on the SDSS allspec table based on allspec_id and other integer and text columns such as sdss_id. For example /query/allspec/id?sdss_id=70050164&instrument=boss",
         response_model=List[AllSpecModel2],
         dependencies=[Depends(get_pw_db), Depends(set_auth)],
     )
@@ -466,7 +466,7 @@ class QueryRoutes(Base):
         healpixgrp: Annotated[int | None, Query(description="Value of healpixgrp", example="2")] = None,
         apogee_id: Annotated[str | None, Query(description="Value of apogee_id", example="2M12210623+2655354", max_length=50, pattern=alpha_num_pattern)] = None,
              ):
-        """Perform a target search on the SDSS allspec table based on the allspec_id and other integer or text columns such as sdss_id.
+        """Perform a target search on the SDSS allspec table based on the allspec_id and other integer or text columns such as sdss_id. For example /query/allspec/id?sdss_id=70050164&instrument=boss
 
         Empty object returned when no match is found.
 
