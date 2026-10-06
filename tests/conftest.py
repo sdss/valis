@@ -18,11 +18,14 @@ import pytest
 import numpy as np
 from astropy.io import fits
 from fastapi.testclient import TestClient
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 
 from tree import Tree
 from sdss_access.path import Path
 from valis.main import app
 from valis.routes.auth import set_auth
+
 
 
 async def override_auth():
@@ -150,3 +153,8 @@ class MockPath(Path):
     def __init__(self, *args, **kwargs):
         super(MockPath, self).__init__(*args, **kwargs)
         self.templates.update({'test': '$TEST_REDUX/{ver}/testfile_{id}.fits'})
+
+
+@pytest.fixture(autouse=True)
+def initialized_cache():
+    FastAPICache.init(InMemoryBackend(), prefix="tests")
