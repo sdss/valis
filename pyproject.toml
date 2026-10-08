@@ -69,6 +69,9 @@ dev = [
     "setuptools>=80.9.0",
 ]
 
+[tool.uv]
+environments = ["sys_platform != 'win32'"]
+
 [tool.uv.sources]
 sdss-solara = { git = "https://github.com/sdss/sdss_solara", rev = "main" }
 
