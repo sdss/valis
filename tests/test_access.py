@@ -1,6 +1,9 @@
 # encoding: utf-8
 #
+import pathlib
+
 import pytest
+from valis.routes.access import verify_path
 
 
 def test_paths(client):
@@ -157,3 +160,34 @@ def test_mock_path_value_validation(
         assert response.json()["full"].endswith(
             f"/{version}/testfile_A.fits"
         )
+
+
+def test_verify_path(setup_sas, tmp_path):
+    """Test we can verify a valid path"""
+    # Example valid path
+    valid_file = tmp_path / "sas/dr17/manga/spectro/redux/v3_1_1/8485/stack/manga-8485-1901-LOGCUBE.fits.gz"
+    valid_file.parent.mkdir(parents=True, exist_ok=True)
+    valid_file.touch()
+
+    target = verify_path("mangacube", str(valid_file), "DR17")
+    assert target == valid_file
+    assert target.is_file()
+
+
+@pytest.mark.parametrize('name, filepath, release, msg', [
+    ("mangacube", "$MANGA_DRP_DIR/manga-8485-1901-LOGCUBE.fits.gz", "DR17", "Path contains unresolved environment variable"),
+    ("mangacube", "../../manga-8485-1901-LOGCUBE.fits.gz", "DR17", "Expected an absolute file path"),
+    ("mangacube", "/sas/ipl-3/manga-8485-1901-LOGCUBE.fits.gz", "DR17", "Path for mangacube resolves outside authorized SAS root"),
+], ids=['envvar', 'relative', 'altrelease'])
+def test_verify_fails(tmp_path, name, filepath, release, msg):
+    """Test that verifying an invalid path fails"""
+
+    with pytest.raises(ValueError, match=msg):
+        verify_path(name, str(filepath), release)
+
+
+def test_verify_no_root(monkeypatch):
+    """Test fail when no root exists"""
+    monkeypatch.delenv("SAS_BASE_DIR")
+    with pytest.raises(ValueError, match="No authorized root configured"):
+        verify_path("mangacube", "/some/path", "DR17")

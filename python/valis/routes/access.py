@@ -50,6 +50,58 @@ class PathResponse(BaseModel):
     warning: Optional[str] = None
 
 
+def verify_path(name: str, filepath: str, release: str) -> pathlib.Path:
+    """Verify the filepath
+
+    Verify the filepath after resolution from sdss_access
+
+    Parameters
+    ----------
+    name : str
+        the access product name
+    filepath : str
+        the filepath
+    release : str
+        the release
+
+    Returns
+    -------
+    pathlib.Path
+        the resolved target path
+
+    Raises
+    ------
+    ValueError
+        if no authorized root is configured
+    ValueError
+        if the path contains an unresolved environment variable
+    ValueError
+        if the path is not absolute
+    ValueError
+        if the path resolves outside the authorized SAS root
+    """
+    release_name = release.lower()
+    root = os.environ.get("SAS_BASE_DIR")
+    if not root:
+        raise ValueError("No authorized root configured")
+
+    release_root = pathlib.Path(os.path.join(root, release_name)).resolve(strict=False)
+    candidate = pathlib.Path(filepath)
+
+    if candidate.parts[0].startswith('$'):
+        raise ValueError("Path contains unresolved environment variable")
+
+    if not candidate.is_absolute():
+        raise ValueError("Expected an absolute file path")
+
+    target = candidate.resolve(strict=False)
+    if not target.is_relative_to(release_root):
+        raise ValueError(
+            f"Path for {name} resolves outside authorized SAS root"
+        )
+
+    return target
+
 class PathModel(PathResponse):
     """ A validator class for sdss_access path names and kwargs """
     _path: Path = PrivateAttr()  # private attr so model has correct sdss_access pat
@@ -112,25 +164,9 @@ class PathModel(PathResponse):
         if not self.kwargs and self.needs_kwargs:
             return self
 
-        release_name = self._path.release.lower()
-        root = os.environ.get("SAS_BASE_DIR")
-        if not root:
-            raise ValueError("No authorized root configured")
+        # verify the path
+        verify_path(self.name, self._path.full(self.name, **self.kwargs), self._path.release)
 
-        release_root = pathlib.Path(os.path.join(root, release_name)).resolve(strict=False)
-        candidate = pathlib.Path(self._path.full(self.name, **self.kwargs))
-
-        if candidate.parts[0].startswith('$'):
-            raise ValueError("Path contains unresolved environment variable")
-
-        if not candidate.is_absolute():
-            raise ValueError("Expected an absolute file path")
-
-        target = candidate.resolve(strict=False)
-        if not target.is_relative_to(release_root):
-            raise ValueError(
-                f"Path for {self.name} resolves outside authorized SAS root"
-            )
         return self
 
     def __init__(self, *args, **kwargs):

@@ -1,9 +1,12 @@
 # encoding: utf-8
 #
 
+import pathlib
+from fastapi import HTTPException
 import pytest
 
-from valis.routes.files import bytes_to_numpy
+from valis.routes.access import PathModel, Path
+from valis.routes.files import bytes_to_numpy, get_filepath
 
 
 def get_data(response):
@@ -100,4 +103,54 @@ def test_file_stream(client, testfile, format):
         assert all(arr[0] == [1., 1., 1., 1., 1.])
 
 
+@pytest.fixture()
+def model(setup_sas):
+    """Fixture for creating a PathModel instance"""
+    kk = {"mjd": "60448", "run2d": "v6_2_1",
+          "catalogid": "27021603186436291", "fieldid": "110580"}
+    p = Path(release='DR20')
+    return PathModel(name="specLite", kwargs=kk, _path=p)
 
+
+@pytest.mark.asyncio
+async def test_get_filepath(model):
+    """test getting a valid filepath"""
+    pp = pathlib.Path(model.full)
+    pp.parent.mkdir(parents=True, exist_ok=True)
+    pp.touch()
+
+    target = await get_filepath("specLite", model)
+    assert pathlib.Path(target).is_file()
+
+
+@pytest.mark.asyncio
+async def test_get_filepath_no_file(model):
+    """test no file found"""
+    with pytest.raises(HTTPException, match='File not found'):
+        await get_filepath("specLite", model)
+
+
+@pytest.mark.asyncio
+async def test_get_filepath_unsupported(model):
+    """test unsupported file type"""
+    model.full = model.full.replace('fits', 'parquet')
+    pp = pathlib.Path(model.full)
+    pp.parent.mkdir(parents=True, exist_ok=True)
+    pp.touch()
+
+    with pytest.raises(HTTPException, match='Unsupported file type'):
+        await get_filepath("specLite", model)
+
+@pytest.mark.asyncio
+async def test_get_filepath_incomplete(model):
+    """Test incomplete path model"""
+    model.full = None
+    with pytest.raises(HTTPException, match='Incomplete file parameters'):
+        await get_filepath("specLite", model)
+
+@pytest.mark.asyncio
+async def test_get_filepath_bad(model):
+    """test a bad formatted filename"""
+    model.full = f'$BOSS_DRP_DIR/{model.file}'
+    with pytest.raises(HTTPException, match='Path contains unresolved environment variable'):
+        await get_filepath("specLite", model)

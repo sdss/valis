@@ -18,7 +18,7 @@ from io import StringIO
 from enum import Enum
 
 from valis.routes.base import Base
-from valis.routes.access import extract_path, PathModel
+from valis.routes.access import extract_path, PathModel, verify_path
 
 router = APIRouter()
 
@@ -32,18 +32,26 @@ Ext = Annotated[Union[int, str], BeforeValidator(lambda x: int(x) if str(x).isnu
 async def get_filepath(name: str = Path(..., description='The sdss access path name', example='spec-lite'),
                        path: Type[PathModel] = Depends(extract_path)) -> str:
     """ Depedency to get a filepath from sdss_access """
-    data = path.model_dump(include={'full', 'exists'})
-    filepath = data['full']
+
+    filepath = path.full
+    if not filepath:
+        raise HTTPException(status_code=422, detail="Incomplete file parameters")
+
+    # verify the resolved path
+    try:
+        target = verify_path(name, filepath, path._path.release)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
     # validate file existenence
-    if not data['exists']:
-        raise HTTPException(status_code=404, detail=f'File {filepath} not found')
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail='File not found')
 
     # validate file suffix type
-    if set(pathlib.Path(filepath).suffixes).isdisjoint(VALIS_SUPPORTED_FILES):
-        raise HTTPException(status_code=400, detail=f'File {filepath} is not yet a supported filetype.')
+    if set(target.suffixes).isdisjoint(VALIS_SUPPORTED_FILES):
+        raise HTTPException(status_code=400, detail='Unsupported file type.')
 
-    return filepath
+    return str(target)
 
 
 async def header(filename: str = Depends(get_filepath), ext: Ext = 0) -> dict:
