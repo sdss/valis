@@ -27,8 +27,15 @@ def test_paths_with_templates(client):
     assert r'$ROBOSTRATEGY_DATA/allocations/{plan}/rsCompleteness-{plan}-{observatory}.fits' in data['rsCompleteness']
 
 
+## commenting out platePlans as these are now rejected by the paths/
+## validation, as they fall outside a valis release SAS path or when the envvar
+## isn't resolved.
+## if we improve sdss_access we can potentially re-enable support
+## for svn/git products
+
 @pytest.mark.parametrize('name, kwargs',
-                         [('platePlans', []), ('mangacube', ['ifu', 'drpver', 'plate', 'wave'])])
+                         [#('platePlans', []),
+                          ('mangacube', ['ifu', 'drpver', 'plate', 'wave'])])
 def test_paths_keywords(client, name, kwargs):
     response = client.get(f"/paths/keywords/{name}?release=DR16")
     assert response.status_code == 200
@@ -46,7 +53,7 @@ def test_path_names_nokwargs(client):
 
 
 @pytest.mark.parametrize('name, params, exp',
-                         [('platePlans', 'release=DR16', 'data/sdss/platelist/trunk/platePlans.par'),
+                         [#('platePlans', 'release=DR16', 'data/sdss/platelist/trunk/platePlans.par'),
                           ('mangacube', 'kwargs=plate=8485&kwargs=ifu=1901&kwargs=wave=LOG&kwargs=drpver=v2_4_3&release=DR16',
                            'dr16/manga/spectro/redux/v2_4_3/8485/stack/manga-8485-1901-LOGCUBE.fits.gz'),
                           ('mangacube', 'kwargs=plate=8485,ifu=1901,wave=LOG,drpver=v2_4_3&release=DR16',
@@ -108,3 +115,45 @@ def test_path_post_name_not_in_release(client):
     assert response.status_code == 422
     data = response.json()
     assert data['detail'][0]['msg'] == 'Value error, Validation error: path name mangacube not a valid sdss_access name for release WORK'
+
+
+@pytest.mark.parametrize("method", ["GET", "POST"])
+@pytest.mark.parametrize(
+    "version, expected_status",
+    [
+        ("v1", 200),
+        ("v1_2.3-beta", 200),
+        ("1.3.2", 200),
+        (".", 422),
+        ("..", 422),
+        ("v1/child", 422),
+        (r"v1\child", 422),
+        ("v1\n", 422),
+    ],
+)
+def test_mock_path_value_validation(
+    client, setup_sas, method, version, expected_status
+):
+    """test we reject path-traversal values in access kwargs"""
+    if method == "GET":
+        response = client.get(
+            "/paths/test",
+            params={
+                "release": "DR17",
+                "kwargs": [f"ver={version}", "id=A"],
+            },
+        )
+    else:
+        response = client.post(
+            "/paths/test",
+            json={
+                "release": "DR17",
+                "kwargs": {"ver": version, "id": "A"},
+            },
+        )
+
+    assert response.status_code == expected_status, response.text
+    if expected_status == 200:
+        assert response.json()["full"].endswith(
+            f"/{version}/testfile_A.fits"
+        )

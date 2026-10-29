@@ -4,6 +4,7 @@
 from __future__ import print_function, division, absolute_import
 
 import httpx
+import re
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
@@ -53,9 +54,11 @@ class CredToken(CredentialBase):
 class SDSSAuthPasswordBearer(OAuth2PasswordBearer):
 
     async def __call__(self, request: Request, release: str = Depends(release)):
-        self.release = release or "WORK"
+        release_name = (release or "WORK").upper()
 
-        if 'DR' in self.release or settings.env == 'development':
+        if settings.env == 'development':
+            return None
+        if re.fullmatch(r"DR[0-9]+", release_name):
             return None
         await super().__call__(request)
 

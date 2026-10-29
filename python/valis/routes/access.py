@@ -12,6 +12,11 @@
 
 
 from __future__ import print_function, division, absolute_import
+import re
+import os
+import pathlib
+from coverage.debug import pp
+from matplotlib.pylab import roots
 from sdss_access.path import Path
 from fastapi import APIRouter, Depends, HTTPException, Query, Path as FPath
 from fastapi_restful.cbv import cbv
@@ -82,12 +87,50 @@ class PathModel(PathResponse):
         if missing:
             mstr = ', '.join(missing)
             raise ValueError(f'Validation error: Missing kwargs {mstr} for name: {name}')
+
+        # validate the values against path traversal
+        for key, value in v.items():
+            text = str(value)
+            if (
+                not isinstance(value, (str, int, float))
+                or text in {".", ".."}
+                or re.fullmatch(r"[\w.-]+", text) is None
+                ):
+                raise ValueError(f'Invalid kwargs value for {key}: {value}')
+
         return v
 
     @model_validator(mode='after')
     def check_kwargs(self):
         ''' Check and assign the needs_kwargs attribute'''
         self.needs_kwargs = any(self._path.lookup_keys(self.name))
+        return self
+
+    @model_validator(mode='after')
+    def check_full_path(self):
+        """ Ensure the resolved path stays inside the SAS base directory """
+        if not self.kwargs and self.needs_kwargs:
+            return self
+
+        release_name = self._path.release.lower()
+        root = os.environ.get("SAS_BASE_DIR")
+        if not root:
+            raise ValueError("No authorized root configured")
+
+        release_root = pathlib.Path(os.path.join(root, release_name)).resolve(strict=False)
+        candidate = pathlib.Path(self._path.full(self.name, **self.kwargs))
+
+        if candidate.parts[0].startswith('$'):
+            raise ValueError("Path contains unresolved environment variable")
+
+        if not candidate.is_absolute():
+            raise ValueError("Expected an absolute file path")
+
+        target = candidate.resolve(strict=False)
+        if not target.is_relative_to(release_root):
+            raise ValueError(
+                f"Path for {self.name} resolves outside authorized SAS root"
+            )
         return self
 
     def __init__(self, *args, **kwargs):
@@ -109,18 +152,29 @@ class PathBody(BaseBody):
     exists: bool = Field(False, description='Flag to check if the path exists')
 
 
+def _raise_http_path(ee: ValidationError):
+    """ Raise an HTTPException for a path validation error """
+    # pop the path object
+    err = ee.errors(include_context=False)
+    if isinstance(err[0]["input"], dict):
+        err[0]["input"].pop("_path", None)
+    raise HTTPException(status_code=422, detail=err) from ee
+
 async def valid_name(name: str = FPath(description='the sdss access path name', example='specLite'),
                      access: Path = Depends(get_access)):
     """ Dependency to validate a path name """
     try:
         PathModel(name=name, _path=access)
     except ValidationError as ee:
-        raise HTTPException(status_code=422, detail=ee.errors()) from ee
+        _raise_http_path(ee)
     else:
         return name
 
 
-key_constr = Annotated[str, StringConstraints(pattern="(?:,|^)((\w+)=(?:([\w\d.]+)))")]
+# path kwarg constraint
+_PAIR = r"[A-Za-z0-9_]+=[A-Za-z0-9_]+(?:[.-][A-Za-z0-9_]+)*"
+key_constr = Annotated[str, StringConstraints(pattern=rf"\A{_PAIR}(?:,{_PAIR})*\z", max_length=1024)]
+
 
 #/Users/brian/Work/sdss/sas/ipl-3/spectro/boss/redux/v6_1_3/spectra/lite/112360/60052/spec-112360-60052-27021598150202075.fits
 # examples
@@ -128,26 +182,25 @@ key_constr = Annotated[str, StringConstraints(pattern="(?:,|^)((\w+)=(?:([\w\d.]
 # DR19 - specLite; ["fieldid=112360", "mjd=60052", "catalogid=27021598150202075", "run2d=v6_1_3"]
 
 async def extract_path(name: str = Depends(valid_name),
-                       kwargs: List[key_constr] = Query(None, description='the keyword variable arguments defining a path',
+                       kwargs: Optional[List[key_constr]] = Query(None, description='the keyword variable arguments defining a path',
                                                         example=["fieldid=112360", "mjd=60052", "catalogid=27021598150202075", "run2d=v6_1_3"]),
                        access: Path = Depends(get_access)) -> Type[PathModel]:
     """ Dependency to extract and parse path name and keyword arguments """
 
     # parse the kwargs list into a dict
-    if isinstance(kwargs, str):
-        items = kwargs
-    elif isinstance(kwargs, list):
-        items = ','.join(kwargs)
-    elif not kwargs:
-        items = None
-
-    params = dict(map(lambda x: x.split('='), items.split(','))) if items else {}
+    params: dict[str, str] = {}
+    for item in kwargs or []:
+        for pair in item.split(","):
+            key, _, value = pair.partition("=")  # the pattern guarantees one "=" per pair
+            if key in params:
+                raise HTTPException(status_code=422, detail=f"Duplicate keyword argument: {key}")
+            params[key] = value
 
     # validate the name and kwargs with the Path model
     try:
         path = PathModel(name=name, kwargs=params, _path=access)
     except ValidationError as ee:
-        raise HTTPException(status_code=422, detail=ee.errors()) from ee
+        _raise_http_path(ee)
     else:
         return path
 
@@ -253,7 +306,7 @@ class Paths(Base):
         try:
             path = PathModel(name=name, kwargs=kwargs, _path=self.path)
         except ValidationError as ee:
-            raise HTTPException(status_code=422, detail=ee.errors(include_context=False)) from ee
+            _raise_http_path(ee)
         else:
             return self.process_path(path, body.part, body.exists)
 
