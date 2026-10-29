@@ -18,6 +18,7 @@ def get_data(response):
     return response.json()
 
 
+@pytest.mark.timeout(10)
 def test_resolve_target_name(client):
     """test we resolve a target name"""
     response = client.get("/target/resolve/name?name=MaNGA 7443-12701")
@@ -26,7 +27,7 @@ def test_resolve_target_name(client):
     assert data['coordinate']['unit'] == 'deg'
     assert data['name'] in ("LEDA 2223006", "2MASX J15220182+4331560")
 
-
+@pytest.mark.timeout(10)
 def test_resolve_target_coord(client):
     """test we resolve a target coordinate"""
     response = client.get("/target/resolve/coord?coord=230.50745896&coord=43.53232817")
