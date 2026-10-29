@@ -1,7 +1,7 @@
 
 [project]
 name = "sdss-valis"
-version = "0.3.1"
+version = "0.3.2"
 description = "the SDSS API for delivering and accessing remote information"
 readme = "README.md"
 requires-python = ">=3.11"

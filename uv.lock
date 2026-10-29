@@ -5112,7 +5112,7 @@ dependencies = [
 [[package]]
 name = "sdss-solara"
 version = "0.2.1.dev0"
-source = { git = "https://github.com/sdss/sdss_solara?rev=main#63e392a5aa3b31dac191bef7abf9d0fd6561955f" }
+source = { git = "https://github.com/sdss/sdss_solara?rev=main#a128ba5079937f9006ba46c0bcaf12963dcd5fed" }
 dependencies = [
     { name = "jdaviz", marker = "sys_platform != 'win32'" },
     { name = "markdown", marker = "sys_platform != 'win32'" },
@@ -5141,7 +5141,7 @@ wheels = [
 
 [[package]]
 name = "sdss-valis"
-version = "0.3.1"
+version = "0.3.2"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles", marker = "sys_platform != 'win32'" },
