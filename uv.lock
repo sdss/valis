@@ -5141,7 +5141,7 @@ wheels = [
 
 [[package]]
 name = "sdss-valis"
-version = "0.3.2"
+version = "0.3.3.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "aiofiles", marker = "sys_platform != 'win32'" },
